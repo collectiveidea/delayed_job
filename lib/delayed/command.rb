@@ -44,8 +44,9 @@ module Delayed
         opts.on('-m', '--monitor', 'Start monitor process.') do
           @monitor = true
         end
-        
-
+        opts.on('--sleep-delay N', "Amount of time to sleep when no jobs are found") do |n|
+          @options[:sleep_delay] = n
+        end
       end
       @args = opts.parse!(args)
     end
