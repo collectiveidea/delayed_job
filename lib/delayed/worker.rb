@@ -18,6 +18,8 @@ module Delayed
     
     self.logger = if defined?(Merb::Logger)
       Merb.logger
+    elsif defined?(Rails)
+      Rails.logger
     elsif defined?(RAILS_DEFAULT_LOGGER)
       RAILS_DEFAULT_LOGGER
     end
