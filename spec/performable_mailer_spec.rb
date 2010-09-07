@@ -1,6 +1,7 @@
 require 'spec_helper'
-
 require 'action_mailer'
+require 'delayed/performable_mailer'
+
 class MyMailer < ActionMailer::Base
   def signup(email)
     mail :to => email, :subject => "Delaying Emails"

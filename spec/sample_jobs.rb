@@ -41,7 +41,7 @@ class CallbackJob
     self.class.messages << 'perform'
   end
   
-  def after(job, error = nil)
+  def after(job)
     self.class.messages << 'after'
   end
   
