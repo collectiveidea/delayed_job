@@ -12,5 +12,5 @@ describe YAML do
       YAML.load("--- !ruby/struct:Autoloaded::Struct {}")
     }.should_not raise_error
   end
-  
+
 end

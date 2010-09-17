@@ -24,10 +24,10 @@ Benchmark.bm(10) do |x|
   BACKENDS.each do |backend|
     require "spec/setup/#{backend}"
     Delayed::Worker.backend = backend
-  
+
     n = 10000
     n.times { "foo".delay.length }
 
     x.report(backend.to_s) { Delayed::Worker.new(:quiet => true).work_off(n) }
-  end  
+  end
 end

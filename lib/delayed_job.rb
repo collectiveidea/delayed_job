@@ -8,5 +8,5 @@ require File.dirname(__FILE__) + '/delayed/backend/base'
 require File.dirname(__FILE__) + '/delayed/worker'
 require File.dirname(__FILE__) + '/delayed/railtie' if defined?(Rails::Railtie)
 
-Object.send(:include, Delayed::MessageSending)   
+Object.send(:include, Delayed::MessageSending)
 Module.send(:include, Delayed::MessageSending::ClassMethods)
