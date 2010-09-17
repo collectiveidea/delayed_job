@@ -28,6 +28,7 @@ class DelayedJobGenerator < Rails::Generators::Base
   def create_migration_file
     if defined?(ActiveRecord)
       migration_template 'migration.rb', 'db/migrate/create_delayed_jobs.rb'
+      migration_template 'migration_log.rb', 'db/migrate/create_delayed_jobs_completed_jobs.rb'
     end
   end
 
