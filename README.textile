@@ -54,7 +54,6 @@ h3. Active Record
 The default is Active Record, which requires a jobs table.
 
 <pre>
-$ script/generate delayed_job # Rails 2
 $ rails generate delayed_job  # Rails 3
 $ rake db:migrate
 </pre>

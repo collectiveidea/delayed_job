@@ -83,7 +83,10 @@ module Delayed
             Time.now
           end
         end
+      end
 
+      class CompletedJob < ::ActiveRecord::Base
+        set_table_name :delayed_jobs_completed_jobs
       end
     end
   end

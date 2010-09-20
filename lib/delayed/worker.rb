@@ -115,6 +115,17 @@ module Delayed
     def run(job)
       runtime =  Benchmark.realtime do
         Timeout.timeout(self.class.max_run_time.to_i) { job.invoke_job }
+
+        # Save completed job details
+        completed_job = Delayed::Backend::ActiveRecord::CompletedJob.new
+        completed_job.priority   = job.priority
+        completed_job.attempts   = job.attempts
+        completed_job.handler    = job.handler
+        completed_job.last_error = job.last_error
+        completed_job.run_at     = job.run_at
+        completed_job.locked_by  = job.locked_by
+        completed_job.save
+
         job.destroy
       end
       say "#{job.name} completed after %.4f" % runtime
