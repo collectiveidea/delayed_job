@@ -129,7 +129,7 @@ module Delayed
     # Uses an exponential scale depending on the number of failed attempts.
     def reschedule(job, time = nil)
       if (job.attempts += 1) < self.class.max_attempts
-        time ||= Job.db_time_now + (job.attempts ** 4) + 5
+        time ||= job.reschedule_at
         job.run_at = time
         job.unlock
         job.save!

@@ -79,13 +79,25 @@ module Delayed
         self.locked_at    = nil
         self.locked_by    = nil
       end
+
+      def hook(name, *args)
+        if payload_object.respond_to?(name)
+          method = payload_object.method(name)
+          method.arity == 0 ? method.call : method.call(self, *args)
+        end
+      end
+
+      def reschedule_at
+        payload_object.respond_to?(:reschedule_at) ? 
+          payload_object.reschedule_at(self.class.db_time_now, attempts) :
+          self.class.db_time_now + (attempts ** 4) + 5
+      end
       
     protected
 
       def set_default_run_at
         self.run_at ||= self.class.db_time_now
       end
-    
     end
   end
 end
