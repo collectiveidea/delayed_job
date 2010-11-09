@@ -161,25 +161,30 @@ module Delayed
     # Run the next job we can get an exclusive lock on.
     # If no jobs are left we return nil
     def reserve_and_run_one_job
-
-      # We get up to 5 jobs from the db. In case we cannot get exclusive access to a job we try the next.
-      # this leads to a more even distribution of jobs across the worker processes
-      if self.class.log_queries || !logger
-        available_jobs = find_available_jobs
+      if Delayed::Job.respond_to?(:find_and_lock!)
+        # Get one locked job from the db guaranteed to be already locked
+        job = Delayed::Job.find_and_lock!(name, self.class.max_run_time)
+        say "acquired lock on #{job.name}" if job
       else
-        logger.silence { available_jobs = find_available_jobs}
-      end
-      
-      job = available_jobs.detect do |job|
-        if job.lock_exclusively!(self.class.max_run_time, name)
-          say "acquired lock on #{job.name}"
-          true
+        # We get up to 5 jobs from the db. In case we cannot get exclusive access to a job we try the next.
+        # this leads to a more even distribution of jobs across the worker processes
+        if self.class.log_queries || !logger
+          available_jobs = find_available_jobs
         else
-          say "failed to acquire exclusive lock for #{job.name}", Logger::WARN
-          false
+          logger.silence { available_jobs = find_available_jobs}
+        end
+
+        job = find_available_jobs.detect do |job|
+          if job.lock_exclusively!(self.class.max_run_time, name)
+            say "acquired lock on #{job.name}"
+            true
+          else
+            say "failed to acquire exclusive lock for #{job.name}", Logger::WARN
+            false
+          end
         end
       end
-
+      
       run(job) if job
     end
   

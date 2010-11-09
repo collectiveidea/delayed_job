@@ -43,17 +43,31 @@ module Delayed
           update_all("locked_by = null, locked_at = null", ["locked_by = ?", worker_name])
         end
 
-        # Find a few candidate jobs to run (in case some immediately get locked by others).
-        def self.find_available(worker_name, limit = 5, max_run_time = Worker.max_run_time)
+        def self.jobs_available_to_worker(worker_name, max_run_time)
           scope = self.ready_to_run(worker_name, max_run_time)
           scope = scope.scoped(:conditions => ['priority >= ?', Worker.min_priority]) if Worker.min_priority
           scope = scope.scoped(:conditions => ['priority <= ?', Worker.max_priority]) if Worker.max_priority
-
+          scope.by_priority
+        end
+        
+        # Find a few candidate jobs to run (in case some immediately get locked by others).
+        def self.find_available(worker_name, limit = 5, max_run_time = Worker.max_run_time)          
           ::ActiveRecord::Base.silence do
-            scope.by_priority.all(:limit => limit)
+            jobs_available_to_worker(worker_name, max_run_time).all(:limit => limit)
           end
         end
 
+        def self.find_and_lock!(worker_name, max_run_time)
+          transaction do
+            job = jobs_available_to_worker(worker_name, max_run_time).first(:lock => true)
+            if job && job.lock_exclusively!(max_run_time, worker_name)
+              job
+            else
+              nil
+            end
+          end
+        end
+        
         # Lock this job for this worker.
         # Returns true if we have the lock, false otherwise.
         def lock_exclusively!(max_run_time, worker)
