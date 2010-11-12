@@ -14,7 +14,13 @@ It is a direct extraction from Shopify where the job table is responsible for a 
 
 h2. Installation
 
-To install as a gem, add the following to @config/environment.rb@:
+For Rails 3, to install as a gem, add the following to @Gemfile@:
+
+<pre>
+gem 'delayed_job'
+</pre>
+
+For Rails 2.x, add the following to @config/environment.rb@:
 
 <pre>
 config.gem 'delayed_job'
