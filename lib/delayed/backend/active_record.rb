@@ -34,6 +34,10 @@ module Delayed
           ::ActiveRecord::Base.clear_all_connections!
         end
 
+        named_scope :locked_by_worker, lambda{|worker_name, max_run_time|
+          {:conditions => ['locked_by = ? AND locked_at > ?', worker_name, db_time_now - max_run_time]}
+        }
+        
         def self.after_fork
           ::ActiveRecord::Base.establish_connection
         end
@@ -57,14 +61,13 @@ module Delayed
           end
         end
 
+        # Returns a locked job or nil.  Serializes worker lock attempts on db.
         def self.find_and_lock!(worker_name, max_run_time)
-          transaction do
-            job = jobs_available_to_worker(worker_name, max_run_time).first(:lock => true)
-            if job && job.lock_exclusively!(max_run_time, worker_name)
-              job
-            else
-              nil
-            end
+          affected_rows = update_all(["locked_at = ?, locked_by = ?", db_time_now, worker_name], jobs_available_to_worker(worker_name, max_run_time).scope(:find)[:conditions], :limit => 1)
+          if affected_rows == 1
+            locked_by_worker(worker_name, max_run_time).first
+          else
+            nil
           end
         end
         
