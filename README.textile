@@ -44,7 +44,7 @@ Call @.delay.method(params)@ on any object and it will be processed in the backg
 Notifier.deliver_signup(@user)
 
 # with delayed_job
-Notifier.delay.signup(@user)
+Notifier.delay.deliver_signup(@user)
 </pre>
 
 If a method should always be run in the background, you can call @#handle_asynchronously@ after the method declaration:
