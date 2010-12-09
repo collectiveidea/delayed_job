@@ -40,6 +40,7 @@ module Delayed
 
     def self.guess_backend
       self.backend ||= :active_record if defined?(ActiveRecord)
+      self.backend ||= :mongoid if defined?(Mongoid)
     end
 
     def initialize(options={})

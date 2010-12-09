@@ -2,6 +2,14 @@ require 'spec_helper'
 require 'delayed/backend/active_record'
 
 describe Delayed::Backend::ActiveRecord::Job do
+  before :all do
+    Delayed::Worker.backend = :active_record    
+  end
+  
+  after :all do
+    Delayed::Worker.backend = BACKEND
+  end
+
   after do
     Time.zone = nil
   end

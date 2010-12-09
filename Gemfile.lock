@@ -37,6 +37,7 @@ GEM
     activesupport (3.0.3)
     archive-tar-minitar (0.5.2)
     arel (2.0.4)
+    bson (1.1.4)
     builder (2.1.2)
     columnize (0.3.2)
     daemons (1.1.0)
@@ -53,6 +54,13 @@ GEM
       mime-types (~> 1.16)
       treetop (~> 1.4.8)
     mime-types (1.16)
+    mongo (1.1.4)
+      bson (>= 1.1.1)
+    mongoid (2.0.0.beta.20)
+      activemodel (~> 3.0)
+      mongo (~> 1.1)
+      tzinfo (~> 0.3.22)
+      will_paginate (~> 3.0.pre)
     mysql (2.8.1)
     polyglot (0.3.1)
     rack (1.2.1)
@@ -102,6 +110,7 @@ GEM
     treetop (1.4.9)
       polyglot (>= 0.3.1)
     tzinfo (0.3.23)
+    will_paginate (3.0.pre2)
 
 PLATFORMS
   ruby
@@ -110,6 +119,7 @@ DEPENDENCIES
   activesupport (~> 3.0)
   daemons
   delayed_job!
+  mongoid (= 2.0.0.beta.20)
   mysql
   rails (~> 3.0)
   rake

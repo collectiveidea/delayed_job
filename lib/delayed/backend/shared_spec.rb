@@ -1,5 +1,43 @@
 require File.expand_path('../../../../spec/sample_jobs', __FILE__)
 
+shared_examples_for "any failure more than Worker.max_attempts times" do
+  context "when the job's payload has a #failure hook" do
+    before do
+      @job = Delayed::Job.create :payload_object => OnPermanentFailureJob.new
+      @job.payload_object.should respond_to :failure
+    end
+
+    it "should run that hook" do
+      @job.payload_object.should_receive :failure
+      worker.reschedule(@job)
+    end
+  end
+
+  context "when the job's payload has no #failure hook" do
+    # It's a little tricky to test this in a straightforward way,
+    # because putting a should_not_receive expectation on
+    # @job.payload_object.failure makes that object
+    # incorrectly return true to
+    # payload_object.respond_to? :failure, which is what
+    # reschedule uses to decide whether to call failure.
+    # So instead, we just make sure that the payload_object as it
+    # already stands doesn't respond_to? failure, then
+    # shove it through the iterated reschedule loop and make sure we
+    # don't get a NoMethodError (caused by calling that nonexistent
+    # failure method).
+
+    before do
+      @job.payload_object.should_not respond_to(:failure)
+    end
+
+    it "should not try to run that hook" do
+      lambda do
+        Delayed::Worker.max_attempts.times { worker.reschedule(@job) }
+      end.should_not raise_exception(NoMethodError)
+    end
+  end
+end
+
 shared_examples_for 'a delayed_job backend' do
   let(:worker) { Delayed::Worker.new }
 
@@ -397,44 +435,6 @@ shared_examples_for 'a delayed_job backend' do
     context "reschedule" do
       before do
         @job = Delayed::Job.create :payload_object => SimpleJob.new
-      end
-
-      share_examples_for "any failure more than Worker.max_attempts times" do
-        context "when the job's payload has a #failure hook" do
-          before do
-            @job = Delayed::Job.create :payload_object => OnPermanentFailureJob.new
-            @job.payload_object.should respond_to :failure
-          end
-
-          it "should run that hook" do
-            @job.payload_object.should_receive :failure
-            worker.reschedule(@job)
-          end
-        end
-
-        context "when the job's payload has no #failure hook" do
-          # It's a little tricky to test this in a straightforward way,
-          # because putting a should_not_receive expectation on
-          # @job.payload_object.failure makes that object
-          # incorrectly return true to
-          # payload_object.respond_to? :failure, which is what
-          # reschedule uses to decide whether to call failure.
-          # So instead, we just make sure that the payload_object as it
-          # already stands doesn't respond_to? failure, then
-          # shove it through the iterated reschedule loop and make sure we
-          # don't get a NoMethodError (caused by calling that nonexistent
-          # failure method).
-
-          before do
-            @job.payload_object.should_not respond_to(:failure)
-          end
-
-          it "should not try to run that hook" do
-            lambda do
-              Delayed::Worker.max_attempts.times { worker.reschedule(@job) }
-            end.should_not raise_exception(NoMethodError)
-          end
-        end
       end
 
       context "and we want to destroy jobs" do

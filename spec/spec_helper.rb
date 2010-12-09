@@ -7,6 +7,7 @@ require 'logger'
 
 require 'rails'
 require 'active_record'
+require 'mongoid'
 require 'action_mailer'
 
 require 'delayed_job'
@@ -14,6 +15,16 @@ require 'delayed/backend/shared_spec'
 
 Delayed::Worker.logger = Logger.new('/tmp/dj.log')
 ENV['RAILS_ENV'] = 'test'
+
+BACKEND = :active_record
+# BACKEND = :mongoid
+
+Mongoid.configure do |config|
+  name = "delayed_job"
+  host = "localhost"
+  config.master = Mongo::Connection.new.db(name)
+  config.persist_in_safe_mode = false
+end
 
 config = YAML.load(File.read('spec/database.yml'))
 ActiveRecord::Base.configurations = {'test' => config['mysql']}
@@ -49,7 +60,7 @@ class Story < ActiveRecord::Base
   handle_asynchronously :whatever
 end
 
-Delayed::Worker.backend = :active_record
+Delayed::Worker.backend = BACKEND
 
 # Add this directory so the ActiveSupport autoloading works
 ActiveSupport::Dependencies.autoload_paths << File.dirname(__FILE__)
