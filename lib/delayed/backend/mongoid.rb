@@ -18,6 +18,8 @@ module Delayed
         field :locked_at, :type => Time
         field :failed_at, :type => Time
         field :locked_by, :type => String
+        
+        index ([[:locked_by, -1], [:priority, 1], [:run_at, 1]])
                 
         scope :ready_to_run, lambda {|worker_name, max_run_time|
           where(:failed_at => nil, :run_at.lte => db_time_now).any_of({:locked_by => worker_name}, {:locked_at => nil}, {:locked_at.lte => (db_time_now - max_run_time)})
@@ -65,8 +67,8 @@ module Delayed
 
         # Get the current time.
         def self.db_time_now
-          # Only return Time.now if using bson_ext gem. It does not support ActiveSupport::TimeWithZone yet.
-          return Time.now if defined?(CBson)
+          # Only return Time.now.utc if using bson_ext gem. It does not support ActiveSupport::TimeWithZone yet.
+          return Time.now.utc if defined?(CBson)
           if Time.zone
             Time.zone.now
           else
