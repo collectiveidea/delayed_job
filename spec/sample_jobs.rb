@@ -11,6 +11,7 @@ end
 
 class ErrorJob
   cattr_accessor :runs; self.runs = 0
+  attr_accessor :var1
   def perform; raise 'did not work'; end
 end
 
