@@ -166,9 +166,8 @@ module Delayed
     def handle_failed_job(job, error)
       job.last_error = "{#{error.message}\n#{error.backtrace.join('\n')}"
       say "#{job.name} failed with #{error.class.name}: #{error.message} - #{job.attempts} failed attempts", Logger::ERROR
-      say error.backtrace, Logger::ERROR
-      say "Failing Job data: " + job.payload_object.to_yaml, Logger::ERROR
-      say "#{job.attempts} failed attempts", Logger::ERROR
+      say "#{job.name}: #{error.backtrace}", Logger::ERROR
+      say "#{job.name}: #{job.payload_object.to_yaml}", Logger::ERROR
       reschedule(job)
     end
 
