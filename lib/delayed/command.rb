@@ -60,7 +60,6 @@ module Delayed
       
       dir = @options[:pid_dir]
       Dir.mkdir(dir) unless File.exists?(dir)
-      p Rails.env
       base_process_name = "delayed_job.#{Rails.env}"
       if @worker_count > 1 && @options[:identifier]
         raise ArgumentError, 'Cannot specify both --number-of-workers and --identifier'
@@ -69,7 +68,7 @@ module Delayed
         run_process(process_name, dir)
       else
         worker_count.times do |worker_index|
-          process_name = worker_count == 1 ? base_process_name : "#{base_process_name}.#{Rails.env}.#{worker_index}"
+          process_name = worker_count == 1 ? base_process_name : "#{base_process_name}.#{worker_index}"
           run_process(process_name, dir)
         end
       end
