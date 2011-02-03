@@ -27,7 +27,7 @@ end
 
 class Class
   yaml_as "tag:ruby.yaml.org,2002:class"
-  remove_method :to_yaml # use Module's to_yaml
+  remove_method :to_yaml rescue nil # use Module's to_yaml
 end
 
 class Struct
