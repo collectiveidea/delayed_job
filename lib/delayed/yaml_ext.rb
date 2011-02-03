@@ -2,6 +2,7 @@
 # Classes, Modules and Structs
 
 require 'yaml'
+YAML::ENGINE.yamler = "syck"
 
 class Module
   yaml_as "tag:ruby.yaml.org,2002:module"
