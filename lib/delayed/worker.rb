@@ -121,6 +121,7 @@ module Delayed
         job.destroy
       end
       say "#{job.name} completed after %.4f" % runtime
+      job.hook(:completed)
       return true  # did work
     rescue DeserializationError => error
       job.last_error = "{#{error.message}\n#{error.backtrace.join('\n')}"
