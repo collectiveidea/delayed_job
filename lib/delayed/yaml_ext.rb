@@ -4,6 +4,14 @@
 require 'yaml'
 YAML::ENGINE.yamler = "syck" if defined?(YAML::ENGINE)
 
+class Date
+  def to_yaml( opts={} )
+    YAML::quick_emit( self, opts ) do |out|
+      out.scalar( "tag:yaml.org,2002:timestamp", self.to_s(:db), :plain )
+    end
+  end
+end
+
 class Module
   yaml_as "tag:ruby.yaml.org,2002:module"
 
