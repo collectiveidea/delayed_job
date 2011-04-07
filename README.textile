@@ -177,6 +177,31 @@ class ParanoidNewsletterJob < NewsletterJob
 end
 </pre>
 
+h2. Autoscaling (with Heroku)
+
+This fork of delayed_job handles autoscaling of workers, either locally or on Heroku with a simple modification.  To get this working, follow these steps:
+
+* <code>gem install rush</code> (for local auto-scaling using the regular rake task)
+* Add the heroku gem to the .gems manifest (or if you're using Bundler, add it to your Gemfile)
+* Use <code>heroku config:add</code> to add these 3 keys: <code>HEROKU_USERNAME, HEROKU_PASSWORD, HEROKU_APP</code>.  These are used to launch the heroku client from your dyno in order to change the worker quantity.
+* Add an initializer (<code>autoscale_workers.rb</code>) to config/initializers:
+<pre><code>Delayed::Job.auto_scale = true
+if RAILS_ENV == 'production'
+   Delayed::Job.auto_scale_manager = :heroku
+else
+   Delayed::Job.auto_scale_manager = :local
+end</pre></code>
+
+Also make sure that you've already verified your account with a credit card and you're able to scale workers from the command line via <code>heroku workers +1</code> without errors.
+
+h3. Testing out autoscaling
+
+To test it out, load up your heroku console in 1 tab, and in another Terminal window type the command <code>heroku workers --app your_app</code>.  Your workers should be zero.
+
+In your heroku console, type <code>Time.send_later(:now)</code> which will queue up a simple job.  You can verify that the job was added with Delayed::Job.count.  It should equal 1.  If you check your workers at this point, you should see 1 worker.
+
+Keep checking your jobs & worker count and you should be able to see the job get cleared from the queue and the workers scale back down to zero automatically.
+
 h2. Gory Details
 
 The library evolves around a delayed_jobs table which looks as follows:

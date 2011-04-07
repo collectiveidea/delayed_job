@@ -231,6 +231,32 @@ describe Delayed::Worker do
           end
         end
       end
+
+      context "auto scaling, it" do
+        before do
+          Delayed::Worker.stub!(:auto_scale).and_return(true)
+          @manager = mock('sample manager', :qty => 0)
+          Delayed::Manager.stub!(:instance).and_return(@manager)
+        end
+
+        it "doesn't spin a worker if auto_scale = false" do
+          Delayed::Worker.stub!(:auto_scale).and_return(false)
+          @manager.should_not_receive(:scale_up)
+          Delayed::Job.create(:payload_object => SimpleJob.new)
+        end
+
+        it "doesn't spin a worker if there's one or more working already" do
+          @manager.stub!(:qty).and_return(2)
+          @manager.should_not_receive(:scale_up)
+          Delayed::Job.create(:payload_object => SimpleJob.new)
+        end
+
+        it "spins a worker otherwise" do
+          @manager.should_receive(:scale_up)
+          Delayed::Job.create(:payload_object => SimpleJob.new)
+        end
+      end
+
     end
   end
   

@@ -35,6 +35,7 @@ module Delayed
         timestamps!
         
         before_save :set_default_run_at
+        after_create :scale_up
 
         ensure_index [[:priority, 1], [:run_at, 1]]
         

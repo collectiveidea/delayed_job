@@ -24,6 +24,7 @@ module Delayed
         set_table_name :delayed_jobs
         
         before_save :set_default_run_at
+        after_create :scale_up
 
         named_scope :ready_to_run, lambda {|worker_name, max_run_time|
           {:conditions => ['(run_at <= ? AND (locked_at IS NULL OR locked_at < ?) OR locked_by = ?) AND failed_at IS NULL', db_time_now, db_time_now - max_run_time, worker_name]}

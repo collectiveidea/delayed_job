@@ -124,6 +124,9 @@ module Delayed
         self.run_at ||= self.class.db_time_now
       end    
 
+      def scale_up
+        Delayed::Manager.scale_up if Delayed::Worker.auto_scale && Delayed::Manager.qty == 0
+      end
     end
   end
 end

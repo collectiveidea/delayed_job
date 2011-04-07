@@ -19,6 +19,7 @@ This gem is collectiveidea's fork (http://github.com/collectiveidea/delayed_job)
 
   s.add_runtime_dependency      'daemons',        '1.0.10'
   s.add_runtime_dependency      'activesupport',  '~> 2.0'
+  s.add_runtime_dependency      'rush',           '~> 0.6'
 
   s.add_development_dependency  'rspec',          '~> 1.0'
   s.add_development_dependency  'rake'

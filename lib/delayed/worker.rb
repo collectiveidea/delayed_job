@@ -1,3 +1,4 @@
+require 'rush'
 require 'timeout'
 require 'active_support/core_ext/numeric/time'
 
@@ -9,6 +10,16 @@ module Delayed
     self.max_run_time = 4.hours
     self.default_priority = 0
     
+    # enable auto_scale if you want DJ to spin a worker when there's a
+    # new job to be done, and kill it when there's nothing else to do
+    cattr_accessor :auto_scale
+    self.auto_scale = false
+
+    # the auto_scale_manager is the class that knows how to scale workers
+    # up and down
+    cattr_accessor :auto_scale_manager
+    self.auto_scale_manager = :local
+
     # By default failed jobs are destroyed after too many attempts. If you want to keep them around
     # (perhaps to inspect the reason for the failure), set this to false.
     cattr_accessor :destroy_failed_jobs
@@ -81,6 +92,8 @@ module Delayed
         end
 
         count = result.sum
+
+        Delayed::Manager.scale_down if count.zero? && Delayed::Worker.auto_scale
 
         break if $exit
 

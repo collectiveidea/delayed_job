@@ -119,6 +119,10 @@ module Delayed
         before :save do
           self.run_at ||= self.class.db_time_now
         end  
+
+        after :create do
+          scale_up
+        end  
       end
     end
   end
