@@ -85,23 +85,23 @@ shared_examples_for 'a delayed_job backend' do
         lambda { job.invoke_job }.should change { M::ModuleJob.runs }.from(0).to(1)
       end
     end
-    
+
     context "with delay_jobs = false" do
       before(:each) do
         Delayed::Worker.delay_jobs = false
       end
-      
+
       it "should not increase count after enqueuing items" do
         described_class.enqueue SimpleJob.new
         described_class.count.should == 0
       end
-      
+
       it 'should invoke the enqueued job' do
         job = SimpleJob.new
         job.should_receive(:perform)
         described_class.enqueue job
       end
-      
+
       it 'should return a job, not the result of invocation' do
         described_class.enqueue(SimpleJob.new).should be_instance_of(described_class)
       end
@@ -304,20 +304,55 @@ shared_examples_for 'a delayed_job backend' do
       @job.id.should_not be_nil
     end
   end
-  
+
+  context "named queues" do
+    context "when worker has queue set" do
+      before(:each) do
+        worker.queues = 'large'
+      end
+
+      it "should only work off jobs which are from its queue" do
+        SimpleJob.runs.should == 0
+
+        create_job(:queue => "large")
+        create_job(:queue => "small")
+        worker.work_off
+
+        SimpleJob.runs.should == 1
+      end
+    end
+
+    context "when worker does not have queue set" do
+      before(:each) do
+        worker.queues = nil
+      end
+
+      it "should work off all jobs" do
+        SimpleJob.runs.should == 0
+
+        create_job(:queue => "one")
+        create_job(:queue => "two")
+        create_job
+        worker.work_off
+
+        SimpleJob.runs.should == 3
+      end
+    end
+  end
+
   context "max_attempts" do
     before(:each) do
       @job = described_class.enqueue SimpleJob.new
     end
-    
+
     it 'should not be defined' do
       @job.max_attempts.should be_nil
     end
-    
+
     it 'should use the max_retries value on the payload when defined' do
       @job.payload_object.stub!(:max_attempts).and_return(99)
       @job.max_attempts.should == 99
-    end 
+    end
   end
 
   describe "yaml serialization" do
