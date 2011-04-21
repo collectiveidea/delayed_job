@@ -306,7 +306,7 @@ shared_examples_for 'a delayed_job backend' do
   end
 
   context "named queues" do
-    context "when worker has queue set" do
+    context "when worker has one queue set" do
       before(:each) do
         worker.queues = 'large'
       end
@@ -319,6 +319,24 @@ shared_examples_for 'a delayed_job backend' do
         worker.work_off
 
         SimpleJob.runs.should == 1
+      end
+    end
+
+    context "when worker has two queue set" do
+      before(:each) do
+        worker.queues = 'large,small'
+      end
+
+      it "should only work off jobs which are from its queue" do
+        SimpleJob.runs.should == 0
+
+        create_job(:queue => "large")
+        create_job(:queue => "small")
+        create_job(:queue => "medium")
+        create_job
+        worker.work_off
+
+        SimpleJob.runs.should == 2
       end
     end
 
