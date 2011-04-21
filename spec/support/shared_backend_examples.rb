@@ -1,4 +1,4 @@
-require File.expand_path('../../../../spec/sample_jobs', __FILE__)
+require File.dirname(__FILE__ ) + '/../sample_jobs'
 
 shared_examples_for 'a delayed_job backend' do
   let(:worker) { Delayed::Worker.new }
