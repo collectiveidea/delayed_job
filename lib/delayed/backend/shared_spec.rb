@@ -47,6 +47,11 @@ shared_examples_for 'a delayed_job backend' do
         job = described_class.enqueue :payload_object => SimpleJob.new, :run_at => later
         job.run_at.should be_within(1).of(later)
       end
+
+      it "should be able to set queue" do
+        job = described_class.enqueue :payload_object => SimpleJob.new, :queue => 'tracking'
+        job.queue.should == 'tracking'
+      end
     end
 
     context "with multiple arguments" do
