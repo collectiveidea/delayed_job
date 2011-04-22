@@ -313,7 +313,7 @@ shared_examples_for 'a delayed_job backend' do
   context "named queues" do
     context "when worker has one queue set" do
       before(:each) do
-        worker.queues = 'large'
+        worker.queues = ['large']
       end
 
       it "should only work off jobs which are from its queue" do
@@ -329,7 +329,7 @@ shared_examples_for 'a delayed_job backend' do
 
     context "when worker has two queue set" do
       before(:each) do
-        worker.queues = 'large,small'
+        worker.queues = ['large', 'small']
       end
 
       it "should only work off jobs which are from its queue" do
@@ -347,7 +347,7 @@ shared_examples_for 'a delayed_job backend' do
 
     context "when worker does not have queue set" do
       before(:each) do
-        worker.queues = nil
+        worker.queues = []
       end
 
       it "should work off all jobs" do
