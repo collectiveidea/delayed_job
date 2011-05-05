@@ -38,6 +38,7 @@ ActiveRecord::Schema.define do
 
   create_table :stories, :primary_key => :story_id, :force => true do |table|
     table.string :text
+    table.boolean :scoped, :default => true
   end
 end
 
@@ -46,6 +47,7 @@ class Story < ActiveRecord::Base
   set_primary_key :story_id
   def tell; text; end
   def whatever(n, _); tell*n; end
+  default_scope where(:scoped => true)
 
   handle_asynchronously :whatever
 end

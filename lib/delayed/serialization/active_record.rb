@@ -2,7 +2,7 @@ class ActiveRecord::Base
   yaml_as "tag:ruby.yaml.org,2002:ActiveRecord"
 
   def self.yaml_new(klass, tag, val)
-    klass.find(val['attributes'][klass.primary_key])
+    klass.unscoped.find(val['attributes'][klass.primary_key])
   rescue ActiveRecord::RecordNotFound
     raise Delayed::DeserializationError
   end
