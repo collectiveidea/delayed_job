@@ -2,22 +2,25 @@ $:.unshift(File.dirname(__FILE__) + '/../lib')
 
 require 'rubygems'
 require 'bundler/setup'
+# Bundler.require
 require 'rspec'
 require 'logger'
 
-require 'rails'
+# require 'rails'
 require 'active_record'
 require 'action_mailer'
 
 require 'delayed_job'
-require 'delayed/backend/shared_spec'
+
+require 'sample_jobs'
+
+# common support libs
+Dir[ File.join(File.dirname(__FILE__), 'support', '**', '*.rb') ].each { |f| require f }
 
 Delayed::Worker.logger = Logger.new('/tmp/dj.log')
-ENV['RAILS_ENV'] = 'test'
+# ENV['RAILS_ENV'] = 'test'
 
-config = YAML.load(File.read('spec/database.yml'))
-ActiveRecord::Base.configurations = {'test' => config['mysql']}
-ActiveRecord::Base.establish_connection
+ActiveRecord::Base.establish_connection( 'adapter' => 'sqlite3', 'database' => ':memory:' )
 ActiveRecord::Base.logger = Delayed::Worker.logger
 ActiveRecord::Migration.verbose = false
 
@@ -59,3 +62,7 @@ ActiveSupport::Dependencies.autoload_paths << File.dirname(__FILE__)
 
 # Add this to simulate Railtie initializer being executed
 ActionMailer::Base.send(:extend, Delayed::DelayMail)
+
+
+RSpec.configure do |config|
+end
