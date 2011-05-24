@@ -33,4 +33,12 @@ describe Delayed::Backend::ActiveRecord::Job do
       Delayed::Backend::ActiveRecord::Job.after_fork
     end
   end
+  
+  describe "enqueue" do
+    it "should allow enqueue hook to modify job at DB level" do
+      later = described_class.db_time_now + 20.minutes
+      job = described_class.enqueue :payload_object => EnqueueJobMod.new
+      Delayed::Backend::ActiveRecord::Job.find(job.id).run_at.should be_within(1).of(later)
+    end
+  end
 end

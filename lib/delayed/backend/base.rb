@@ -25,8 +25,9 @@ module Delayed
           end
 
           if Delayed::Worker.delay_jobs
-            self.create(options).tap do |job|
+            self.new(options).tap do |job|
               job.hook(:enqueue)
+              job.save
             end
           else
             Delayed::Job.new(:payload_object => options[:payload_object]).tap do |job|

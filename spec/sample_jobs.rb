@@ -67,3 +67,9 @@ class CallbackJob
     self.class.messages << 'failure'
   end
 end
+
+class EnqueueJobMod < SimpleJob
+  def enqueue(job)
+    job.run_at = 20.minutes.from_now
+  end
+end
