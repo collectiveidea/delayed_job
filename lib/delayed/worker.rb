@@ -125,10 +125,9 @@ module Delayed
             say "Forked #{@child} at #{Time.now.to_i}"
             Process.wait
           else
-            procline "Processing #{job.queue} since #{Time.now.to_i}"
             job.invoke_job
             job.destroy
-            $exit unless @cant_fork
+            $exit = true unless @cant_fork
           end 
           }
       end
