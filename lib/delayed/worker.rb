@@ -70,8 +70,8 @@ module Delayed
     def start
       say "Starting job worker"
 
-      trap('TERM') { say 'Exiting...'; $exit = true }
-      trap('INT')  { say 'Exiting...'; $exit = true }
+      trap('TERM') { say 'Exiting...'; exit }
+      trap('INT')  { say 'Exiting...'; exit }
 
       loop do
         result = nil
@@ -82,7 +82,7 @@ module Delayed
 
         count = result.sum
 
-        break if $exit
+        break if e
 
         if count.zero?
           sleep(self.class.sleep_delay)
@@ -90,7 +90,7 @@ module Delayed
           say "#{count} jobs processed at %.4f j/s, %d failed ..." % [count / realtime, result.last]
         end
 
-        break if $exit
+        break if exit?
       end
 
     ensure
@@ -111,7 +111,7 @@ module Delayed
         else
           break  # leave if no work could be done
         end
-        break if $exit # leave if we're exiting
+        break if exit? # leave if we're exiting
       end
 
       return [success, failure]
@@ -127,7 +127,7 @@ module Delayed
           else
             job.invoke_job
             job.destroy
-            $exit = true unless @cant_fork
+            exit unless @cant_fork
           end 
           }
       end
@@ -187,6 +187,14 @@ module Delayed
       job = Delayed::Job.reserve(self)
       run(job) if job
     end
+  end
+  
+  def exit
+    say "Exiting ..."
+    @exit = true
+  end
+  def exit?
+    @exit
   end
   
   def fork
