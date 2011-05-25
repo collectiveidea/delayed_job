@@ -50,6 +50,7 @@ module Delayed
       self.class.min_priority = options[:min_priority] if options.has_key?(:min_priority)
       self.class.max_priority = options[:max_priority] if options.has_key?(:max_priority)
       self.class.sleep_delay = options[:sleep_delay] if options.has_key?(:sleep_delay)
+      @cant_fork = true unless options[:threaded]
     end
 
     # Every worker has a unique name which by default is the pid of the process. There are some
@@ -82,7 +83,7 @@ module Delayed
 
         count = result.sum
 
-        break if e
+        break if exit?
 
         if count.zero?
           sleep(self.class.sleep_delay)
@@ -101,7 +102,6 @@ module Delayed
     # Exit early if interrupted.
     def work_off(num = 100)
       success, failure = 0, 0
-
       num.times do
         case reserve_and_run_one_job
         when true
@@ -111,9 +111,7 @@ module Delayed
         else
           break  # leave if no work could be done
         end
-        say "Test 1"
         break if exit? # leave if we're exiting
-        say "Test 2"
       end
 
       return [success, failure]
@@ -125,7 +123,6 @@ module Delayed
           Delayed::Job.before_fork
           if @child = fork
             #srand # Reseeding
-            say "testing"
             say "Forked #{@child} at #{Time.now.to_i}"
             Process.wait
           else
@@ -133,10 +130,10 @@ module Delayed
             job.invoke_job
             exit unless @cant_fork
           end 
-          job.destroy unless exit?
+          job.destroy unless (exit? || @cant_fork)
           }
       end
-      say "#{job.name} completed after %.4f" % runtime
+      say "#{job.name} completed after %.4f" % runtime unless exit?
       return true  # did work
     rescue DeserializationError => error
       job.last_error = "{#{error.message}\n#{error.backtrace.join('\n')}"
@@ -177,6 +174,30 @@ module Delayed
     def max_attempts(job)
       job.max_attempts || self.class.max_attempts
     end
+ 
+    def exit
+      say "Exiting ..."
+      @exit = true
+    end
+    def exit?
+      @exit
+    end
+    
+  def fork
+    @cant_fork = true if $TESTING
+    return if @cant_fork
+    begin
+      # IronRuby doesn't support `Kernel.fork` yet
+      if Kernel.respond_to?(:fork)
+        Kernel.fork
+      else
+        raise NotImplementedError
+      end
+    rescue NotImplementedError
+      @cant_fork = true
+      nil
+    end
+  end
     
   protected
 
@@ -191,32 +212,6 @@ module Delayed
     def reserve_and_run_one_job
       job = Delayed::Job.reserve(self)
       run(job) if job
-    end
-  end
-  
-  def exit
-    say "Exiting ..."
-    @exit = true
-  end
-  def exit?
-    @exit
-  end
-  
-  def fork
-    @cant_fork = true if $TESTING
-
-    return if @cant_fork
-
-    begin
-      # IronRuby doesn't support `Kernel.fork` yet
-      if Kernel.respond_to?(:fork)
-        Kernel.fork
-      else
-        raise NotImplementedError
-      end
-    rescue NotImplementedError
-      @cant_fork = true
-      nil
     end
   end
 

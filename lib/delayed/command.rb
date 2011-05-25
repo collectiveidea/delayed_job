@@ -50,6 +50,9 @@ module Delayed
         opts.on('-p', '--prefix NAME', "String to be prefixed to worker process names") do |prefix|
           @options[:prefix] = prefix
         end
+        opts.on('-t', '--threaded', "Enable threaded style worker") do
+          @options[:threaded] = true
+        end
       end
       @args = opts.parse!(args)
     end
