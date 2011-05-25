@@ -27,6 +27,7 @@ module Delayed
 
     # name_prefix is ignored if name is set directly
     attr_accessor :name_prefix
+    attr_accessor :cant_fork
 
     cattr_reader :backend
 
@@ -118,8 +119,18 @@ module Delayed
 
     def run(job)
       runtime =  Benchmark.realtime do
-        Timeout.timeout(self.class.max_run_time.to_i) { job.invoke_job }
-        job.destroy
+        Timeout.timeout(self.class.max_run_time.to_i) { 
+          if @child = fork
+            #srand # Reseeding
+            say "Forked #{@child} at #{Time.now.to_i}"
+            Process.wait
+          else
+            procline "Processing #{job.queue} since #{Time.now.to_i}"
+            job.invoke_job
+            job.destroy
+            $exit unless @cant_fork
+          end 
+          }
       end
       say "#{job.name} completed after %.4f" % runtime
       return true  # did work
@@ -176,6 +187,24 @@ module Delayed
     def reserve_and_run_one_job
       job = Delayed::Job.reserve(self)
       run(job) if job
+    end
+  end
+  
+  def fork
+    @cant_fork = true if $TESTING
+
+    return if @cant_fork
+
+    begin
+      # IronRuby doesn't support `Kernel.fork` yet
+      if Kernel.respond_to?(:fork)
+        Kernel.fork
+      else
+        raise NotImplementedError
+      end
+    rescue NotImplementedError
+      @cant_fork = true
+      nil
     end
   end
 
