@@ -34,4 +34,21 @@ describe Delayed::Worker do
       lambda { Delayed::Worker.guess_backend }.should_not change { Delayed::Worker.backend }
     end
   end
+  
+  describe "threaded" do
+    after do
+      Delayed::Worker.threaded = false
+    end
+    it "should default to none threaded worker" do
+      Delayed::Worker.threaded.should == false
+    end
+    it "Rails initializer should control ability to thread" do
+      Delayed::Worker.threaded = true
+      Delayed::Worker.threaded.should == true
+    end
+    it "should control ability to fork" do
+      Delayed::Worker.new(:threaded=>true).cant_fork.should_not == true &&
+      Delayed::Worker.new(:threaded=>false).cant_fork.should == true
+    end
+  end
 end
