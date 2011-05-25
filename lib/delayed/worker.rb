@@ -131,11 +131,11 @@ module Delayed
             Delayed::Job.after_fork
             job.invoke_job
             exit unless @cant_fork
+            job.destroy
           end 
-          job.destroy unless (exit? || @cant_fork)
           }
       end
-      say "#{job.name} completed after %.4f" % runtime unless exit?
+      say "#{job.name} completed after %.4f" % runtime unless !@child
       return true  # did work
     rescue DeserializationError => error
       job.last_error = "{#{error.message}\n#{error.backtrace.join('\n')}"
