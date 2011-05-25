@@ -111,7 +111,9 @@ module Delayed
         else
           break  # leave if no work could be done
         end
+        say "Test 1"
         break if exit? # leave if we're exiting
+        say "Test 2"
       end
 
       return [success, failure]
@@ -119,16 +121,19 @@ module Delayed
 
     def run(job)
       runtime =  Benchmark.realtime do
-        Timeout.timeout(self.class.max_run_time.to_i) { 
+        Timeout.timeout(self.class.max_run_time.to_i) {
+          Delayed::Job.before_fork
           if @child = fork
             #srand # Reseeding
+            say "testing"
             say "Forked #{@child} at #{Time.now.to_i}"
             Process.wait
           else
+            Delayed::Job.after_fork
             job.invoke_job
-            job.destroy
             exit unless @cant_fork
           end 
+          job.destroy unless exit?
           }
       end
       say "#{job.name} completed after %.4f" % runtime
