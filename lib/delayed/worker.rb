@@ -124,8 +124,11 @@ module Delayed
       end
       say "#{job.name} completed after %.4f" % runtime
       return true  # did work
-    rescue Exception => e
-      handle_failed_job(job, e)
+    rescue DeserializationError => error
+      job.last_error = "{#{error.message}\n#{error.backtrace.join('\n')}"
+      failed(job)
+    rescue Exception => error
+      handle_failed_job(job, error)
       return false  # work failed
     end
     
@@ -138,14 +141,14 @@ module Delayed
         job.save!
       else
         say "PERMANENTLY removing #{job.name} because of #{job.attempts} consecutive failures.", Logger::INFO
-
-        if job.payload_object.respond_to? :on_permanent_failure
-          say "Running on_permanent_failure hook"
-          job.payload_object.on_permanent_failure
-        end
-
-        self.class.destroy_failed_jobs ? job.destroy : job.update_attributes(:failed_at => Delayed::Job.db_time_now)
+        failed(job)
       end
+    end
+
+    def failed(job)
+      job.hook(:on_permanent_failure)
+      
+      self.class.destroy_failed_jobs ? job.destroy : job.update_attributes(:failed_at => Delayed::Job.db_time_now)
     end
 
     def say(text, level = Logger::INFO)

@@ -52,31 +52,36 @@ shared_examples_for 'a backend' do
                    
   it "should raise an DeserializationError when the job class is totally unknown" do
     job = @backend.new :handler => "--- !ruby/object:JobThatDoesNotExist {}"
-    lambda { job.payload_object.perform }.should raise_error(Delayed::Backend::DeserializationError)
+    lambda { job.payload_object.perform }.should raise_error(Delayed::DeserializationError)
+  end
+
+  it "should raise an DeserializationError when the job is badly encoded" do
+    job = @backend.new :handler => "--- !ruby/object:SimpleJob {"
+    lambda { job.payload_object.perform }.should raise_error(Delayed::DeserializationError)
   end
 
   it "should try to load the class when it is unknown at the time of the deserialization" do
     job = @backend.new :handler => "--- !ruby/object:JobThatDoesNotExist {}"
     job.should_receive(:attempt_to_load).with('JobThatDoesNotExist').and_return(true)
-    lambda { job.payload_object.perform }.should raise_error(Delayed::Backend::DeserializationError)
+    lambda { job.payload_object.perform }.should raise_error(Delayed::DeserializationError)
   end
 
   it "should try include the namespace when loading unknown objects" do
     job = @backend.new :handler => "--- !ruby/object:Delayed::JobThatDoesNotExist {}"
     job.should_receive(:attempt_to_load).with('Delayed::JobThatDoesNotExist').and_return(true)
-    lambda { job.payload_object.perform }.should raise_error(Delayed::Backend::DeserializationError)
+    lambda { job.payload_object.perform }.should raise_error(Delayed::DeserializationError)
   end
 
   it "should also try to load structs when they are unknown (raises TypeError)" do
     job = @backend.new :handler => "--- !ruby/struct:JobThatDoesNotExist {}"
     job.should_receive(:attempt_to_load).with('JobThatDoesNotExist').and_return(true)
-    lambda { job.payload_object.perform }.should raise_error(Delayed::Backend::DeserializationError)
+    lambda { job.payload_object.perform }.should raise_error(Delayed::DeserializationError)
   end
 
   it "should try include the namespace when loading unknown structs" do
     job = @backend.new :handler => "--- !ruby/struct:Delayed::JobThatDoesNotExist {}"
     job.should_receive(:attempt_to_load).with('Delayed::JobThatDoesNotExist').and_return(true)
-    lambda { job.payload_object.perform }.should raise_error(Delayed::Backend::DeserializationError)
+    lambda { job.payload_object.perform }.should raise_error(Delayed::DeserializationError)
   end
   
   describe "find_available" do
@@ -313,5 +318,24 @@ shared_examples_for 'a backend' do
       @job.payload_object.stub!(:max_attempts).and_return(99)
       @job.max_attempts.should == 99
     end 
+  end
+
+  describe "worker integration" do
+    before do
+      @worker = Delayed::Worker.new(:max_priority => nil, :min_priority => nil, :quiet => true)
+    end
+
+    describe "running a job" do
+
+      context "when the job raises a deserialization error" do
+        it "should mark the job as failed" do
+          Delayed::Worker.destroy_failed_jobs = false
+          job = described_class.create! :handler => "--- !ruby/object:JobThatDoesNotExist {}"
+          @worker.work_off
+          job.reload
+          job.failed_at.should_not be_nil
+        end
+      end
+    end
   end
 end

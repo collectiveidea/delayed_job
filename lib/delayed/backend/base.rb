@@ -1,8 +1,5 @@
 module Delayed
   module Backend
-    class DeserializationError < StandardError
-    end
-
     module Base
       def self.included(base)
         base.extend ClassMethods
@@ -79,6 +76,15 @@ module Delayed
         self.locked_at    = nil
         self.locked_by    = nil
       end
+
+      def hook(name, *args)
+        if payload_object.respond_to?(name)
+          method = payload_object.method(name)
+          method.arity == 0 ? method.call : method.call(self, *args)
+        end
+      rescue DeserializationError
+        # do nothing
+      end
     
       def reschedule_at
         payload_object.respond_to?(:reschedule_at) ? 
@@ -107,7 +113,7 @@ module Delayed
 
         raise DeserializationError,
           'Job failed to load: Unknown handler. Try to manually require the appropriate file.'
-      rescue TypeError, LoadError, NameError => e
+      rescue TypeError, LoadError, NameError, ArgumentError => e
         raise DeserializationError,
           "Job failed to load: #{e.message}. Try to manually require the required file."
       end
