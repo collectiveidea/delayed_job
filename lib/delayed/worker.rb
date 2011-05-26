@@ -7,12 +7,13 @@ require 'logger'
 
 module Delayed
   class Worker
-    cattr_accessor :min_priority, :max_priority, :max_attempts, :max_run_time, :default_priority, :sleep_delay, :logger, :delay_jobs
+    cattr_accessor :min_priority, :max_priority, :max_attempts, :max_run_time, :default_priority, :sleep_delay, :logger, :delay_jobs, :threaded
     self.sleep_delay = 5
     self.max_attempts = 25
     self.max_run_time = 4.hours
     self.default_priority = 0
     self.delay_jobs = true
+    self.threaded = false
 
     # By default failed jobs are destroyed after too many attempts. If you want to keep them around
     # (perhaps to inspect the reason for the failure), set this to false.
@@ -27,6 +28,7 @@ module Delayed
 
     # name_prefix is ignored if name is set directly
     attr_accessor :name_prefix
+    attr_accessor :cant_fork
 
     cattr_reader :backend
 
@@ -49,6 +51,8 @@ module Delayed
       self.class.min_priority = options[:min_priority] if options.has_key?(:min_priority)
       self.class.max_priority = options[:max_priority] if options.has_key?(:max_priority)
       self.class.sleep_delay = options[:sleep_delay] if options.has_key?(:sleep_delay)
+      self.class.threaded = options[:threaded] if options.has_key?(:threaded)
+      @cant_fork = true unless self.class.threaded
     end
 
     # Every worker has a unique name which by default is the pid of the process. There are some
@@ -69,8 +73,8 @@ module Delayed
     def start
       say "Starting job worker"
 
-      trap('TERM') { say 'Exiting...'; $exit = true }
-      trap('INT')  { say 'Exiting...'; $exit = true }
+      trap('TERM') { say 'Exiting...'; exit }
+      trap('INT')  { say 'Exiting...'; exit }
 
       loop do
         result = nil
@@ -81,7 +85,7 @@ module Delayed
 
         count = result.sum
 
-        break if $exit
+        break if exit?
 
         if count.zero?
           sleep(self.class.sleep_delay)
@@ -89,7 +93,7 @@ module Delayed
           say "#{count} jobs processed at %.4f j/s, %d failed ..." % [count / realtime, result.last]
         end
 
-        break if $exit
+        break if exit?
       end
 
     ensure
@@ -100,7 +104,6 @@ module Delayed
     # Exit early if interrupted.
     def work_off(num = 100)
       success, failure = 0, 0
-
       num.times do
         case reserve_and_run_one_job
         when true
@@ -110,7 +113,7 @@ module Delayed
         else
           break  # leave if no work could be done
         end
-        break if $exit # leave if we're exiting
+        break if exit? # leave if we're exiting
       end
 
       return [success, failure]
@@ -118,10 +121,21 @@ module Delayed
 
     def run(job)
       runtime =  Benchmark.realtime do
-        Timeout.timeout(self.class.max_run_time.to_i) { job.invoke_job }
-        job.destroy
+        Timeout.timeout(self.class.max_run_time.to_i) {
+          Delayed::Job.before_fork
+          if @child = fork
+            #srand # Reseeding
+            say "Forked #{@child} at #{Time.now.to_i}"
+            Process.wait
+          else
+            Delayed::Job.after_fork
+            job.invoke_job
+            exit unless @cant_fork
+            job.destroy
+          end 
+          }
       end
-      say "#{job.name} completed after %.4f" % runtime
+      say "#{job.name} completed after %.4f" % runtime unless !@child
       return true  # did work
     rescue DeserializationError => error
       job.last_error = "{#{error.message}\n#{error.backtrace.join('\n')}"
@@ -162,6 +176,30 @@ module Delayed
     def max_attempts(job)
       job.max_attempts || self.class.max_attempts
     end
+ 
+    def exit
+      say "Exiting ..."
+      @exit = true
+    end
+    def exit?
+      @exit
+    end
+    
+  def fork
+    @cant_fork = true if $TESTING
+    return if @cant_fork
+    begin
+      # IronRuby doesn't support `Kernel.fork` yet
+      if Kernel.respond_to?(:fork)
+        Kernel.fork
+      else
+        raise NotImplementedError
+      end
+    rescue NotImplementedError
+      @cant_fork = true
+      nil
+    end
+  end
     
   protected
 
