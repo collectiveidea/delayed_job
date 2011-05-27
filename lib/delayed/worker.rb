@@ -146,7 +146,14 @@ module Delayed
     end
 
     def failed(job)
-      job.hook(:on_permanent_failure)
+      begin
+        if job.payload_object.respond_to? :on_permanent_failure
+            say "Running on_permanent_failure hook"
+            job.payload_object.on_permanent_failure
+        end
+      rescue DeserializationError
+        # do nothing
+      end
       
       self.class.destroy_failed_jobs ? job.destroy : job.update_attributes(:failed_at => Delayed::Job.db_time_now)
     end

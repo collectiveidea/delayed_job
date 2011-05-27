@@ -76,15 +76,6 @@ module Delayed
         self.locked_at    = nil
         self.locked_by    = nil
       end
-
-      def hook(name, *args)
-        if payload_object.respond_to?(name)
-          method = payload_object.method(name)
-          method.arity == 0 ? method.call : method.call(self, *args)
-        end
-      rescue DeserializationError
-        # do nothing
-      end
     
       def reschedule_at
         payload_object.respond_to?(:reschedule_at) ? 
