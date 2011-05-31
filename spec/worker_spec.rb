@@ -12,26 +12,8 @@ describe Delayed::Worker do
     end
 
     it "should set backend with a symbol" do
-      Delayed::Worker.backend = :active_record
-      Delayed::Worker.backend.should == Delayed::Backend::ActiveRecord::Job
-    end
-  end
-
-  describe "guess_backend" do
-    after do
-      Delayed::Worker.backend = :active_record
-    end
-
-    it "should set to active_record if nil" do
-      Delayed::Worker.backend = nil
-      lambda {
-        Delayed::Worker.guess_backend
-      }.should change { Delayed::Worker.backend }.to(Delayed::Backend::ActiveRecord::Job)
-    end
-
-    it "should not override the existing backend" do
-      Delayed::Worker.backend = Class.new
-      lambda { Delayed::Worker.guess_backend }.should_not change { Delayed::Worker.backend }
+      Delayed::Worker.backend = :test
+      Delayed::Worker.backend.should == Delayed::Backend::Test::Job
     end
   end
 end

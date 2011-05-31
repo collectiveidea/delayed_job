@@ -2,7 +2,7 @@ require 'spec_helper'
 
 describe Delayed::MessageSending do
   describe "handle_asynchronously" do
-    class Story < ActiveRecord::Base
+    class Story
       def tell!(arg)
       end
       handle_asynchronously :tell!
@@ -14,7 +14,7 @@ describe Delayed::MessageSending do
     end
 
     it "should create a PerformableMethod" do
-      story = Story.create!
+      story = Story.new
       lambda {
         job = story.tell!(1)
         job.payload_object.class.should   == Delayed::PerformableMethod

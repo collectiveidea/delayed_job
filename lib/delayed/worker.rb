@@ -41,7 +41,7 @@ module Delayed
     end
 
     def self.guess_backend
-      self.backend ||= :active_record if defined?(ActiveRecord)
+      warn "[DEPRECATION] guess_backend is deprecated. Please remove it from your code."      
     end
 
     def initialize(options={})
