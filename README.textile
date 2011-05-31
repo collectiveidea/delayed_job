@@ -41,6 +41,10 @@ script/plugin install git://github.com/collectiveidea/delayed_job.git -r v2.0
 
 After delayed_job is installed, you will need to setup the backend.
 
+h3. Dependencies
+
+delayed_job depends upon version 1.0.10 of the daemons gem. delayed_job is incompatible with the newest (1.1.0) daemons gem.
+
 h2. Backends
 
 delayed_job supports multiple backends for storing the job queue. There are currently implementations for Active Record, MongoMapper, and DataMapper.
