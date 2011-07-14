@@ -50,6 +50,12 @@ module Delayed
         opts.on('-p', '--prefix NAME', "String to be prefixed to worker process names") do |prefix|
           @options[:prefix] = prefix
         end
+        opts.on('--user=USER', 'If started as superuser, change process owner to specified one') do |user|
+          @options[:user] = user
+        end
+        opts.on('--group=GROUP', 'If started as superuser, change process group to specified one. By default, user\'s home group will be used') do |group|
+          @options[:group] = group
+        end
       end
       @args = opts.parse!(args)
     end
@@ -59,6 +65,38 @@ module Delayed
 
       ObjectSpace.each_object(File) do |file|
         @files_to_reopen << file unless file.closed?
+      end
+      
+      if (@options[:user] || @options[:group]) && Process.euid != 0
+        raise RuntimeError, 'Cannot change uid/gid without root privileges'
+      elsif Process.euid == 0
+        uid, gid = Process.euid, Process.egid
+        
+        if @options[:user].nil? && !@options[:group].nil?
+          raise ArgumentError, 'Cannot change process uid/gid without specified user'
+        elsif (@options[:user].nil? && @options[:group].nil?)
+          @options[:user] = "root"
+        end
+        
+        tuid = Etc.getpwnam(@options[:user]).uid
+        
+        tgid = if @options[:group].nil?
+          Etc.getpwnam(@options[:user]).gid
+        elsif @options[:group] == "nobody"
+          Etc.getpwnam(@options[:user]).gid
+        else
+          Etc.getgrnam(@options[:group]).gid
+        end
+        
+        if tuid.is_a?(Fixnum) && tgid.is_a?(Fixnum)
+          if uid != tuid && gid != tgid
+            Process.initgroups(@options[:user], tgid)
+            Process::GID.change_privilege(tgid)
+            Process::UID.change_privilege(tuid)
+          end
+        else
+          raise ArgumentError, 'Cannot change process uid/gid without specified user'
+        end
       end
       
       dir = @options[:pid_dir]
@@ -98,7 +136,7 @@ module Delayed
       
       Delayed::Worker.logger = Logger.new(File.join(RAILS_ROOT, 'log', 'delayed_job.log'))
       Delayed::Worker.backend.after_fork
-      
+
       worker = Delayed::Worker.new(@options)
       worker.name_prefix = "#{worker_name} "
       worker.start
