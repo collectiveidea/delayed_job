@@ -145,7 +145,7 @@ module Delayed
     end
 
     def failed(job)
-      job.hook(:failure)
+      job.hook(:failure) rescue nil
       if job.respond_to?(:on_permanent_failure)
         warn "[DEPRECATION] The #on_permanent_failure hook has been renamed to #failure."
       end

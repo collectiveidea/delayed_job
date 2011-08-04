@@ -34,4 +34,15 @@ describe Delayed::Worker do
       lambda { Delayed::Worker.guess_backend }.should_not change { Delayed::Worker.backend }
     end
   end
+
+  describe 'failed' do
+    before do
+      @worker = Delayed::Worker.new
+      @job = Delayed::Job.new
+      @job.should_receive(:hook).with(:failure) {raise 'failure callback raised'}
+    end
+    it 'should trap exceptions' do
+      expect {@worker.failed(@job)}.to_not raise_error
+    end
+  end
 end
