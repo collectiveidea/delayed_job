@@ -81,10 +81,22 @@ module Delayed
       end
 
       def payload_object
-        @payload_object ||= YAML.load(self.handler)
+        unless @payload_object
+          @payload_object = YAML.load(self.handler)
+          ghost?
+        end
+        @payload_object
       rescue TypeError, LoadError, NameError, ArgumentError => e
         raise DeserializationError,
           "Job failed to load: #{e.message}. Handler: #{handler.inspect}"
+      end
+
+      def ghost?
+        if @payload_object.respond_to?(:ghost_dj?)
+          if @payload_object.ghost_dj?
+            raise DeserializationError
+          end
+        end
       end
 
       def invoke_job
