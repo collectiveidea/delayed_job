@@ -81,10 +81,18 @@ module Delayed
       end
 
       def payload_object
-        @payload_object ||= YAML.load(self.handler)
+        unless @payload_object
+          @payload_object = YAML.load(self.handler)
+          ar_exists?(@payload_object)
+        end
+        @payload_object
       rescue TypeError, LoadError, NameError, ArgumentError => e
         raise DeserializationError,
           "Job failed to load: #{e.message}. Handler: #{handler.inspect}"
+      end
+      
+      def ar_exists?(obj)
+        raise DeserializationError if obj.kind_of(ActiveRecord::Base) and !obj.persistent?
       end
 
       def invoke_job
