@@ -228,7 +228,7 @@ You can invoke @rake jobs:clear@ to delete all jobs in the queue.
 
 h2. Mailing List
 
-Join us on the mailing list at http://groups.google.com/group/delayed_job
+Join us on the "mailing list":http://groups.google.com/group/delayed_job
 
 h2. How to contribute
 
