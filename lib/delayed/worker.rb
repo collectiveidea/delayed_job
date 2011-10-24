@@ -24,6 +24,11 @@ module Delayed
     cattr_accessor :destroy_failed_jobs
     self.destroy_failed_jobs = true
 
+    # By default, Signalt SIGINT and SIGTERM set @exit, and the worker exits upon completion of the current job.
+    # If you want to do some cleanup before terminating, set this to true
+    cattr_accessor :raise_signal_exceptions
+    self.raise_signal_exceptions = false
+
     self.logger = if defined?(Rails)
       Rails.logger
     elsif defined?(RAILS_DEFAULT_LOGGER)
@@ -103,8 +108,13 @@ module Delayed
     end
 
     def start
-      trap('TERM') { say 'Exiting...'; stop }
-      trap('INT')  { say 'Exiting...'; stop }
+      if self.raise_signal_exceptions
+        trap('TERM') { stop; raise SignalException.new('SIGTERM') }
+        trap('INT')  { stop; raise SignalException.new('SIGINT')  }
+      else
+        trap('TERM') { say 'Exiting...'; stop }
+        trap('INT')  { say 'Exiting...'; stop }
+      end
 
       say "Starting job worker"
 
