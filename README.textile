@@ -169,7 +169,7 @@ class ParanoidNewsletterJob < NewsletterJob
   end
 
   def error(job, exception)
-    notify_hoptoad(exception)
+    Airbrake.notify(exception)
   end
 
   def failure
