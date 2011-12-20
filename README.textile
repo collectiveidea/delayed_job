@@ -25,7 +25,7 @@ If you plan to use delayed_job with Active Record, add @delayed_job_active_recor
 gem 'delayed_job_active_record'
 </pre>
 
-If you plan to use delayed_job with Active Record, add @delayed_job_mongoid@ to your @Gemfile@.
+If you plan to use delayed_job with Mongoid, add @delayed_job_mongoid@ to your @Gemfile@.
 
 <pre>
 gem 'delayed_job_mongoid'
