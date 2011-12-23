@@ -42,10 +42,13 @@ module Psych
           id = payload["attributes"][klass.primary_key]
           begin
             if ActiveRecord::VERSION::MAJOR == 3
-              klass.unscoped.find(id)
+              o = klass.unscoped.find(id)
             else # Rails 2
-              klass.with_exclusive_scope { klass.find(id) }
+              o = klass.with_exclusive_scope { klass.find(id) }
             end
+            payload['attributes'] = o.attributes
+            o.init_with(payload) if !o.nil? && o.respond_to?(:init_with)
+            return o
           rescue ActiveRecord::RecordNotFound
             raise Delayed::DeserializationError
           end
@@ -53,7 +56,10 @@ module Psych
           klass = resolve_class($1)
           payload = Hash[*object.children.map { |c| accept c }]
           begin
-            klass.find(payload["attributes"]["_id"])
+            o = klass.find(payload["attributes"]["_id"])
+            payload['attributes'] = o.attributes
+            o.init_with(payload) if !o.nil? && o.respond_to?(:init_with)
+            return o
           rescue Mongoid::Errors::DocumentNotFound
             raise Delayed::DeserializationError
           end
