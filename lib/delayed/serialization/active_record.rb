@@ -9,7 +9,7 @@ if defined?(ActiveRecord)
         klass.with_exclusive_scope { klass.find(val['attributes'][klass.primary_key]) }
       end
     rescue ActiveRecord::RecordNotFound
-      raise Delayed::DeserializationError
+      raise Delayed::DeserializationError, "ActiveRecord::RecordNotFound, class: #{klass} , primary key: #{val['attributes'][klass.primary_key]} "
     end
 
     def to_yaml_properties
