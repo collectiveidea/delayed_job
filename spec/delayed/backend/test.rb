@@ -15,6 +15,7 @@ module Delayed
         attr_accessor :locked_by
         attr_accessor :failed_at
         attr_accessor :queue
+        attr_accessor :unique_key
         
         include Delayed::Backend::Base
 
