@@ -91,7 +91,7 @@ module Delayed
       Dir.chdir(Rails.root)
 
       Delayed::Worker.after_fork
-      Delayed::Worker.logger = Logger.new(File.join(Rails.root, 'log', 'delayed_job.log'))
+      Delayed::Worker.logger ||= Logger.new(File.join(Rails.root, 'log', 'delayed_job.log'))
 
       worker = Delayed::Worker.new(@options)
       worker.name_prefix = "#{worker_name} "
