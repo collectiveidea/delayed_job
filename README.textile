@@ -37,8 +37,8 @@ Run @bundle install@ to install the backend and delayed_job gems.
 The Active Record backend requires a jobs table. You can create that table by running the following command:
 
 <pre>
-$ script/rails generate delayed_job:active_record
-$ rake db:migrate
+$ rails generate delayed_job:active_record
+$ bundle exec rake db:migrate
 </pre>
 
 h3. Upgrading from 2.x to 3.0.0 on Active Record
