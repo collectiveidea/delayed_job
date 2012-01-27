@@ -414,6 +414,14 @@ shared_examples_for 'a delayed_job backend' do
       story.update_attributes :text => 'goodbye'
       job.reload.payload_object.object.text.should == 'goodbye'
     end
+    
+    it "should raise error ArgumentError the record is not persisted" do
+      story = Story.new(:text => 'hello')
+      lambda {
+        story.delay.tell 
+      }.should raise_error(ArgumentError, "Jobs cannot be created for records before they've been persisted")
+      
+    end
 
     it "should raise deserialization error for destroyed records" do
       story = Story.create(:text => 'hello')

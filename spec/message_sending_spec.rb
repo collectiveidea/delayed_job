@@ -13,7 +13,7 @@ describe Delayed::MessageSending do
     end
 
     it "should create a PerformableMethod" do
-      story = Story.new
+      story = Story.create
       lambda {
         job = story.tell!(1)
         job.payload_object.class.should == Delayed::PerformableMethod

@@ -42,7 +42,7 @@ describe Delayed::PerformableMethod do
   describe "hooks" do
     %w(enqueue before after success).each do |hook|
       it "should delegate #{hook} hook to object" do
-        story = Story.new
+        story = Story.create
         story.should_receive(hook).with(an_instance_of(Delayed::Job))
         story.delay.tell.invoke_job
       end
@@ -51,14 +51,14 @@ describe Delayed::PerformableMethod do
     %w(before after success).each do |hook|
       it "should delegate #{hook} hook to object when delay_jobs = false" do
         Delayed::Worker.delay_jobs = false
-        story = Story.new
+        story = Story.create
         story.should_receive(hook).with(an_instance_of(Delayed::Job))
         story.delay.tell
       end
     end
     
     it "should delegate error hook to object" do
-      story = Story.new
+      story = Story.create
       story.should_receive(:error).with(an_instance_of(Delayed::Job), an_instance_of(RuntimeError))
       story.should_receive(:tell).and_raise(RuntimeError)
       lambda { story.delay.tell.invoke_job }.should raise_error
@@ -66,7 +66,7 @@ describe Delayed::PerformableMethod do
     
     it "should delegate error hook to object when delay_jobs = false" do
       Delayed::Worker.delay_jobs = false
-      story = Story.new
+      story = Story.create
       story.should_receive(:error).with(an_instance_of(Delayed::Job), an_instance_of(RuntimeError))
       story.should_receive(:tell).and_raise(RuntimeError)
       lambda { story.delay.tell }.should raise_error
