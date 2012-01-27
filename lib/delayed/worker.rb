@@ -7,13 +7,14 @@ require 'logger'
 
 module Delayed
   class Worker
-    cattr_accessor :min_priority, :max_priority, :max_attempts, :max_run_time, :default_priority, :sleep_delay, :logger, :delay_jobs, :queues
+    cattr_accessor :min_priority, :max_priority, :max_attempts, :max_run_time, :default_priority, :sleep_delay, :logger, :delay_jobs, :queues, :read_ahead
     self.sleep_delay = 5
     self.max_attempts = 25
     self.max_run_time = 4.hours
     self.default_priority = 0
     self.delay_jobs = true
     self.queues = []
+    self.read_ahead = 5
 
     # Add or remove plugins in this list before the worker is instantiated
     cattr_accessor :plugins
@@ -82,6 +83,7 @@ module Delayed
       self.class.min_priority = options[:min_priority] if options.has_key?(:min_priority)
       self.class.max_priority = options[:max_priority] if options.has_key?(:max_priority)
       self.class.sleep_delay = options[:sleep_delay] if options.has_key?(:sleep_delay)
+      self.class.read_ahead = options[:read_ahead] if options.has_key?(:read_ahead)
       self.class.queues = options[:queues] if options.has_key?(:queues)
 
       self.plugins.each { |klass| klass.new }

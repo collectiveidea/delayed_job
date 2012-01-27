@@ -49,6 +49,9 @@ module Delayed
         opts.on('--sleep-delay N', "Amount of time to sleep when no jobs are found") do |n|
           @options[:sleep_delay] = n
         end
+        opts.on('--read-ahead N', "Number of jobs from the queue to consider") do |n|
+          @options[:read_ahead] = n
+        end
         opts.on('-p', '--prefix NAME', "String to be prefixed to worker process names") do |prefix|
           @options[:prefix] = prefix
         end

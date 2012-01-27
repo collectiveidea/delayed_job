@@ -279,6 +279,27 @@ shared_examples_for 'a delayed_job backend' do
     end
   end
 
+  context "worker read-ahead" do
+    before do
+      @read_ahead = Delayed::Worker.read_ahead
+    end
+
+    after do
+      Delayed::Worker.read_ahead = @read_ahead
+    end
+
+    it "should read five jobs" do
+      described_class.should_receive(:find_available).with(anything, 5, anything).and_return([])
+      described_class.reserve(worker)
+    end
+
+    it "should read a configurable number of jobs" do
+      Delayed::Worker.read_ahead = 15
+      described_class.should_receive(:find_available).with(anything, Delayed::Worker.read_ahead, anything).and_return([])
+      described_class.reserve(worker)
+    end
+  end
+
   context "clear_locks!" do
     before do
       @job = create_job(:locked_by => 'worker1', :locked_at => described_class.db_time_now)
