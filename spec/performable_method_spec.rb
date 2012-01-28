@@ -11,8 +11,8 @@ describe Delayed::PerformableMethod do
         @method.object = nil
       end
 
-      it "should be a no-op if object is nil" do
-        lambda { @method.perform }.should_not raise_error
+      it "should raise an error if object is nil" do
+        lambda { @method.perform }.should raise_error
       end
     end
 
@@ -47,7 +47,7 @@ describe Delayed::PerformableMethod do
         story.delay.tell.invoke_job
       end
     end
-    
+
     %w(before after success).each do |hook|
       it "should delegate #{hook} hook to object when delay_jobs = false" do
         Delayed::Worker.delay_jobs = false
@@ -56,14 +56,14 @@ describe Delayed::PerformableMethod do
         story.delay.tell
       end
     end
-    
+
     it "should delegate error hook to object" do
       story = Story.create
       story.should_receive(:error).with(an_instance_of(Delayed::Job), an_instance_of(RuntimeError))
       story.should_receive(:tell).and_raise(RuntimeError)
       lambda { story.delay.tell.invoke_job }.should raise_error
     end
-    
+
     it "should delegate error hook to object when delay_jobs = false" do
       Delayed::Worker.delay_jobs = false
       story = Story.create
@@ -77,13 +77,13 @@ describe Delayed::PerformableMethod do
       method.object.should_receive(:failure)
       method.failure
     end
-    
+
     it "should delegate failure hook to object when delay_jobs = false" do
       Delayed::Worker.delay_jobs = false
       method = Delayed::PerformableMethod.new("object", :size, [])
       method.object.should_receive(:failure)
       method.failure
     end
-    
+
   end
 end

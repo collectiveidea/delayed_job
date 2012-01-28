@@ -23,7 +23,7 @@ module Delayed
     end
 
     def perform
-      object.send(method_name, *args) if object
+      object.send(method_name, *args)
     end
 
     def method_missing(symbol, *args)
