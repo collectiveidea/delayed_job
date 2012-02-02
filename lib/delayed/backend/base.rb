@@ -9,7 +9,8 @@ module Delayed
         # Add a job to the queue
         def enqueue(*args)
           options = {
-            :priority => Delayed::Worker.default_priority
+            :priority => Delayed::Worker.default_priority,
+            :queue => Delayed::Worker.default_queue_name
           }.merge!(args.extract_options!)
 
           options[:payload_object] ||= args.shift
