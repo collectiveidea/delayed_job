@@ -13,7 +13,7 @@ module Delayed
     self.max_run_time = 4.hours
     self.default_priority = 0
     self.delay_jobs = true
-    self.queues = ENV["QUEUES"] ? ENV["QUEUES"].split(',') : []
+    self.queues = []
     self.read_ahead = 5
 
     # Add or remove plugins in this list before the worker is instantiated
