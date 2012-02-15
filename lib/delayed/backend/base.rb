@@ -25,6 +25,7 @@ module Delayed
           end
 
           if Delayed::Worker.delay_jobs
+            self.attr_protected if self.to_s == 'Delayed::Backend::ActiveRecord::Job' # loads protected attributes for ActiveRecord instance
             self.new(options).tap do |job|
               Delayed::Worker.lifecycle.run_callbacks(:enqueue, job) do
                 job.hook(:enqueue)
