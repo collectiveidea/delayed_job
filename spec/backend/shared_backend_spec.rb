@@ -84,6 +84,11 @@ shared_examples_for 'a backend' do
     lambda { job.payload_object.perform }.should raise_error(Delayed::DeserializationError)
   end
   
+  it "should be able to set queue" do
+    job = create_job(:queue => 'tracking')
+    job.queue.should == 'tracking'
+  end
+  
   describe "find_available" do
     it "should not find failed jobs" do
       @job = create_job :attempts => 50, :failed_at => @backend.db_time_now
@@ -304,6 +309,62 @@ shared_examples_for 'a backend' do
       @job.id.should_not be_nil
     end
   end
+  
+  context "named queues" do
+    let(:worker) { Delayed::Worker.new }
+    
+    context "when worker has one queue set" do
+      before(:each) do
+        worker.queues = ['large']
+      end
+
+      it "should only work off jobs which are from its queue" do
+        SimpleJob.runs.should == 0
+
+        create_job(:queue => "large")
+        create_job(:queue => "small")
+        worker.work_off
+
+        SimpleJob.runs.should == 1
+      end
+    end
+
+    context "when worker has two queue set" do
+      before(:each) do
+        worker.queues = ['large', 'small']
+      end
+
+      it "should only work off jobs which are from its queue" do
+        SimpleJob.runs.should == 0
+
+        create_job(:queue => "large")
+        create_job(:queue => "small")
+        create_job(:queue => "medium")
+        create_job
+        worker.work_off
+
+        SimpleJob.runs.should == 2
+      end
+    end
+
+    context "when worker does not have queue set" do
+      before(:each) do
+        worker.queues = []
+      end
+
+      it "should work off all jobs" do
+        SimpleJob.runs.should == 0
+
+        create_job(:queue => "one")
+        create_job(:queue => "two")
+        create_job
+        worker.work_off
+
+        SimpleJob.runs.should == 3
+      end
+    end
+  end
+  
   
   context "max_attempts" do
     before(:each) do

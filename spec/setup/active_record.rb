@@ -14,10 +14,11 @@ ActiveRecord::Schema.define do
     table.datetime :locked_at
     table.datetime :failed_at
     table.string   :locked_by
+    table.string   :queue
     table.timestamps
   end
 
-  add_index :delayed_jobs, [:priority, :run_at], :name => 'delayed_jobs_priority'
+  add_index :delayed_jobs, [:priority, :run_at, :queue], :name => 'delayed_jobs_priority'
 
   create_table :stories, :force => true do |table|
     table.string :text
