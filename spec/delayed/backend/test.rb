@@ -58,7 +58,7 @@ module Delayed
           jobs = all.select do |j| 
             j.run_at <= db_time_now && 
             (j.locked_at.nil? || j.locked_at < db_time_now - max_run_time || j.locked_by == worker_name) &&
-            j.failed_at.nil?
+            !j.failed?
           end
                     
           jobs = jobs.select{|j| Worker.queues.include?(j.queue)}   if Worker.queues.any?
