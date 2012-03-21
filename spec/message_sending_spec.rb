@@ -83,13 +83,20 @@ describe Delayed::MessageSending do
       Delayed::Worker.default_priority = 0
     end
 
+    it "should set default queue name" do
+      Delayed::Worker.default_queue_name = 'abbazabba'
+      job = FairyTail.delay.to_s
+      job.queue.should == 'abbazabba'
+      Delayed::Worker.default_priority = nil
+    end
+
     it "should set job options" do
       run_at = Time.parse('2010-05-03 12:55 AM')
       job = FairyTail.delay(:priority => 20, :run_at => run_at).to_s
       job.run_at.should == run_at
       job.priority.should == 20
     end
-    
+
     it "should not delay the job when delay_jobs is false" do
       Delayed::Worker.delay_jobs = false
       fairy_tail = FairyTail.new
@@ -99,7 +106,7 @@ describe Delayed::MessageSending do
         }.should change(fairy_tail, :happy_ending).from(nil).to(true)
       }.should_not change { Delayed::Job.count }
     end
-    
+
     it "should delay the job when delay_jobs is true" do
       Delayed::Worker.delay_jobs = true
       fairy_tail = FairyTail.new
