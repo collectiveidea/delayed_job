@@ -9,7 +9,7 @@ module Delayed
     def initialize(object, method_name, args)
       raise NoMethodError, "undefined method `#{method_name}' for #{object.inspect}" unless object.respond_to?(method_name, true)
       
-      if object.kind_of?(ActiveRecord::Base)
+      if defined?(ActiveRecord) && object.kind_of?(ActiveRecord::Base)
         raise(ArgumentError, 'Jobs cannot be created for records before they\'ve been persisted') if object.attributes[object.class.primary_key].nil?
       end
       
