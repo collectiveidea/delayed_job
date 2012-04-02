@@ -16,6 +16,8 @@ module Delayed
 
   module MessageSending
     def delay(options = {})
+      raise NoMethodError, "undefined method `delay' for nil:NilCass" if nil?
+
       DelayProxy.new(PerformableMethod, self, options)
     end
     alias __delay__ delay
