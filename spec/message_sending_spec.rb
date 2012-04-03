@@ -109,5 +109,11 @@ describe Delayed::MessageSending do
         }.should_not change(fairy_tail, :happy_ending)
       }.should change { Delayed::Job.count }.by(1)
     end
+
+    it "should raise a NoMethodError when called on nil" do
+      lambda {
+        nil.delay.inspect
+      }.should raise_error(NoMethodError)
+    end
   end
 end
