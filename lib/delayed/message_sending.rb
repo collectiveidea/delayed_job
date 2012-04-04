@@ -3,6 +3,13 @@ require 'active_support/core_ext/module/aliasing'
 
 module Delayed
   class DelayProxy < ActiveSupport::BasicObject
+
+    cattr_accessor :development
+
+    def development
+      @@development ||= false
+    end
+
     def initialize(payload_class, target, options)
       @payload_class = payload_class
       @target = target
@@ -10,7 +17,11 @@ module Delayed
     end
 
     def method_missing(method, *args)
-      Job.enqueue({:payload_object => @payload_class.new(@target, method.to_sym, args)}.merge(@options))
+      if development
+        @target.send method.to_sym, *args
+      else
+        Job.enqueue({:payload_object => @payload_class.new(@target, method.to_sym, args)}.merge(@options))
+      end
     end
   end
 
