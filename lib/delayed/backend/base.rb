@@ -106,6 +106,8 @@ module Delayed
       def unlock
         self.locked_at    = nil
         self.locked_by    = nil
+        self.locked_at_will_change!
+        self.locked_by_will_change!
       end
 
       def hook(name, *args)
