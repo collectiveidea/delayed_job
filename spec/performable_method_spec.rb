@@ -38,7 +38,7 @@ describe Delayed::PerformableMethod do
 
         lambda {
           @story.delay.tell
-        }.should_not raise_error(ArgumentError, "Jobs cannot be created for records before they've been persisted")
+        }.should_not raise_error(ArgumentError)
       end
     end
 
@@ -46,7 +46,7 @@ describe Delayed::PerformableMethod do
       it "should raise ArgumentError" do 
         lambda {
           @story.delay.tell
-        }.should raise_error(ArgumentError)
+        }.should raise_error(ArgumentError, "Jobs cannot be created for records before they've been persisted")
       end
     end
   end
