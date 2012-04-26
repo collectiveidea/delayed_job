@@ -22,6 +22,35 @@ describe Delayed::PerformableMethod do
     end
   end
 
+  describe "permit_unpersisted" do
+    before do
+      @story = Story.create
+      @story.story_id = nil
+    end
+
+    after do
+      Delayed::PerformableMethod.permit_unpersisted = false
+    end
+
+    context "with permit_unpersisted" do
+      it "should not raise ArgumentError" do
+        Delayed::PerformableMethod.permit_unpersisted = true
+
+        lambda {
+          @story.delay.tell
+        }.should_not raise_error(ArgumentError, "Jobs cannot be created for records before they've been persisted")
+      end
+    end
+
+    context "without permit_unpersisted" do
+      it "should raise ArgumentError" do 
+        lambda {
+          @story.delay.tell
+        }.should raise_error(ArgumentError)
+      end
+    end
+  end
+
   it "should raise a NoMethodError if target method doesn't exist" do
     lambda {
       Delayed::PerformableMethod.new(Object, :method_that_does_not_exist, [])
