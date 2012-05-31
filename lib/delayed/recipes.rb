@@ -10,7 +10,7 @@
 # If you want to use command line options, for example to start multiple workers,
 # define a Capistrano variable delayed_job_args:
 #
-#   set :delayed_jobs_args, "-n 2"
+#   set :delayed_job_args, "-n 2"
 #
 # If you've got delayed_job workers running on a servers, you can also specify
 # which servers have delayed_job running and should be restarted after deploy.
