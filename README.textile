@@ -170,6 +170,12 @@ QUEUE=tracking rake jobs:work
 QUEUES=mailers,tasks rake jobs:work
 </pre>
 
+You can tell each set of workers how long to sleep before looking for jobs, when the job queue is empty:
+
+<pre>
+$ RAILS_ENV=production script/delayed_job --sleep-delay 20 start
+</pre>
+
 h2. Custom Jobs
 
 Jobs are simple ruby objects with a method called perform. Any object which responds to perform can be stuffed into the jobs table. Job objects are serialized to yaml so that they can later be resurrected by the job runner.
@@ -261,7 +267,6 @@ Here is an example of changing job parameters in Rails:
 <pre>
 # config/initializers/delayed_job_config.rb
 Delayed::Worker.destroy_failed_jobs = false
-Delayed::Worker.sleep_delay = 60
 Delayed::Worker.max_attempts = 3
 Delayed::Worker.max_run_time = 5.minutes
 Delayed::Worker.read_ahead = 10
