@@ -5,6 +5,10 @@ module Delayed
     def perform
       object.send(method_name, *args).deliver
     end
+
+    def display_name
+      "#{object}.#{method_name}"
+    end
   end
 
   module DelayMail
