@@ -1,4 +1,4 @@
-h1. Delayed::Job "!http://travis-ci.org/collectiveidea/delayed_job.png!":http://travis-ci.org/collectiveidea/delayed_job "!https://gemnasium.com/collectiveidea/delayed_job.png?travis!":https://gemnasium.com/collectiveidea/delayed_job
+h1. Delayed::Job "!https://travis-ci.org/collectiveidea/delayed_job.png!":http://travis-ci.org/collectiveidea/delayed_job "!https://gemnasium.com/collectiveidea/delayed_job.png?travis!":https://gemnasium.com/collectiveidea/delayed_job
 
 Delayed_job (or DJ) encapsulates the common pattern of asynchronously executing longer tasks in the background.
 
