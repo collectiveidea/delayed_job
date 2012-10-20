@@ -58,9 +58,13 @@ Once you have Delayed Job installed and have done the database migration, there 
 
 <pre>
 # Way #1: call @.delay.method(params)@ on any object
+
 @user.delay.activate!(@device) 
 
+
+
 # Way #2: create an object that responds to perform, and enqueue it
+
 class NewsletterJob < Struct.new(:text, :emails)
   def perform
     emails.each { |e| NewsletterMailer.deliver_text_to_email(text, e) }
@@ -68,6 +72,8 @@ class NewsletterJob < Struct.new(:text, :emails)
 end
 
 Delayed::Job.enqueue NewsletterJob.new('lorem ipsum...', Customers.find(:all).collect(&:email))
+
+
 
 # Way #3: call handle_asynchronously after a method declaration, and it
 # will always run in the background
