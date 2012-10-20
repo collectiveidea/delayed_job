@@ -52,6 +52,40 @@ $ rails generate delayed_job:upgrade
 $ rake db:migrate
 </pre>
 
+h2. Quick Start
+
+Once you have Delayed Job installed and have done the database migration, there are three basic ways to schedule a job to be processed in the background:
+
+<pre>
+# Way #1: call @.delay.method(params)@ on any object
+@user.delay.activate!(@device) 
+
+# Way #2: create an object that responds to perform, and enqueue it
+class NewsletterJob < Struct.new(:text, :emails)
+  def perform
+    emails.each { |e| NewsletterMailer.deliver_text_to_email(text, e) }
+  end
+end
+
+Delayed::Job.enqueue NewsletterJob.new('lorem ipsum...', Customers.find(:all).collect(&:email))
+
+# Way #3: call handle_asynchronously after a method declaration, and it
+# will always run in the background
+
+class Device
+  def deliver
+    # long running method
+  end
+  handle_asynchronously :deliver
+end
+
+device = Device.new
+device.deliver
+
+</pre>
+
+For full details on these methods, read on.
+
 h2. Queuing Jobs
 
 Call @.delay.method(params)@ on any object and it will be processed in the background.
