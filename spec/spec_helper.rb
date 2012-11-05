@@ -13,6 +13,12 @@ require 'active_record'
 require 'delayed_job'
 require 'delayed/backend/shared_spec'
 
+if File.exists?('/tmp/dj.log')
+  f = File.open('/tmp/dj.log', 'w+')
+  f.write("")
+  f.close
+end
+
 Delayed::Worker.logger = Logger.new('/tmp/dj.log')
 ENV['RAILS_ENV'] = 'test'
 
