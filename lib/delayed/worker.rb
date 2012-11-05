@@ -238,7 +238,7 @@ module Delayed
     # If no jobs are left we return nil
     def reserve_and_run_one_job
       job = Delayed::Job.reserve(self)
-      self.class.lifecycle.run_callbacks(:perform, self, job){ result = run(job) } if job
+      self.class.lifecycle.run_callbacks(:perform, self, job){ result = run(job.reload) } if job
     end
   end
 
