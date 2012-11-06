@@ -83,7 +83,7 @@ module Delayed
 
       def payload_object
         @payload_object ||= YAML.load(self.handler)
-      rescue TypeError, LoadError, NameError, ArgumentError => e
+      rescue Exception => e
         raise DeserializationError,
           "Job failed to load: #{e.message}. Handler: #{handler.inspect}"
       end
