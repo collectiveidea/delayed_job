@@ -61,6 +61,12 @@ module Delayed
         opts.on('--queue=queue', "Specify which queue DJ must look up for jobs") do |queue|
           @options[:queues] = queue.split(',')
         end
+        opts.on('-u', '--user NAME', "If given, user to run as when daemonizing") do |user|
+          @options[:user] = user
+        end
+        opts.on('-g', '--group NAME', "If given, group to run as when daemonizing, defaults to given user") do |group|
+          @options[:group] = group
+        end
       end
       @args = opts.parse!(args)
     end
@@ -84,7 +90,8 @@ module Delayed
 
     def run_process(process_name, dir)
       Delayed::Worker.before_fork
-      Daemons.run_proc(process_name, :dir => dir, :dir_mode => :normal, :monitor => @monitor, :ARGV => @args) do |*args|
+      @options[:group] ||= @options[:user]
+      Daemons.run_proc(process_name, :dir => dir, :dir_mode => :normal, :monitor => @monitor, :user => @options[:user], :group => @options[:group], :ARGV => @args) do |*args|
         $0 = File.join(@options[:prefix], process_name) if @options[:prefix]
         run process_name
       end
