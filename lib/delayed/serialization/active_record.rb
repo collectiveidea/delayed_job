@@ -5,7 +5,7 @@ if defined?(ActiveRecord)
     def self.yaml_new(klass, tag, val)
       klass.unscoped.find(*val['attributes'].values_at(*klass.primary_key))
     rescue ActiveRecord::RecordNotFound
-      raise Delayed::DeserializationError, "ActiveRecord::RecordNotFound, class: #{klass} , primary key: #{val['attributes'][klass.primary_key]} "
+      raise Delayed::DeserializationError, "ActiveRecord::RecordNotFound, class: #{klass} , primary key: #{val['attributes'].values_at(*klass.primary_key).join(",")} "
     end
 
     def to_yaml_properties
