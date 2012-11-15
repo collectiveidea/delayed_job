@@ -21,7 +21,7 @@ This gem is collectiveidea's fork (http://github.com/collectiveidea/delayed_job)
 
   s.add_development_dependency  'activerecord',   '~> 3.0'
   s.add_development_dependency  'actionmailer',   '~> 3.0'
-  s.add_development_dependency  'rspec',          '~> 2.0'
+  s.add_development_dependency  'rspec',          '~> 2.11'
   s.add_development_dependency  'rake'
   s.add_development_dependency  'simplecov'
 end
