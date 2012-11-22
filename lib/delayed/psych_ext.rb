@@ -111,6 +111,16 @@ module Psych
           rescue Mongoid::Errors::DocumentNotFound
             raise Delayed::DeserializationError
           end
+        when /^!ruby\/DataMapper:(.+)$/
+          klass = resolve_class($1)
+          payload = Hash[*object.children.map { |c| accept c }]
+          begin
+            primary_keys = klass.properties.select { |p| p.key? }
+            key_names = primary_keys.map { |p| p.name.to_s }
+            klass.get!(*key_names.map { |k| payload["attributes"][k] })
+          rescue DataMapper::ObjectNotFoundError
+            raise Delayed::DeserializationError
+          end
         else
           visit_Psych_Nodes_Mapping_without_class(object)
         end
