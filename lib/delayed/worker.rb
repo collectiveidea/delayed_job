@@ -53,6 +53,10 @@ module Delayed
       RAILS_DEFAULT_LOGGER
     end
 
+    def self.queues=(queues)
+      @@queues = queues.map{|q| q == 'NULL' ? nil : q }
+    end
+
     def self.backend=(backend)
       if backend.is_a? Symbol
         require "delayed/serialization/#{backend}"
