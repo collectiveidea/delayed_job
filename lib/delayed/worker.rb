@@ -18,7 +18,7 @@ module Delayed
     DEFAULT_READ_AHEAD       = 5
 
     cattr_accessor :min_priority, :max_priority, :max_attempts, :max_run_time,
-                   :default_priority, :sleep_delay, :logger, :delay_jobs, :queues,
+                   :default_priority, :sleep_delay, :logger, :delay_jobs,
                    :read_ahead, :plugins, :destroy_failed_jobs, :exit_on_complete,
                    :default_log_level
 
@@ -29,6 +29,21 @@ module Delayed
 
     # name_prefix is ignored if name is set directly
     attr_accessor :name_prefix
+
+    class << self
+      attr_reader :queues
+      def queues=(queues)
+        @queues = queues.map { |q| q == 'NULL' ? nil : q }
+      end
+    end
+
+    def queues
+      self.class.queues
+    end
+
+    def queues=(queues)
+      self.class.queues = queues
+    end
 
     def self.reset
       self.default_log_level = DEFAULT_LOG_LEVEL

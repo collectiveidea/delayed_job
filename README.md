@@ -221,6 +221,10 @@ Work off queues by setting the `QUEUE` or `QUEUES` environment variable.
     QUEUE=tracking rake jobs:work
     QUEUES=mailers,tasks rake jobs:work
 
+Specify a queue name of NULL to allow a worker to do jobs that have no queue specified:
+
+    QUEUES=mailers,NULL rake jobs:work
+
 Restarting delayed_job
 ======================
 
