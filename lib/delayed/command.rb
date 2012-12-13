@@ -12,7 +12,8 @@ module Delayed
     def initialize(args)
       @options = {
         :quiet => true,
-        :pid_dir => "#{Rails.root}/tmp/pids"
+        :pid_dir => "#{Rails.root}/tmp/pids",
+        :force_kill_waittime => 20
       }
 
       @worker_count = 1
@@ -61,6 +62,12 @@ module Delayed
         opts.on('--queue=queue', "Specify which queue DJ must look up for jobs") do |queue|
           @options[:queues] = queue.split(',')
         end
+        opts.on('--no-wait', "Avoid killing the process if a current job is long run") do
+          @no_wait = true
+        end
+        opts.on('--kill-waitime', "Amount of time to wait to kill the process after sending the stop command") do |n|
+          @options[:force_kill_waittime] = n.to_i
+        end
       end
       @args = opts.parse!(args)
     end
@@ -84,7 +91,15 @@ module Delayed
 
     def run_process(process_name, dir)
       Delayed::Worker.before_fork
-      Daemons.run_proc(process_name, :dir => dir, :dir_mode => :normal, :monitor => @monitor, :ARGV => @args) do |*args|
+
+      opts = { :dir => dir,
+               :dir_mode => :normal,
+               :monitor => @monitor,
+               :no_wait => @no_wait,
+               :force_kill_waittime => @options.delete(:force_kill_waittime),
+               :ARGV => @args }
+
+      Daemons.run_proc(process_name, opts) do |*args|
         $0 = File.join(@options[:prefix], process_name) if @options[:prefix]
         run process_name
       end
