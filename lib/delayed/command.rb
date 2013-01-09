@@ -61,6 +61,12 @@ module Delayed
         opts.on('--queue=queue', "Specify which queue DJ must look up for jobs") do |queue|
           @options[:queues] = queue.split(',')
         end
+        opts.on('--not-queues=queues', "Specify which queues DJ must not look up for jobs") do |queues|
+          @options[:not_queues] = queues.split(',')
+        end
+        opts.on('--not-queue=queue', "Specify which queues DJ must not look up for jobs") do |queue|
+          @options[:not_queues] = queue.split(',')
+        end
       end
       @args = opts.parse!(args)
     end

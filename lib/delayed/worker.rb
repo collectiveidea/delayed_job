@@ -15,10 +15,11 @@ module Delayed
     DEFAULT_DELAY_JOBS       = true
     DEFAULT_QUEUES           = []
     DEFAULT_READ_AHEAD       = 5
+    DEFAULT_NOT_QUEUES       = []
 
     cattr_accessor :min_priority, :max_priority, :max_attempts, :max_run_time,
-      :default_priority, :sleep_delay, :logger, :delay_jobs, :queues,
-      :read_ahead, :plugins, :destroy_failed_jobs
+      :default_priority, :sleep_delay, :logger, :delay_jobs, :queues, 
+      :not_queues, :read_ahead, :plugins, :destroy_failed_jobs
 
     # Named queue into which jobs are enqueued by default
     cattr_accessor :default_queue_name
@@ -35,6 +36,7 @@ module Delayed
       self.default_priority = DEFAULT_DEFAULT_PRIORITY
       self.delay_jobs       = DEFAULT_DELAY_JOBS
       self.queues           = DEFAULT_QUEUES
+      self.not_queues       = DEFAULT_NOT_QUEUES
       self.read_ahead       = DEFAULT_READ_AHEAD
     end
 
@@ -102,6 +104,7 @@ module Delayed
       self.class.sleep_delay  = options[:sleep_delay] if options.has_key?(:sleep_delay)
       self.class.read_ahead   = options[:read_ahead] if options.has_key?(:read_ahead)
       self.class.queues       = options[:queues] if options.has_key?(:queues)
+      self.class.not_queues   = options[:not_queues] if options.has_key?(:not_queues)
 
       self.plugins.each { |klass| klass.new }
     end

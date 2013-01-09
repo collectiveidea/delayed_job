@@ -170,6 +170,12 @@ QUEUE=tracking rake jobs:work
 QUEUES=mailers,tasks rake jobs:work
 </pre>
 
+If you would like a worker to not work on a specific queue, you may set the @NOT_QUEUE@ or @NOT_QUEUES@ environment variable.
+<pre>
+NOT_QUEUE=tracking rake jobs:work
+NOT_QUEUES=mailers,tasks rake jobs:work
+</pre>
+ 
 h2. Custom Jobs
 
 Jobs are simple ruby objects with a method called perform. Any object which responds to perform can be stuffed into the jobs table. Job objects are serialized to yaml so that they can later be resurrected by the job runner.
