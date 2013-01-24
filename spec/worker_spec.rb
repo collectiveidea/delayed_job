@@ -41,4 +41,21 @@ describe Delayed::Worker do
       Delayed::Job.reserve(Delayed::Worker.new)
     end
   end
+
+  context "worker exit on complete" do
+    before do
+      Delayed::Worker.exit_on_complete = true
+    end
+
+    after do
+      Delayed::Worker.exit_on_complete = false
+    end
+
+    it "exits the loop when no jobs are available" do
+      worker = Delayed::Worker.new
+      Timeout::timeout(2) do
+        worker.start
+      end
+    end
+  end
 end

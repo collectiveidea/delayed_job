@@ -157,11 +157,18 @@ $ RAILS_ENV=production script/delayed_job stop
 # Set the --queue or --queues option to work from a particular queue.
 $ RAILS_ENV=production script/delayed_job --queue=tracking start
 $ RAILS_ENV=production script/delayed_job --queues=mailers,tasks start
+
+# Runs all available jobs and the exits
+$ RAILS_ENV=production script/delayed_job start --exit-on-complete
+# or to run in the foreground
+$ RAILS_ENV=production script/delayed_job run --exit-on-complete
 </pre>
 
 Workers can be running on any computer, as long as they have access to the database and their clock is in sync. Keep in mind that each worker will check the database at least every 5 seconds.
 
 You can also invoke @rake jobs:work@ which will start working off jobs. You can cancel the rake task with @CTRL-C@.
+
+If you want to just run all available jobs and exit you can use @rake jobs:workoff@
 
 Work off queues by setting the @QUEUE@ or @QUEUES@ environment variable.
 

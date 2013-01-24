@@ -18,7 +18,7 @@ module Delayed
 
     cattr_accessor :min_priority, :max_priority, :max_attempts, :max_run_time,
       :default_priority, :sleep_delay, :logger, :delay_jobs, :queues,
-      :read_ahead, :plugins, :destroy_failed_jobs
+      :read_ahead, :plugins, :destroy_failed_jobs, :exit_on_complete
 
     # Named queue into which jobs are enqueued by default
     cattr_accessor :default_queue_name
@@ -97,11 +97,10 @@ module Delayed
 
     def initialize(options={})
       @quiet = options.has_key?(:quiet) ? options[:quiet] : true
-      self.class.min_priority = options[:min_priority] if options.has_key?(:min_priority)
-      self.class.max_priority = options[:max_priority] if options.has_key?(:max_priority)
-      self.class.sleep_delay  = options[:sleep_delay] if options.has_key?(:sleep_delay)
-      self.class.read_ahead   = options[:read_ahead] if options.has_key?(:read_ahead)
-      self.class.queues       = options[:queues] if options.has_key?(:queues)
+
+      [:min_priority, :max_priority, :sleep_delay, :read_ahead, :queues, :exit_on_complete].each do |option|
+        self.class.send("#{option}=", options[option]) if options.has_key?(option)
+      end
 
       self.plugins.each { |klass| klass.new }
     end
@@ -130,21 +129,22 @@ module Delayed
       self.class.lifecycle.run_callbacks(:execute, self) do
         loop do
           self.class.lifecycle.run_callbacks(:loop, self) do
-            result = nil
-
-            realtime = Benchmark.realtime do
-              result = work_off
+            @realtime = Benchmark.realtime do
+              @result = work_off
             end
+          end
 
-            count = result.sum
+          count = @result.sum
 
-            break if stop?
-
-            if count.zero?
-              sleep(self.class.sleep_delay)
+          if count.zero?
+            if self.class.exit_on_complete
+              say "No more jobs available. Exiting"
+              break
             else
-              say "#{count} jobs processed at %.4f j/s, %d failed ..." % [count / realtime, result.last]
+              sleep(self.class.sleep_delay) unless stop?
             end
+          else
+            say "#{count} jobs processed at %.4f j/s, %d failed ..." % [count / @realtime, @result.last]
           end
 
           break if stop?
