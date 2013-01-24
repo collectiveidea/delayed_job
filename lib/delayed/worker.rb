@@ -47,6 +47,15 @@ module Delayed
     # (perhaps to inspect the reason for the failure), set this to false.
     self.destroy_failed_jobs = true
 
+    # By default, Signals INT and TERM set @exit, and the worker exits upon completion of the current job.
+    # If you would prefer to raise a SignalException and exit immediately you can use this.
+    # Be aware daemons uses TERM to stop and restart
+    # false - No exceptions will be raised
+    # :term - Will only raise an exception on TERM signals but INT will wait for the current job to finish
+    # true - Will raise an exception on TERM and INT
+    cattr_accessor :raise_signal_exceptions
+    self.raise_signal_exceptions = false
+
     self.logger = if defined?(Rails)
       Rails.logger
     elsif defined?(RAILS_DEFAULT_LOGGER)
@@ -122,8 +131,17 @@ module Delayed
     end
 
     def start
-      trap('TERM') { say 'Exiting...'; stop }
-      trap('INT')  { say 'Exiting...'; stop }
+      trap('TERM') do
+        say 'Exiting...'
+        stop
+        raise SignalException.new('TERM') if self.class.raise_signal_exceptions
+      end
+
+      trap('INT') do
+        say 'Exiting...'
+        stop
+        raise SignalException.new('INT') if self.class.raise_signal_exceptions && self.class.raise_signal_exceptions != :term
+      end
 
       say "Starting job worker"
 
