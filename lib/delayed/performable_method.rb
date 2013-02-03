@@ -10,8 +10,8 @@ module Delayed
     def initialize(object, method_name, args)
       raise NoMethodError, "undefined method `#{method_name}' for #{object.inspect}" unless object.respond_to?(method_name, true)
 
-      if !Delayed::PerformableMethod.permit_unpersisted && defined?(ActiveRecord) && object.kind_of?(ActiveRecord::Base)
-        raise(ArgumentError, 'Jobs cannot be created for records before they\'ve been persisted') if object.attributes[object.class.primary_key].nil?
+      if !Delayed::PerformableMethod.permit_unpersisted && object.respond_to?(:new_record?) && object.new_record?
+        raise(ArgumentError, 'Jobs cannot be created for records before they\'ve been persisted')
       end
 
       self.object       = object

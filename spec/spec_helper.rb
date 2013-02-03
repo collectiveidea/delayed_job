@@ -50,4 +50,8 @@ RSpec.configure do |config|
   config.after(:each) do
     Delayed::Worker.reset
   end
+
+  config.expect_with :rspec do |c|
+    c.syntax = :expect
+  end
 end

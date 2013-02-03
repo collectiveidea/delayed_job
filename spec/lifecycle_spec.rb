@@ -12,7 +12,7 @@ describe Delayed::Lifecycle do
       lifecycle.before(:execute, &callback)
     end
 
-    it 'should execute before wrapped block' do
+    it "executes before wrapped block" do
       callback.should_receive(:call).with(*arguments).ordered
       behavior.should_receive(:inside!).ordered
       lifecycle.run_callbacks :execute, *arguments, &wrapped_block
@@ -24,7 +24,7 @@ describe Delayed::Lifecycle do
       lifecycle.after(:execute, &callback)
     end
 
-    it 'should execute after wrapped block' do
+    it "executes after wrapped block" do
       behavior.should_receive(:inside!).ordered
       callback.should_receive(:call).with(*arguments).ordered
       lifecycle.run_callbacks :execute, *arguments, &wrapped_block
@@ -40,14 +40,14 @@ describe Delayed::Lifecycle do
       end
     end
 
-    it 'should before and after wrapped block' do
+    it "wraps a block" do
       behavior.should_receive(:before!).ordered
       behavior.should_receive(:inside!).ordered
       behavior.should_receive(:after!).ordered
       lifecycle.run_callbacks :execute, *arguments, &wrapped_block
     end
 
-    it "should execute multiple callbacks in order" do
+    it "executes multiple callbacks in order" do
       behavior.should_receive(:one).ordered
       behavior.should_receive(:two).ordered
       behavior.should_receive(:three).ordered
@@ -60,7 +60,7 @@ describe Delayed::Lifecycle do
     end
   end
 
-  it "should raise if callback is executed with wrong number of parameters" do
+  it "raises if callback is executed with wrong number of parameters" do
     lifecycle.before(:execute, &callback)
     expect { lifecycle.run_callbacks(:execute, 1,2,3) {} }.to raise_error(ArgumentError, /1 parameter/)
   end
