@@ -230,7 +230,7 @@ module Delayed
     def failed(job)
       self.class.lifecycle.run_callbacks(:failure, self, job) do
         job.hook(:failure)
-        self.class.destroy_failed_jobs ? job.destroy : job.fail!
+        self.class.destroy_failed_jobs ? (job.destroy && false) : job.fail!
       end
     end
 

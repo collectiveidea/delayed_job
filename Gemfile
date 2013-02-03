@@ -1,6 +1,7 @@
 source :rubygems
 
 gem  'rake'
+gem  'ruby-debug'
 
 platforms :ruby do
   gem 'sqlite3'

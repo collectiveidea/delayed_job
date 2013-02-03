@@ -1,6 +1,17 @@
 require 'spec_helper'
 
 describe Delayed::Worker do
+  describe "failed" do
+    context "with destroy" do
+      it "should be false" do
+        job = double
+        job.should_receive(:destroy).and_return(Object.new)
+        job.should_receive(:hook).with(:failure)
+        expect(::Delayed::Worker.new.failed(job)).to be_false
+      end
+    end
+  end
+
   describe "backend=" do
     before do
       @clazz = Class.new

@@ -2,6 +2,7 @@ require 'active_support/core_ext/module/delegation'
 
 module Delayed
   class PerformableMethod
+    cattr_accessor :permit_unpersisted
     attr_accessor :object, :method_name, :args
 
     delegate :method, :to => :object
@@ -9,7 +10,7 @@ module Delayed
     def initialize(object, method_name, args)
       raise NoMethodError, "undefined method `#{method_name}' for #{object.inspect}" unless object.respond_to?(method_name, true)
 
-      if object.respond_to?(:new_record?) && object.new_record?
+      if !Delayed::PerformableMethod.permit_unpersisted && object.respond_to?(:new_record?) && object.new_record?
         raise(ArgumentError, 'Jobs cannot be created for records before they\'ve been persisted')
       end
 
