@@ -2,8 +2,8 @@ if defined?(ActiveRecord)
   class ActiveRecord::Base
     # serialize to YAML
     def encode_with(coder)
-      coder["attributes"] = @attributes
-      coder.tag = ['!ruby/ActiveRecord', self.class.name].join(':')
+      super
+      coder.tag = "!ruby/ActiveRecord:#{self.class.name}"
     end
   end
 end
