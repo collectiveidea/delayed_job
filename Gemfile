@@ -16,6 +16,7 @@ group :test do
   gem 'actionmailer', '~> 3.0'
   gem 'rspec', '>= 2.11'
   gem 'simplecov', :require => false
+  gem 'coveralls', :require => false
 end
 
 gemspec
