@@ -223,6 +223,7 @@ module Delayed
         job.save!
       else
         say "PERMANENTLY removing #{job.name} because of #{job.attempts} consecutive failures.", Logger::INFO
+        permanently_failed(job)
         failed(job)
       end
     end
@@ -230,7 +231,17 @@ module Delayed
     def failed(job)
       self.class.lifecycle.run_callbacks(:failure, self, job) do
         job.hook(:failure)
-        self.class.destroy_failed_jobs ? job.destroy : job.fail!
+        if self.class.destroy_failed_jobs
+          permanently_failed(job)
+          job.destroy
+        else
+          job.fail!
+        end
+      end
+    end
+    def permanently_failed(job)
+      self.class.lifecycle.run_callbacks(:permanent_failure, self, job) do
+        job.hook(:permanent_failure)
       end
     end
 
