@@ -1,8 +1,19 @@
-require 'active_support/basic_object'
+if ActiveSupport::VERSION::MAJOR == 4
+  require 'active_support/proxy_object'
+else
+  require 'active_support/basic_object'
+end
+
 require 'active_support/core_ext/module/aliasing'
 
 module Delayed
-  class DelayProxy < ActiveSupport::BasicObject
+  if ActiveSupport::VERSION::MAJOR == 4
+    klass = ActiveSupport::ProxyObject
+  else 
+    klass = ActiveSupport::BasicObject
+  end
+
+  class DelayProxy < klass
     def initialize(payload_class, target, options)
       @payload_class = payload_class
       @target = target
