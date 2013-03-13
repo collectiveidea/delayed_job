@@ -156,7 +156,7 @@ handle_asynchronously :tweet_later, :queue => 'tweets'
 
 Running Jobs
 ============
-`script/delayed_job` can be used to manage a background process which will
+`bin/delayed_job` can be used to manage a background process which will
 start working off jobs.
 
 To do so, add `gem "daemons"` to your `Gemfile` and make sure you've run `rails
@@ -164,21 +164,21 @@ generate delayed_job`.
 
 You can then do the following:
 
-    RAILS_ENV=production script/delayed_job start
-    RAILS_ENV=production script/delayed_job stop
+    RAILS_ENV=production bin/delayed_job start
+    RAILS_ENV=production bin/delayed_job stop
 
     # Runs two workers in separate processes.
-    RAILS_ENV=production script/delayed_job -n 2 start
-    RAILS_ENV=production script/delayed_job stop
+    RAILS_ENV=production bin/delayed_job -n 2 start
+    RAILS_ENV=production bin/delayed_job stop
 
     # Set the --queue or --queues option to work from a particular queue.
-    RAILS_ENV=production script/delayed_job --queue=tracking start
-    RAILS_ENV=production script/delayed_job --queues=mailers,tasks start
+    RAILS_ENV=production bin/delayed_job --queue=tracking start
+    RAILS_ENV=production bin/delayed_job --queues=mailers,tasks start
 
     # Runs all available jobs and the exits
-    RAILS_ENV=production script/delayed_job start --exit-on-complete
+    RAILS_ENV=production bin/delayed_job start --exit-on-complete
     # or to run in the foreground
-    RAILS_ENV=production script/delayed_job run --exit-on-complete
+    RAILS_ENV=production bin/delayed_job run --exit-on-complete
 
 Workers can be running on any computer, as long as they have access to the
 database and their clock is in sync. Keep in mind that each worker will check
