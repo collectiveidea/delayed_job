@@ -40,11 +40,15 @@ for other backends](http://wiki.github.com/collectiveidea/delayed_job/backends).
 
 If you plan to use delayed_job with Active Record, add `delayed_job_active_record` to your `Gemfile`.
 
-    gem 'delayed_job_active_record'
+```ruby
+gem 'delayed_job_active_record'
+```
 
 If you plan to use delayed_job with Mongoid, add `delayed_job_mongoid` to your `Gemfile`.
 
-    gem 'delayed_job_mongoid'
+```ruby
+gem 'delayed_job_mongoid'
+```
 
 Run `bundle install` to install the backend and delayed_job gems.
 
@@ -67,11 +71,13 @@ Queuing Jobs
 ============
 Call `.delay.method(params)` on any object and it will be processed in the background.
 
-    # without delayed_job
-    @user.activate!(@device)
+```ruby
+# without delayed_job
+@user.activate!(@device)
 
-    # with delayed_job
-    @user.delay.activate!(@device)
+# with delayed_job
+@user.delay.activate!(@device)
+```
 
 If a method should always be run in the background, you can call
 `#handle_asynchronously` after the method declaration:
