@@ -21,6 +21,19 @@ describe Delayed::Worker do
     end
   end
 
+  describe "job_say" do
+    before do
+      @worker = Delayed::Worker.new
+      @job = stub('job', :id => 123, :name => 'ExampleJob')
+    end
+
+    it "logs with job name and id" do
+      @worker.should_receive(:say).
+        with('Job ExampleJob (id=123) message', Delayed::Worker::DEFAULT_LOG_LEVEL)
+      @worker.job_say(@job, 'message')
+    end
+  end
+
   context "worker read-ahead" do
     before do
       @read_ahead = Delayed::Worker.read_ahead
