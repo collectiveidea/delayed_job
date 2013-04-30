@@ -199,6 +199,20 @@ Work off queues by setting the `QUEUE` or `QUEUES` environment variable.
 
     QUEUE=tracking rake jobs:work
     QUEUES=mailers,tasks rake jobs:work
+    
+Restarting delayed_job
+======================
+
+The following syntax will restart delayed jobs:
+
+    RAILS_ENV=production script/delayed_job start
+
+To restart multiple delayed_job workers:
+
+    RAILS_ENV=production script/delayed_job -n2 restart
+    
+
+
 
 Custom Jobs
 ===========
