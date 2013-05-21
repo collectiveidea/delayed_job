@@ -232,6 +232,19 @@ end
 
 Delayed::Job.enqueue NewsletterJob.new('lorem ipsum...', Customers.find(:all).collect(&:email))
 ```
+To set a per-job max attempts that overrides the Delayed::Worker.max_attempts you can define a max_attempts method on the job
+```ruby
+class NewsletterJob < Struct.new(:text, :emails)
+  def perform
+    emails.each { |e| NewsletterMailer.deliver_text_to_email(text, e) }
+  end
+  
+  def max_attempts
+    return 3
+  end
+end
+````
+
 
 Hooks
 =====
