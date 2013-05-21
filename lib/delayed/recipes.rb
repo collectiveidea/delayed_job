@@ -33,7 +33,7 @@ Capistrano::Configuration.instance.load do
     end
 
     def delayed_job_command
-      fetch(:delayed_job_command, "script/delayed_job")
+      fetch(:delayed_job_command, "bin/delayed_job")
     end
 
     desc "Stop the delayed_job process"

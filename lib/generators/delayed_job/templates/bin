@@ -1,0 +1,5 @@
+#!/usr/bin/env ruby
+require_relative '../config/boot'
+require_relative '../config/environment'
+require 'delayed/command'
+Delayed::Command.new(ARGV).daemonize
