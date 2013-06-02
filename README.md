@@ -316,6 +316,8 @@ By default all jobs are scheduled with priority = 0, which is top priority. You 
 
 The default behavior is to read 5 jobs from the queue when finding an available job. You can configure this by setting Delayed::Worker.read_ahead.
 
+By default all jobs will be queued without a named queue. A default named queue can be specified by using Delayed::Worker.default_queue_name.
+
 It is possible to disable delayed jobs for testing purposes. Set Delayed::Worker.delay_jobs = false to execute all jobs realtime.
 
 Here is an example of changing job parameters in Rails:
@@ -327,6 +329,7 @@ Delayed::Worker.sleep_delay = 60
 Delayed::Worker.max_attempts = 3
 Delayed::Worker.max_run_time = 5.minutes
 Delayed::Worker.read_ahead = 10
+Delayed::Worker.default_queue_name = 'default'
 Delayed::Worker.delay_jobs = !Rails.env.test?
 ```
 
