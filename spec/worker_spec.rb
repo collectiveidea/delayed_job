@@ -24,7 +24,7 @@ describe Delayed::Worker do
   describe "job_say" do
     before do
       @worker = Delayed::Worker.new
-      @job = stub('job', :id => 123, :name => 'ExampleJob')
+      @job = double('job', :id => 123, :name => 'ExampleJob')
     end
 
     it "logs with job name and id" do

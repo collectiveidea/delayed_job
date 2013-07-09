@@ -30,8 +30,8 @@ describe ActionMailer::Base do
   describe Delayed::PerformableMailer do
     describe "perform" do
       it "calls the method and #deliver on the mailer" do
-        email = mock('email', :deliver => true)
-        mailer_class = mock('MailerClass', :signup => email)
+        email = double('email', :deliver => true)
+        mailer_class = double('MailerClass', :signup => email)
         mailer = Delayed::PerformableMailer.new(mailer_class, :signup, ['john@example.com'])
 
         mailer_class.should_receive(:signup).with('john@example.com')
