@@ -399,7 +399,7 @@ shared_examples_for "a delayed_job backend" do
     end
 
     it "uses the max_retries value on the payload when defined" do
-      @job.payload_object.stub!(:max_attempts).and_return(99)
+      @job.payload_object.stub(:max_attempts).and_return(99)
       expect(@job.max_attempts).to eq(99)
     end
   end
@@ -504,8 +504,8 @@ shared_examples_for "a delayed_job backend" do
 
       it "does not fail when the triggered error doesn't have a message" do
         error_with_nil_message = StandardError.new
-        error_with_nil_message.stub!(:message).and_return nil
-        @job.stub!(:invoke_job).and_raise error_with_nil_message
+        error_with_nil_message.stub(:message).and_return nil
+        @job.stub(:invoke_job).and_raise error_with_nil_message
         expect{worker.run(@job)}.not_to raise_error
       end
     end
@@ -548,7 +548,7 @@ shared_examples_for "a delayed_job backend" do
           it "does not try to run that hook" do
             expect {
               Delayed::Worker.max_attempts.times { worker.reschedule(@job) }
-            }.not_to raise_exception(NoMethodError)
+            }.not_to raise_exception
           end
         end
       end
