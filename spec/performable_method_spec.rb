@@ -36,7 +36,7 @@ describe Delayed::PerformableMethod do
     end
     expect {
       Delayed::PerformableMethod.new(clazz.new, :private_method, [])
-    }.not_to raise_error(NoMethodError)
+    }.not_to raise_error
   end
 
   describe "hooks" do
