@@ -71,4 +71,19 @@ describe Delayed::Worker do
       end
     end
   end
+
+  context "worker job reservation" do
+    before do
+      Delayed::Worker.exit_on_complete = true
+    end
+
+    after do
+      Delayed::Worker.exit_on_complete = false
+    end
+
+    it "handles error during job reservation" do
+      Delayed::Job.should_receive(:reserve).and_raise(Exception)
+      Delayed::Worker.new.start
+    end
+  end
 end

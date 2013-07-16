@@ -262,8 +262,15 @@ module Delayed
     # Run the next job we can get an exclusive lock on.
     # If no jobs are left we return nil
     def reserve_and_run_one_job
-      job = Delayed::Job.reserve(self)
+      job = reserve_job
       self.class.lifecycle.run_callbacks(:perform, self, job){ run(job) } if job
+    end
+
+    def reserve_job
+      Delayed::Job.reserve(self)
+    rescue Exception => error
+      say "Error while reserving job: #{error}"
+      nil
     end
   end
 
