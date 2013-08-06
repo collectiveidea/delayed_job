@@ -18,6 +18,8 @@
 #   set :delayed_job_server_role, :worker
 #
 
+require 'delayed/compatibility'
+
 Capistrano::Configuration.instance.load do
   namespace :delayed_job do
     def rails_env
@@ -33,7 +35,7 @@ Capistrano::Configuration.instance.load do
     end
 
     def delayed_job_command
-      fetch(:delayed_job_command, "script/delayed_job")
+      fetch(:delayed_job_command, "#{Delayed::Compatibility.executable_prefix}/delayed_job")
     end
 
     desc "Stop the delayed_job process"
