@@ -276,7 +276,7 @@ class ParanoidNewsletterJob < NewsletterJob
     Airbrake.notify(exception)
   end
 
-  def failure
+  def failure(job)
     page_sysadmin_in_the_middle_of_the_night
   end
 end
