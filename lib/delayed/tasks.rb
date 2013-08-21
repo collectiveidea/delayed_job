@@ -6,7 +6,20 @@ namespace :jobs do
 
   desc "Start a delayed_job worker."
   task :work => :environment_options do
-    Delayed::Worker.new(@worker_options).start
+    if @worker_options[:num_processes] == 1
+      Delayed::Worker.new(@worker_options).start
+    else
+      Delayed::Worker.before_fork
+      @worker_options[:num_processes].times do |worker_index|
+        fork do
+          Delayed::Worker.after_fork
+          worker = Delayed::Worker.new(@worker_options)
+          worker.name_prefix = "delayed_job.#{worker_index} "
+          worker.start
+        end
+      end
+      sleep
+    end
   end
 
   desc "Start a delayed_job worker and exit when all available jobs are complete."
@@ -19,7 +32,8 @@ namespace :jobs do
       :min_priority => ENV['MIN_PRIORITY'],
       :max_priority => ENV['MAX_PRIORITY'],
       :queues => (ENV['QUEUES'] || ENV['QUEUE'] || '').split(','),
-      :quiet => false
+      :quiet => false,
+      :num_processes => ENV['NUM_PROCESSES'] ? ENV['NUM_PROCESSES'].to_i : 1
     }
   end
 
