@@ -33,7 +33,11 @@ Capistrano::Configuration.instance.load do
     end
 
     def delayed_job_command
-      fetch(:delayed_job_command, "script/delayed_job")
+      if Rails::VERSION::STRING[0] == '4'
+        fetch(:delayed_job_command, "bin/delayed_job") rescue raise "ERROR: Rails 4 requires delayed_job command be in the bin/ directory and not script/"
+      else
+        fetch(:delayed_job_command, "script/delayed_job")
+      end
     end
 
     desc "Stop the delayed_job process"
