@@ -398,7 +398,7 @@ shared_examples_for "a delayed_job backend" do
       expect(@job.max_attempts).to be_nil
     end
 
-    it "uses the max_retries value on the payload when defined" do
+    it "uses the max_attempts value on the payload when defined" do
       @job.payload_object.stub(:max_attempts).and_return(99)
       expect(@job.max_attempts).to eq(99)
     end
