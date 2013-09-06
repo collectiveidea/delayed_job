@@ -138,6 +138,10 @@ module Delayed
         payload_object.max_attempts if payload_object.respond_to?(:max_attempts)
       end
 
+      def max_run_time
+        payload_object.max_run_time if payload_object.respond_to?(:max_run_time)
+      end
+
       def fail!
         update_attributes(:failed_at => self.class.db_time_now)
       end
