@@ -404,6 +404,30 @@ shared_examples_for "a delayed_job backend" do
     end
   end
 
+  describe '#max_run_time' do
+
+    before(:each) { @job = described_class.enqueue SimpleJob.new }
+
+    it 'is not defined' do
+      expect(@job.max_run_time).to be_nil
+    end
+
+    it 'results in a default run time when not defined' do
+      expect(worker.max_run_time(@job)).to eq(Delayed::Worker::DEFAULT_MAX_RUN_TIME)
+    end
+
+    it 'uses the max_run_time value on the payload when defined' do
+      @job.payload_object.stub(:max_run_time).and_return(30.minutes)
+      expect(@job.max_run_time).to eq(30.minutes)
+    end
+
+    it 'results in an overridden run time when defined' do
+      @job.payload_object.stub(:max_run_time).and_return(45.minutes)
+      expect(worker.max_run_time(@job)).to eq(45.minutes)
+    end
+
+  end
+
   describe "yaml serialization" do
     it "reloads changed attributes" do
       story = Story.create(:text => 'hello')
