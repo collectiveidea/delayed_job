@@ -203,7 +203,7 @@ module Delayed
     def run(job)
       job_say job, 'RUNNING'
       runtime =  Benchmark.realtime do
-        Timeout.timeout(self.class.max_run_time.to_i, WorkerTimeout) { job.invoke_job }
+        Timeout.timeout(max_run_time(job).to_i, WorkerTimeout) { job.invoke_job }
         job.destroy
       end
       job_say job, 'COMPLETED after %.4f' % runtime
@@ -250,6 +250,10 @@ module Delayed
 
     def max_attempts(job)
       job.max_attempts || self.class.max_attempts
+    end
+
+    def max_run_time(job)
+      job.max_run_time || self.class.max_run_time
     end
 
   protected
