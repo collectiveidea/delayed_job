@@ -63,6 +63,20 @@ module Delayed
           warn "[DEPRECATION] `Delayed::Job.work_off` is deprecated. Use `Delayed::Worker.new.work_off instead."
           Delayed::Worker.new.work_off(num)
         end
+
+        def current_rate(seconds = 5)
+          start_time  = Time.now
+          start_count = Delayed::Job.count
+
+          sleep seconds
+
+          end_time    =  Time.now
+          end_count   = Delayed::Job.count
+
+          time  = end_time - start_time
+          count = start_count - end_count
+          return (count/time).to_f
+        end
       end
 
       def failed?

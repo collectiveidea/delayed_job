@@ -39,6 +39,15 @@ shared_examples_for "a delayed_job backend" do
     end
   end
 
+  describe "current_rate" do
+    it "returns the current rate" do
+      Time.stub(:now).and_return(0,5)
+      described_class.stub(:count).and_return(5,0)
+      described_class.stub(:sleep)
+      expect(described_class.current_rate).to eql 1.0
+    end
+  end
+
   describe "enqueue" do
     context "with a hash" do
       it "raises ArgumentError when handler doesn't respond_to :perform" do
