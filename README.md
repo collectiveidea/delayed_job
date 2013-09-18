@@ -187,7 +187,7 @@ You can then do the following:
     RAILS_ENV=production script/delayed_job --queue=tracking start
     RAILS_ENV=production script/delayed_job --queues=mailers,tasks start
 
-    # Runs all available jobs and the exits
+    # Runs all available jobs and then exits
     RAILS_ENV=production script/delayed_job start --exit-on-complete
     # or to run in the foreground
     RAILS_ENV=production script/delayed_job run --exit-on-complete
