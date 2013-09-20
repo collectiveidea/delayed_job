@@ -28,14 +28,32 @@ class Delayed::PerformableMethod
 end
 
 module Psych
+  def self.load yaml, filename = nil, visitor = nil
+    result = parse(yaml, filename)
+    result ? result.to_ruby(visitor) : result
+  end
+
   module Visitors
     class YAMLTree
       def visit_Class(klass)
         @emitter.scalar klass.name, nil, '!ruby/class', false, false, Nodes::Scalar::SINGLE_QUOTED
       end
     end
+  end
 
-    class ToRuby
+  module Nodes
+    class Node
+      def to_ruby(visitor)
+        visitor ||= Visitors::ToRuby
+        visitor.new.accept self
+      end
+    end
+  end
+end
+
+module Delayed
+  module PsychExt
+    class ToRuby < Psych::Visitors::ToRuby
       def visit_Psych_Nodes_Scalar(o)
         @st[o.anchor] = o.value if o.anchor
 
