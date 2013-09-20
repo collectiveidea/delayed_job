@@ -2,6 +2,7 @@
 # Classes, Modules and Structs
 
 require 'yaml'
+YAML::ENGINE.yamler = "syck" if defined?(YAML::ENGINE)
 if YAML.parser.class.name =~ /syck|yecht/i
   require File.expand_path('../syck_ext', __FILE__)
   require File.expand_path('../serialization/active_record', __FILE__)
