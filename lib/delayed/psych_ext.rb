@@ -28,9 +28,16 @@ class Delayed::PerformableMethod
 end
 
 module Psych
-  def self.load yaml, filename = nil, visitor = nil
-    result = parse(yaml, filename)
-    result ? result.to_ruby(visitor) : result
+  if VERSION.to_f < 1.3
+    def self.load yaml, filename = nil, visitor = nil
+      result = parse(yaml)
+      result ? result.to_ruby(visitor) : result
+    end
+  else
+    def self.load yaml, filename = nil, visitor = nil
+      result = parse(yaml, filename)
+      result ? result.to_ruby(visitor) : result
+    end
   end
 
   module Visitors
