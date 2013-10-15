@@ -228,7 +228,7 @@ Custom Jobs
 Jobs are simple ruby objects with a method called perform. Any object which responds to perform can be stuffed into the jobs table. Job objects are serialized to yaml so that they can later be resurrected by the job runner.
 
 ```ruby
-class NewsletterJob < Struct.new(:text, :emails)
+NewsletterJob = Struct.new(:text, :emails) do
   def perform
     emails.each { |e| NewsletterMailer.deliver_text_to_email(text, e) }
   end
@@ -238,7 +238,7 @@ Delayed::Job.enqueue NewsletterJob.new('lorem ipsum...', Customers.find(:all).co
 ```
 To set a per-job max attempts that overrides the Delayed::Worker.max_attempts you can define a max_attempts method on the job
 ```ruby
-class NewsletterJob < Struct.new(:text, :emails)
+NewsletterJob = Struct.new(:text, :emails) do
   def perform
     emails.each { |e| NewsletterMailer.deliver_text_to_email(text, e) }
   end
