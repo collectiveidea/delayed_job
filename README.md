@@ -36,7 +36,7 @@ delayed_job 3.0.0 only supports Rails 3.0+. See the [2.0
 branch](https://github.com/collectiveidea/delayed_job/tree/v2.0) for Rails 2.
 
 delayed_job supports multiple backends for storing the job queue. [See the wiki
-for other backends](http://wiki.github.com/collectiveidea/delayed_job/backends).
+for other backends](https://github.com/collectiveidea/delayed_job/wiki/Backends).
 
 If you plan to use delayed_job with Active Record, add `delayed_job_active_record` to your `Gemfile`.
 
