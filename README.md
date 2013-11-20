@@ -135,9 +135,9 @@ end
 
 If you ever want to call a `handle_asynchronously`'d method without Delayed Job, for instance while debugging something at the console, just add `_without_delay` to the method name. For instance, if your original method was `foo`, then call `foo_without_delay`.
 
-Rails 3 Mailers
-===============
-Due to how mailers are implemented in Rails 3, we had to do a little work around to get delayed_job to work.
+Mailers in Rails 3 and 4
+========================
+Due to how mailers are implemented in Rails 3 and 4, we had to do a little work around to get delayed_job to work.
 
 ```ruby
 # without delayed_job
