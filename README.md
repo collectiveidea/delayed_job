@@ -83,6 +83,8 @@ Call `.delay.method(params)` on any object and it will be processed in the backg
 @user.delay.activate!(@device)
 ```
 
+Note that we are passing in the Device object to the delayed version, and not the device ID. If Device is a database-backed class (like ActiveRecord or Mongoid), delayed_job will automatically find the class by ID when the job runs, ensuring that we have an up-to-date version of the device when the job runs.
+
 If a method should always be run in the background, you can call
 `#handle_asynchronously` after the method declaration:
 
