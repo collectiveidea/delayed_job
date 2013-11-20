@@ -80,8 +80,10 @@ Call `.delay.method(params)` on any object and it will be processed in the backg
 @user.activate!(@device)
 
 # with delayed_job
-@user.delay.activate!(@device)
+@user.delay.activate!(@device.id)
 ```
+
+Note that we are passing in the device ID to the delayed version, and not the Device object itself. This is because by the time the job runs, the `@device` object may be out of sync with the actual Device record in the database. Therefore, we pass in the ID and call `device = Device.find(device_id)` in the `User#activate!` method, ensuring that we have an up-to-date version of the device when the job runs.
 
 If a method should always be run in the background, you can call
 `#handle_asynchronously` after the method declaration:
@@ -144,10 +146,10 @@ Due to how mailers are implemented in Rails 3 and 4, we had to do a little work 
 Notifier.signup(@user).deliver
 
 # with delayed_job
-Notifier.delay.signup(@user)
+Notifier.delay.signup(@user.id)
 
 # with delayed_job running at a specific time
-Notifier.delay(run_at: 5.minutes.from_now).signup(@user)
+Notifier.delay(run_at: 5.minutes.from_now).signup(@user.id)
 ```
 
 Remove the `.deliver` method to make it work. It's not ideal, but it's the best
