@@ -95,7 +95,7 @@ describe Delayed::PerformableMethod do
         Delayed::Worker.delay_jobs = true
       end
 
-      %w(before after success).each do |hook|
+      %w(enqueue before after success).each do |hook|
         it "delegates #{hook} hook to object" do
           story = Story.create
           story.should_receive(hook).with(an_instance_of(Delayed::Job))

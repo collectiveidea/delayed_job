@@ -34,6 +34,7 @@ module Delayed
             end
           else
             Delayed::Job.new(:payload_object => options[:payload_object]).tap do |job|
+              job.hook(:enqueue)
               job.invoke_job
             end
           end
