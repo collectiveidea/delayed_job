@@ -63,13 +63,6 @@ describe Delayed::PerformableMethod do
       expect { story.delay.tell.invoke_job }.to raise_error
     end
 
-    it "delegates error hook to object when delay_jobs = false" do
-      story = Story.create
-      story.should_receive(:error).with(an_instance_of(Delayed::Job), an_instance_of(RuntimeError))
-      story.should_receive(:tell).and_raise(RuntimeError)
-      expect { story.delay.tell.invoke_job }.to raise_error
-    end
-
     it "delegates failure hook to object" do
       method = Delayed::PerformableMethod.new("object", :size, [])
       method.object.should_receive(:failure)
