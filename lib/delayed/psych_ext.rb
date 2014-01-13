@@ -50,9 +50,16 @@ module Psych
 
   module Nodes
     class Node
-      def to_ruby(visitor)
-        visitor ||= Visitors::ToRuby
-        visitor.new.accept self
+      if Gem::Version.new(VERSION) >= Gem::Version.new('2.0.2')
+        def to_ruby(visitor)
+          visitor ||= Visitors::ToRuby
+          visitor.create.accept self
+        end
+      else
+        def to_ruby(visitor)
+          visitor ||= Visitors::ToRuby
+          visitor.new.accept self
+        end
       end
     end
   end
