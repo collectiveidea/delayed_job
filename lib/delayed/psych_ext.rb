@@ -105,9 +105,11 @@ module Psych
         when /^!ruby\/ActiveRecord:(.+)$/
           klass = resolve_class($1)
           payload = Hash[*object.children.map { |c| accept c }]
-          id = payload["attributes"][klass.primary_key]
+          # TODO: #yaml_new alread implements these 5 lines of code. Maybe isolate this routine and
+          #       use it in both places???
+          id = payload["attributes"].values_at(*klass.primary_key)
           begin
-            klass.unscoped.find(id)
+            klass.unscoped.find(*id)
           rescue ActiveRecord::RecordNotFound
             raise Delayed::DeserializationError
           end
