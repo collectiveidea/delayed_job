@@ -146,6 +146,8 @@ module Delayed
 
       say "Starting job worker"
 
+      recover_crashed_jobs!
+
       self.class.lifecycle.run_callbacks(:execute, self) do
         loop do
           self.class.lifecycle.run_callbacks(:loop, self) do
@@ -253,6 +255,36 @@ module Delayed
     end
 
   protected
+
+    # Finds locked jobs in database, then checks if the process IDs exist, if not, triggers recovery action.
+    def recover_crashed_jobs!
+      Delayed::Job.find_each do |job|
+        if job.locked_by
+          match = /host:([^\s]+) pid:(\d+)/.match(job.locked_by)
+          host_name, pid = match[1], match[2].to_i
+          if !is_process_running?(pid) && Socket.gethostname == host_name
+            say job.last_error = "* [JOB] Worker process crashed #{job.locked_by}, recovering job..."
+            job.save
+            if job.payload_object.respond_to? :recover
+              say "* [JOB] Running recover hook"
+              job.payload_object.recover
+            end
+            reschedule(job)
+          end
+        end
+      end
+    rescue => e
+      say "* [ERROR] #{e.message}\n" + e.backtrace.join("\n")
+    end
+
+    def is_process_running?(pid)
+      begin
+        Process.getpgid( pid )
+        true
+      rescue Errno::ESRCH
+        false
+      end
+    end
 
     def handle_failed_job(job, error)
       job.last_error = "#{error.message}\n#{error.backtrace.join("\n")}"

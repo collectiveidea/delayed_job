@@ -1,4 +1,4 @@
-# -*- encoding: utf-8 -*-
+# encoding: utf-8
 
 Gem::Specification.new do |spec|
   spec.add_dependency   'activesupport', ['>= 3.0', '< 4.1']
