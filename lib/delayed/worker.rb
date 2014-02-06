@@ -130,13 +130,13 @@ module Delayed
 
     def start # rubocop:disable CyclomaticComplexity, PerceivedComplexity
       trap('TERM') do
-        say 'Exiting...'
+        Thread.new { say 'Exiting...' }
         stop
         fail SignalException.new('TERM') if self.class.raise_signal_exceptions
       end
 
       trap('INT') do
-        say 'Exiting...'
+        Thread.new { say 'Exiting...' }
         stop
         fail SignalException.new('INT') if self.class.raise_signal_exceptions && self.class.raise_signal_exceptions != :term
       end
