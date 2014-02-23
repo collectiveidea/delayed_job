@@ -32,4 +32,10 @@ describe "YAML" do
   it "does not throw an uninitialized constant Syck::Syck when using YAML.load with poorly formed yaml" do
     expect{ YAML.load(YAML.dump("foo: *bar"))}.not_to raise_error
   end
+
+  it "handle anchor aliased class" do
+    date = Date.new(2014, 2, 19)
+    expected = { "created_on" => date, "updated_on" => date }
+    expect(YAML.load("created_on: &1 #{date.to_s}\nupdated_on: *1")).to eq expected
+  end
 end
