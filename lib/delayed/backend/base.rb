@@ -86,13 +86,21 @@ module Delayed
       end
 
       def payload_object
-        if YAML.respond_to?(:unsafe_load)
-          #See https://github.com/dtao/safe_yaml
-          #When the method is there, we need to load our YAML like this...
-          @payload_object ||= YAML.load(self.handler, :safe => false)
-        else
-          @payload_object ||= YAML.load(self.handler)
+        begin
+          @payload_object ||= load_payload_object(handler)
+        rescue Psych::SyntaxError, Psych::BadAlias => e
+          # Try to load YAML saved with `syck` parser
+          YAML::ENGINE.yamler = "syck"
+          @payload_object ||= load_payload_object(handler)
+
+          # Log warning if load was successful
+          log_message = "#{Time.now.strftime('%FT%T%z')}: Handler: #{handler.inspect} was loaded with `syck` parser"
+          logger.add Logger::WARN, log_message if logger
+        ensure
+          # Make sure we're back to `psych` parser
+          YAML::ENGINE.yamler = "psych"
         end
+
       rescue TypeError, LoadError, NameError, ArgumentError => e
         raise DeserializationError,
           "Job failed to load: #{e.message}. Handler: #{handler.inspect}"
@@ -143,6 +151,15 @@ module Delayed
       end
 
     protected
+      def load_payload_object(handler)
+        if YAML.respond_to?(:unsafe_load)
+          #See https://github.com/dtao/safe_yaml
+          #When the method is there, we need to load our YAML like this...
+          @payload_object ||= YAML.load(handler, :safe => false)
+        else
+          @payload_object ||= YAML.load(handler)
+        end
+      end
 
       def set_default_run_at
         self.run_at ||= self.class.db_time_now
