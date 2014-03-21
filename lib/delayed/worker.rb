@@ -1,6 +1,6 @@
 require 'timeout'
 require 'active_support/core_ext/numeric/time'
-require 'active_support/core_ext/class/attribute_accessors'
+require 'active_support/core_ext/module/attribute_accessors'
 require 'active_support/core_ext/kernel'
 require 'active_support/core_ext/enumerable'
 require 'logger'
