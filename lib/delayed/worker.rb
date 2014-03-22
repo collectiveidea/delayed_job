@@ -1,6 +1,10 @@
 require 'timeout'
 require 'active_support/core_ext/numeric/time'
-require 'active_support/core_ext/class/attribute_accessors'
+if Gem.loaded_specs['activesupport'].version.to_s.slice(0..4) >= "4.1.0"
+  require 'active_support/core_ext/module/attribute_accessors'
+else
+  require 'active_support/core_ext/class/attribute_accessors'
+end
 require 'active_support/core_ext/kernel'
 require 'active_support/core_ext/enumerable'
 require 'logger'
