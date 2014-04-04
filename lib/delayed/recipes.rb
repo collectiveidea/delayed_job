@@ -20,6 +20,10 @@
 
 Capistrano::Configuration.instance.load do
   namespace :delayed_job do
+    def directory
+      Rails.version.first.to_i > 3 ? "bin/delayed_job" : "script/delayed_job"
+    end
+
     def rails_env
       fetch(:rails_env, false) ? "RAILS_ENV=#{fetch(:rails_env)}" : ''
     end
@@ -33,7 +37,7 @@ Capistrano::Configuration.instance.load do
     end
 
     def delayed_job_command
-      fetch(:delayed_job_command, "script/delayed_job")
+      fetch(:delayed_job_command, directory)
     end
 
     desc "Stop the delayed_job process"
