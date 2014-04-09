@@ -7,6 +7,7 @@ require 'logger'
 require 'benchmark'
 
 module Delayed
+
   class Worker
     class FatalBackendError < Exception; end
 
