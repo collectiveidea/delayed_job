@@ -99,4 +99,45 @@ describe Delayed::Worker do
       Delayed::Worker.new.work_off
     end
   end
+
+  context "#say" do
+    before(:each) do
+      @worker = Delayed::Worker.new
+      @worker.name = 'ExampleJob'
+      @worker.logger = double('job')
+      time = Time.now
+      Time.stub(:now).and_return(time)
+      @text = "Job executed"
+      @worker_name = "[Worker(ExampleJob)]"
+      @expected_time = time.strftime('%FT%T%z')
+    end
+
+    after(:each) do
+      @worker.logger = nil
+    end
+
+    shared_examples_for "a worker which logs on the correct severity" do |severity|
+      it "logs a message on the #{severity[:level].upcase} level" do
+        expect(@worker.logger).to receive(:send).
+          with(severity[:level], "#{@expected_time}: #{@worker_name} #{@text}")
+        @worker.say(@text, severity[:index])
+      end
+    end
+
+    severities = [ { index: 0, level: "debug" },
+                   { index: 1, level: "info" },
+                   { index: 2, level: "warn" },
+                   { index: 3, level: "error" },
+                   { index: 4, level: "fatal" },
+                   { index: 5, level: "unknown" } ]
+    severities.each do |severity|
+      it_behaves_like "a worker which logs on the correct severity", severity
+    end
+
+    it "logs a message on the default log's level" do
+      expect(@worker.logger).to receive(:send).
+        with("info", "#{@expected_time}: #{@worker_name} #{@text}")
+      @worker.say(@text, Delayed::Worker::DEFAULT_LOG_LEVEL)
+    end
+  end
 end
