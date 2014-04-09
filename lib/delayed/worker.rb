@@ -1,6 +1,10 @@
 require 'timeout'
 require 'active_support/core_ext/numeric/time'
-require 'active_support/core_ext/class/attribute_accessors'
+if ActiveSupport::VERSION::MAJOR < 3 || ActiveSupport::VERSION::MAJOR ==4 && ActiveSupport::VERSION::MINOR == 0
+  require 'active_support/core_ext/class/attribute_accessors'
+else
+  require 'active_support/core_ext/module/attribute_accessors'
+end
 require 'active_support/core_ext/kernel'
 require 'active_support/core_ext/enumerable'
 require 'logger'
