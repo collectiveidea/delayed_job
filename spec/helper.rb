@@ -26,7 +26,7 @@ Delayed::Worker.backend = :test
 ActiveSupport::Dependencies.autoload_paths << File.dirname(__FILE__)
 
 # Add this to simulate Railtie initializer being executed
-ActionMailer::Base.send(:extend, Delayed::DelayMail)
+ActionMailer::Base.extend(Delayed::DelayMail)
 
 
 # Used to test interactions between DJ and an ORM
