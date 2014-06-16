@@ -186,6 +186,7 @@ module Delayed
     def work_off(num = 100)
       success, failure = 0, 0
 
+      say "Beginning to work off jobs"
       num.times do
         case reserve_and_run_one_job
         when true
@@ -204,6 +205,7 @@ module Delayed
     def run(job)
       job_say job, 'RUNNING'
       runtime =  Benchmark.realtime do
+        say "Beginning to run job"
         Timeout.timeout(self.class.max_run_time.to_i, WorkerTimeout) { job.invoke_job }
         job.destroy
       end
