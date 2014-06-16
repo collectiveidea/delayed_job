@@ -9,8 +9,8 @@ module Delayed
         # Add a job to the queue
         def enqueue(*args)
           options = {
-            :priority => Delayed::Worker.default_priority,
-            :queue => Delayed::Worker.default_queue_name
+              :priority => Delayed::Worker.default_priority,
+              :queue => Delayed::Worker.default_queue_name
           }.merge!(args.extract_options!)
 
           options[:payload_object] ||= args.shift
@@ -18,7 +18,7 @@ module Delayed
           if args.size > 0
             warn "[DEPRECATION] Passing multiple arguments to `#enqueue` is deprecated. Pass a hash with :priority and :run_at."
             options[:priority] = args.first || options[:priority]
-            options[:run_at]   = args[1]
+            options[:run_at] = args[1]
           end
 
           unless options[:payload_object].respond_to?(:perform)
@@ -59,6 +59,10 @@ module Delayed
           Delayed::Worker.logger.add level, "#{Time.now.strftime('%FT%T%z')}: #{text}" if Delayed::Worker.logger
         end
 
+        # Allow the backend to attempt recovery from reserve errors
+        def recover_from(error)
+        end
+
         # Hook method that is called before a new worker is forked
         def before_fork
         end
@@ -76,14 +80,15 @@ module Delayed
       def failed?
         !!failed_at
       end
+
       alias_method :failed, :failed?
 
       ParseObjectFromYaml = /\!ruby\/\w+\:([^\s]+)/
 
       def name
         @name ||= payload_object.respond_to?(:display_name) ?
-                    payload_object.display_name :
-                    payload_object.class.name
+            payload_object.display_name :
+            payload_object.class.name
       rescue DeserializationError
         ParseObjectFromYaml.match(handler)[1]
       end
@@ -94,10 +99,16 @@ module Delayed
       end
 
       def payload_object
-        @payload_object ||= YAML.load(self.handler)
+        if YAML.respond_to?(:unsafe_load)
+          #See https://github.com/dtao/safe_yaml
+          #When the method is there, we need to load our YAML like this...
+          @payload_object ||= YAML.load(self.handler, :safe => false)
+        else
+          @payload_object ||= YAML.load(self.handler)
+        end
       rescue TypeError, LoadError, NameError, ArgumentError => e
         raise DeserializationError,
-          "Job failed to load: #{e.message}. Handler: #{handler.inspect}"
+              "Job failed to load: #{e.message}. Handler: #{handler.inspect}"
       end
 
       def invoke_job
@@ -123,8 +134,8 @@ module Delayed
 
       # Unlock this job (note: not saved to DB)
       def unlock
-        self.locked_at    = nil
-        self.locked_by    = nil
+        self.locked_at = nil
+        self.locked_by = nil
       end
 
       def hook(name, *args)
@@ -138,8 +149,8 @@ module Delayed
 
       def reschedule_at
         payload_object.respond_to?(:reschedule_at) ?
-          payload_object.reschedule_at(self.class.db_time_now, attempts) :
-          self.class.db_time_now + (attempts ** 4) + 5
+            payload_object.reschedule_at(self.class.db_time_now, attempts) :
+            self.class.db_time_now + (attempts ** 4) + 5
       end
 
       def max_attempts
@@ -150,7 +161,7 @@ module Delayed
         update_attributes(:failed_at => self.class.db_time_now)
       end
 
-    protected
+      protected
 
       def set_default_run_at
         self.run_at ||= self.class.db_time_now

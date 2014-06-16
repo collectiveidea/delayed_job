@@ -7,7 +7,9 @@ require 'logger'
 require 'benchmark'
 
 module Delayed
+
   class Worker
+    DEFAULT_LOG_LEVEL        = 'info'
     DEFAULT_SLEEP_DELAY      = 5
     DEFAULT_MAX_ATTEMPTS     = 25
     DEFAULT_MAX_RUN_TIME     = 4.hours
@@ -106,6 +108,7 @@ module Delayed
 
     def initialize(options={})
       @quiet = options.has_key?(:quiet) ? options[:quiet] : true
+      @failed_reserve_count = 0
 
       [:min_priority, :max_priority, :sleep_delay, :read_ahead, :queues, :exit_on_complete].each do |option|
         self.class.send("#{option}=", options[option]) if options.has_key?(option)
@@ -115,7 +118,7 @@ module Delayed
     end
 
     # Every worker has a unique name which by default is the pid of the process. There are some
-    # advantages to overriding this with something which survives worker retarts:  Workers can#
+    # advantages to overriding this with something which survives worker restarts:  Workers can
     # safely resume working on tasks which are locked by themselves. The worker will assume that
     # it crashed before.
     def name
@@ -162,7 +165,7 @@ module Delayed
               sleep(self.class.sleep_delay) unless stop?
             end
           else
-            say "#{count} jobs processed at %.4f j/s, %d failed ..." % [count / @realtime, @result.last]
+            say "#{count} jobs processed at %.4f j/s, %d failed" % [count / @realtime, @result.last]
           end
 
           break if stop?
@@ -200,12 +203,13 @@ module Delayed
     end
 
     def run(job)
+      job_say job, 'RUNNING'
       runtime =  Benchmark.realtime do
         say "Beginning to run job"
         Timeout.timeout(self.class.max_run_time.to_i, WorkerTimeout) { job.invoke_job }
         job.destroy
       end
-      say "#{job.name} completed after %.4f" % runtime
+      job_say job, 'COMPLETED after %.4f' % runtime
       return true  # did work
     rescue DeserializationError => error
       job.last_error = "#{error.message}\n#{error.backtrace.join("\n")}"
@@ -224,7 +228,7 @@ module Delayed
         job.unlock
         job.save!
       else
-        say "PERMANENTLY removing #{job.name} because of #{job.attempts} consecutive failures.", Logger::INFO
+        job_say job, "REMOVED permanently because of #{job.attempts} consecutive failures", 'error'
         failed(job)
       end
     end
@@ -236,10 +240,21 @@ module Delayed
       end
     end
 
-    def say(text, level = Logger::INFO)
+    def job_say(job, text, level = DEFAULT_LOG_LEVEL)
+      text = "Job #{job.name} (id=#{job.id}) #{text}"
+      say text, level
+    end
+
+    def say(text, level = DEFAULT_LOG_LEVEL)
       text = "[Worker(#{name})] #{text}"
       puts text unless @quiet
-      logger.add level, "#{Time.now.strftime('%FT%T%z')}: #{text}" if logger
+      if logger
+        # TODO: Deprecate use of Fixnum log levels
+        if !level.is_a?(String)
+          level = Logger::Severity.constants.detect {|i| Logger::Severity.const_get(i) == level }.to_s.downcase
+        end
+        logger.send(level, "#{Time.now.strftime('%FT%T%z')}: #{text}")
+      end
     end
 
     def max_attempts(job)
@@ -250,17 +265,27 @@ module Delayed
 
     def handle_failed_job(job, error)
       job.last_error = "#{error.message}\n#{error.backtrace.join("\n")}"
-      say "#{job.name} failed with #{error.class.name}: #{error.message} - #{job.attempts} failed attempts", Logger::ERROR
+      job_say job, "FAILED (#{job.attempts} prior attempts) with #{error.class.name}: #{error.message}", 'error'
       reschedule(job)
     end
 
     # Run the next job we can get an exclusive lock on.
     # If no jobs are left we return nil
     def reserve_and_run_one_job
-      say "Trying to reserve self"
+      job = reserve_job
+      self.class.lifecycle.run_callbacks(:perform, self, job){ run(job) } if job
+    end
+
+    def reserve_job
       job = Delayed::Job.reserve(self)
-      say "Reserved job"
-      self.class.lifecycle.run_callbacks(:perform, self, job){ result = run(job) } if job
+      @failed_reserve_count = 0
+      job
+    rescue Exception => error
+      say "Error while reserving job: #{error}"
+      Delayed::Job.recover_from(error)
+      @failed_reserve_count += 1
+      raise FatalBackendError if @failed_reserve_count >= 10
+      nil
     end
   end
 

@@ -1,3 +1,22 @@
+4.0.1 - 2014-04-12
+==================
+* Update gemspec for Rails 4.1
+* Make logger calls more universal
+* Check that records are persisted? instead of new_record?
+
+4.0.0 - 2013-07-30
+==================
+* Rails 4 compatibility
+* Reverted threaded startup due to daemons incompatibilities
+* Attempt to recover from job reservation errors
+
+4.0.0.beta2 - 2013-05-28
+========================
+* Rails 4 compatibility
+* Threaded startup script for faster multi-worker startup
+* YAML compatibility changes
+* Added jobs:check rake task
+
 4.0.0.beta1 - 2013-03-02
 ========================
 * Rails 4 compatibility

@@ -116,7 +116,7 @@ shared_examples_for "a delayed_job backend" do
 
       it "invokes the enqueued job" do
         job = SimpleJob.new
-        job.should_receive(:perform)
+        expect(job).to receive(:perform)
         described_class.enqueue job
       end
 
@@ -134,7 +134,7 @@ shared_examples_for "a delayed_job backend" do
     %w(before success after).each do |callback|
       it "calls #{callback} with job" do
         job = described_class.enqueue(CallbackJob.new)
-        job.payload_object.should_receive(callback).with(job)
+        expect(job.payload_object).to receive(callback).with(job)
         job.invoke_job
       end
     end
@@ -148,7 +148,7 @@ shared_examples_for "a delayed_job backend" do
 
     it "calls the after callback with an error" do
       job = described_class.enqueue(CallbackJob.new)
-      job.payload_object.should_receive(:perform).and_raise(RuntimeError.new("fail"))
+      expect(job.payload_object).to receive(:perform).and_raise(RuntimeError.new("fail"))
 
       expect{job.invoke_job}.to raise_error
       expect(CallbackJob.messages).to eq(["enqueue", "before", "error: RuntimeError", "after"])
@@ -156,7 +156,7 @@ shared_examples_for "a delayed_job backend" do
 
     it "calls error when before raises an error" do
       job = described_class.enqueue(CallbackJob.new)
-      job.payload_object.should_receive(:before).and_raise(RuntimeError.new("fail"))
+      expect(job.payload_object).to receive(:before).and_raise(RuntimeError.new("fail"))
       expect{job.invoke_job}.to raise_error(RuntimeError)
       expect(CallbackJob.messages).to eq(["enqueue", "error: RuntimeError", "after"])
     end
@@ -175,7 +175,7 @@ shared_examples_for "a delayed_job backend" do
 
     it "raises a DeserializationError when the YAML.load raises argument error" do
       job = described_class.new :handler => "--- !ruby/struct:GoingToRaiseArgError {}"
-      YAML.should_receive(:load).and_raise(ArgumentError)
+      expect(YAML).to receive(:load).and_raise(ArgumentError)
       expect{job.payload_object}.to raise_error(Delayed::DeserializationError)
     end
   end
@@ -399,35 +399,47 @@ shared_examples_for "a delayed_job backend" do
     end
 
     it "uses the max_retries value on the payload when defined" do
-      @job.payload_object.stub!(:max_attempts).and_return(99)
+      expect(@job.payload_object).to receive(:max_attempts).and_return(99)
       expect(@job.max_attempts).to eq(99)
     end
   end
 
   describe "yaml serialization" do
-    it "reloads changed attributes" do
-      story = Story.create(:text => 'hello')
-      job = story.delay.tell
-      story.update_attributes :text => 'goodbye'
-      expect(job.reload.payload_object.object.text).to eq('goodbye')
-    end
+    context "when serializing jobs" do
+      it "raises error ArgumentError for new records" do
+        story = Story.new(:text => 'hello')
+        if story.respond_to?(:new_record?)
+          expect {
+            story.delay.tell
+          }.to raise_error(ArgumentError, 'Jobs cannot be created for non-persisted records')
+        end
+      end
 
-    it "raises error ArgumentError the record is not persisted" do
-      story = Story.new(:text => 'hello')
-      if story.respond_to?(:new_record?)
+      it "raises error ArgumentError for destroyed records" do
+        story = Story.create(:text => 'hello')
+        story.destroy
         expect {
           story.delay.tell
-        }.to raise_error(ArgumentError, "Jobs cannot be created for records before they've been persisted")
+        }.to raise_error(ArgumentError, 'Jobs cannot be created for non-persisted records')
       end
     end
 
-    it "raises deserialization error for destroyed records" do
-      story = Story.create(:text => 'hello')
-      job = story.delay.tell
-      story.destroy
-      expect {
-        job.reload.payload_object
-      }.to raise_error(Delayed::DeserializationError)
+    context "when reload jobs back" do
+      it "reloads changed attributes" do
+        story = Story.create(:text => 'hello')
+        job = story.delay.tell
+        story.update_attributes :text => 'goodbye'
+        expect(job.reload.payload_object.object.text).to eq('goodbye')
+      end
+
+      it "raises deserialization error for destroyed records" do
+        story = Story.create(:text => 'hello')
+        job = story.delay.tell
+        story.destroy
+        expect {
+          job.reload.payload_object
+        }.to raise_error(Delayed::DeserializationError)
+      end
     end
   end
 
@@ -504,8 +516,8 @@ shared_examples_for "a delayed_job backend" do
 
       it "does not fail when the triggered error doesn't have a message" do
         error_with_nil_message = StandardError.new
-        error_with_nil_message.stub!(:message).and_return nil
-        @job.stub!(:invoke_job).and_raise error_with_nil_message
+        expect(error_with_nil_message).to receive(:message).twice.and_return(nil)
+        expect(@job).to receive(:invoke_job).and_raise error_with_nil_message
         expect{worker.run(@job)}.not_to raise_error
       end
     end
@@ -519,27 +531,25 @@ shared_examples_for "a delayed_job backend" do
         context "when the job's payload has a #failure hook" do
           before do
             @job = Delayed::Job.create :payload_object => OnPermanentFailureJob.new
-            expect(@job.payload_object).to respond_to :failure
+            expect(@job.payload_object).to respond_to(:failure)
           end
 
           it "runs that hook" do
-            @job.payload_object.should_receive :failure
+            expect(@job.payload_object).to receive(:failure)
             worker.reschedule(@job)
           end
         end
 
         context "when the job's payload has no #failure hook" do
           # It's a little tricky to test this in a straightforward way,
-          # because putting a should_not_receive expectation on
-          # @job.payload_object.failure makes that object
-          # incorrectly return true to
-          # payload_object.respond_to? :failure, which is what
-          # reschedule uses to decide whether to call failure.
-          # So instead, we just make sure that the payload_object as it
-          # already stands doesn't respond_to? failure, then
-          # shove it through the iterated reschedule loop and make sure we
-          # don't get a NoMethodError (caused by calling that nonexistent
-          # failure method).
+          # because putting a not_to receive expectation on
+          # @job.payload_object.failure makes that object incorrectly return
+          # true to payload_object.respond_to? :failure, which is what
+          # reschedule uses to decide whether to call failure. So instead, we
+          # just make sure that the payload_object as it already stands doesn't
+          # respond_to? failure, then shove it through the iterated reschedule
+          # loop and make sure we don't get a NoMethodError (caused by calling
+          # that nonexistent failure method).
 
           before do
             expect(@job.payload_object).not_to respond_to(:failure)
@@ -548,7 +558,7 @@ shared_examples_for "a delayed_job backend" do
           it "does not try to run that hook" do
             expect {
               Delayed::Worker.max_attempts.times { worker.reschedule(@job) }
-            }.not_to raise_exception(NoMethodError)
+            }.not_to raise_exception
           end
         end
       end
@@ -557,12 +567,12 @@ shared_examples_for "a delayed_job backend" do
         it_should_behave_like "any failure more than Worker.max_attempts times"
 
         it "is destroyed if it failed more than Worker.max_attempts times" do
-          @job.should_receive(:destroy)
+          expect(@job).to receive(:destroy)
           Delayed::Worker.max_attempts.times { worker.reschedule(@job) }
         end
 
         it "is not destroyed if failed fewer than Worker.max_attempts times" do
-          @job.should_not_receive(:destroy)
+          expect(@job).not_to receive(:destroy)
           (Delayed::Worker.max_attempts - 1).times { worker.reschedule(@job) }
         end
       end

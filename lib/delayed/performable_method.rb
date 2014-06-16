@@ -9,8 +9,8 @@ module Delayed
     def initialize(object, method_name, args)
       raise NoMethodError, "undefined method `#{method_name}' for #{object.inspect}" unless object.respond_to?(method_name, true)
 
-      if object.respond_to?(:new_record?) && object.new_record?
-        raise(ArgumentError, 'Jobs cannot be created for records before they\'ve been persisted')
+      if object.respond_to?(:persisted?) && !object.persisted?
+        raise(ArgumentError, 'Jobs cannot be created for non-persisted records')
       end
 
       self.object       = object
