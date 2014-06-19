@@ -14,6 +14,11 @@ namespace :jobs do
     Delayed::Worker.new(@worker_options.merge({:exit_on_complete => true})).start
   end
 
+  desc "Print the current rate of jobs per second"
+  task :current_rate => :environment do
+    puts "Current work-off rate is #{Delayed::Job.current_rate} jobs per second"
+  end
+
   task :environment_options => :environment do
     @worker_options = {
       :min_priority => ENV['MIN_PRIORITY'],
