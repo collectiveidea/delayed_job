@@ -3,14 +3,14 @@ if defined?(ActiveRecord)
     if instance_methods.include?(:encode_with)
       def encode_with_override(coder)
         encode_with_without_override(coder)
-        coder.tag = "!ruby/ActiveRecord:#{self.class.name}"
+        coder.tag = "!ruby/ActiveRecord:#{self.class.name}" if coder.respond_to?(:tag=)
       end
       alias_method :encode_with_without_override, :encode_with
       alias_method :encode_with, :encode_with_override
     else
       def encode_with(coder)
         coder["attributes"] = attributes
-        coder.tag = "!ruby/ActiveRecord:#{self.class.name}"
+        coder.tag = "!ruby/ActiveRecord:#{self.class.name}" if coder.respond_to?(:tag=)
       end
     end
   end
