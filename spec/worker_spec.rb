@@ -72,6 +72,44 @@ describe Delayed::Worker do
     end
   end
 
+  context "worker signal trapping" do
+    it "traps a TERM" do
+      file = File.open('/tmp/dj_log', 'wb')
+      worker = Delayed::Worker.new
+      worker.logger = Logger.new(file)
+
+      pid = Process.fork do
+        worker.start
+      end
+
+      Process.kill 'TERM', pid
+      Process.wait pid
+
+      expect(File.read(file.path)).to include('Starting job worker')
+      expect(File.read(file.path)).to include('Exiting...')
+
+      File.unlink(file.path)
+    end
+
+    it "traps an INT" do
+      file = File.open('/tmp/dj_log', 'wb')
+      worker = Delayed::Worker.new
+      worker.logger = Logger.new(file)
+
+      pid = Process.fork do
+        worker.start
+      end
+
+      Process.kill 'INT', pid
+      Process.wait pid
+
+      expect(File.read(file.path)).to include('Starting job worker')
+      expect(File.read(file.path)).to include('Exiting...')
+
+      File.unlink(file.path)
+    end
+  end
+
   context "worker job reservation" do
     before do
       Delayed::Worker.exit_on_complete = true
