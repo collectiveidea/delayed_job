@@ -23,7 +23,15 @@ Capistrano::Configuration.instance.load do
     def rails_env
       fetch(:rails_env, false) ? "RAILS_ENV=#{fetch(:rails_env)}" : ''
     end
-
+    
+    def rails_exec_path
+      if Rails.version > "4.0.0"
+        "bin/delayed_job"
+      else
+        "script/delayed_job"
+      end
+    end
+    
     def args
       fetch(:delayed_job_args, "")
     end
@@ -33,7 +41,7 @@ Capistrano::Configuration.instance.load do
     end
 
     def delayed_job_command
-      fetch(:delayed_job_command, "script/delayed_job")
+      fetch(:delayed_job_command, rails_exec_path)
     end
 
     desc "Stop the delayed_job process"
