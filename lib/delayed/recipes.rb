@@ -37,17 +37,17 @@ Capistrano::Configuration.instance.load do
     end
 
     desc "Stop the delayed_job process"
-    task :stop, :roles => lambda { roles } do
+    task :stop, :roles => lambda { roles }, :on_no_matching_servers => :continue do
       run "cd #{current_path};#{rails_env} #{delayed_job_command} stop"
     end
 
     desc "Start the delayed_job process"
-    task :start, :roles => lambda { roles } do
+    task :start, :roles => lambda { roles }, :on_no_matching_servers => :continue do
       run "cd #{current_path};#{rails_env} #{delayed_job_command} start #{args}"
     end
 
     desc "Restart the delayed_job process"
-    task :restart, :roles => lambda { roles } do
+    task :restart, :roles => lambda { roles }, :on_no_matching_servers => :continue do
       run "cd #{current_path};#{rails_env} #{delayed_job_command} restart #{args}"
     end
   end
