@@ -2,7 +2,7 @@ source 'https://rubygems.org'
 
 gem 'rake'
 
-platforms :ruby do
+platforms :ruby, :mingw do
   gem 'sqlite3'
 end
 

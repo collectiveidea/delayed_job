@@ -11,13 +11,15 @@ require 'delayed/backend/shared_spec'
 require 'simplecov'
 require 'coveralls'
 
+require 'tempfile'
+
 SimpleCov.formatter = SimpleCov::Formatter::MultiFormatter[
   SimpleCov::Formatter::HTMLFormatter,
   Coveralls::SimpleCov::Formatter
 ]
 SimpleCov.start
 
-Delayed::Worker.logger = Logger.new('/tmp/dj.log')
+Delayed::Worker.logger = Logger.new(Tempfile.new('dj.log'))
 ENV['RAILS_ENV'] = 'test'
 
 Delayed::Worker.backend = :test

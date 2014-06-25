@@ -36,7 +36,9 @@ module Psych
     end
 
     class ToRuby
-      def visit_Psych_Nodes_Scalar(o)
+      original_visit_Psych_Nodes_Scalar_method = instance_method(:visit_Psych_Nodes_Scalar)
+
+      define_method(:visit_Psych_Nodes_Scalar) do |o|
         @st[o.anchor] = o.value if o.anchor
 
         if klass = Psych.load_tags[o.tag]
@@ -57,6 +59,9 @@ module Psych
         case o.tag
         when '!binary', 'tag:yaml.org,2002:binary'
           o.value.unpack('m').first
+        when '!ruby/object:BigDecimal'
+          require 'bigdecimal'
+          BigDecimal._load o.value
         when '!str', 'tag:yaml.org,2002:str'
           o.value
         when "!ruby/object:DateTime"
@@ -94,7 +99,7 @@ module Psych
         when /^!ruby\/sym(bol)?:?(.*)?$/
           o.value.to_sym
         else
-          @ss.tokenize o.value
+          original_visit_Psych_Nodes_Scalar_method.bind(self).call o
         end
       end
 
