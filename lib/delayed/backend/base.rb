@@ -91,7 +91,7 @@ module Delayed
           #When the method is there, we need to load our YAML like this...
           @payload_object ||= YAML.load(self.handler, :safe => false)
         else
-          @payload_object ||= YAML.load(self.handler)
+          @payload_object ||= YAML.load(self.handler, nil, Delayed::PsychExt::ToRuby)
         end
       rescue TypeError, LoadError, NameError, ArgumentError => e
         raise DeserializationError,

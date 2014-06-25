@@ -28,14 +28,46 @@ class Delayed::PerformableMethod
 end
 
 module Psych
+  if VERSION.to_f < 1.3
+    def self.load yaml, filename = nil, visitor = nil
+      result = parse(yaml)
+      result ? result.to_ruby(visitor) : result
+    end
+  else
+    def self.load yaml, filename = nil, visitor = nil
+      result = parse(yaml, filename)
+      result ? result.to_ruby(visitor) : result
+    end
+  end
+
   module Visitors
     class YAMLTree
       def visit_Class(klass)
         @emitter.scalar klass.name, nil, '!ruby/class', false, false, Nodes::Scalar::SINGLE_QUOTED
       end
     end
+  end
 
-    class ToRuby
+  module Nodes
+    class Node
+      if Gem::Version.new(VERSION) >= Gem::Version.new('2.0.2')
+        def to_ruby(visitor)
+          visitor ||= Visitors::ToRuby
+          visitor.create.accept self
+        end
+      else
+        def to_ruby(visitor)
+          visitor ||= Visitors::ToRuby
+          visitor.new.accept self
+        end
+      end
+    end
+  end
+end
+
+module Delayed
+  module PsychExt
+    class ToRuby < Psych::Visitors::ToRuby
       def visit_Psych_Nodes_Scalar(o)
         @st[o.anchor] = o.value if o.anchor
 
