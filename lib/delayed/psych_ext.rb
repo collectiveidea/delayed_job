@@ -44,7 +44,7 @@ module Psych
           begin
             klass.unscoped.find(id)
           rescue ActiveRecord::RecordNotFound => error
-            raise Delayed::DeserializationError, "ActiveRecord::RecordNotFound, class: #{klass}, primary key: #{id} (#{error.message})"
+            raise(Delayed::DeserializationError.new("ActiveRecord::RecordNotFound, class: #{klass}, primary key: #{id} (#{error.message})"))
           end
         when /^!ruby\/Mongoid:(.+)$/
           klass = resolve_class(Regexp.last_match[1])
@@ -53,7 +53,7 @@ module Psych
           begin
             klass.find(id)
           rescue Mongoid::Errors::DocumentNotFound => error
-            raise Delayed::DeserializationError, "Mongoid::Errors::DocumentNotFound, class: #{klass}, primary key: #{id} (#{error.message})"
+            raise(Delayed::DeserializationError.new("Mongoid::Errors::DocumentNotFound, class: #{klass}, primary key: #{id} (#{error.message})"))
           end
         when /^!ruby\/DataMapper:(.+)$/
           klass = resolve_class(Regexp.last_match[1])
@@ -63,7 +63,7 @@ module Psych
             key_names = primary_keys.collect { |p| p.name.to_s }
             klass.get!(*key_names.collect { |k| payload['attributes'][k] })
           rescue DataMapper::ObjectNotFoundError => error
-            raise Delayed::DeserializationError, "DataMapper::ObjectNotFoundError, class: #{klass} (#{error.message})"
+            raise(Delayed::DeserializationError.new("DataMapper::ObjectNotFoundError, class: #{klass} (#{error.message})"))
           end
         else
           visit_Psych_Nodes_Mapping_without_class(object)
