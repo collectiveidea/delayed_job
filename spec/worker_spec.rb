@@ -72,8 +72,8 @@ describe Delayed::Worker do
     end
   end
 
-  context "worker signal trapping" do
-    it "traps a TERM" do
+  context 'worker signal trapping' do
+    it 'traps a TERM' do
       file = File.open('/tmp/dj_log', 'wb')
       worker = Delayed::Worker.new
       worker.logger = Logger.new(file)
@@ -91,7 +91,7 @@ describe Delayed::Worker do
       File.unlink(file.path)
     end
 
-    it "traps an INT" do
+    it 'traps an INT' do
       file = File.open('/tmp/dj_log', 'wb')
       worker = Delayed::Worker.new
       worker.logger = Logger.new(file)
