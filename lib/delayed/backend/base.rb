@@ -33,7 +33,8 @@ module Delayed
               end
             end
           else
-            Delayed::Job.new(:payload_object => options[:payload_object]).tap do |job|
+           Delayed::Job.new.tap do |job|
+              job.payload_object = options[:payload_object]
               job.invoke_job
             end
           end
