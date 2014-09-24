@@ -6,7 +6,34 @@ namespace :jobs do
 
   desc 'Start a delayed_job worker.'
   task :work => :environment_options do
-    Delayed::Worker.new(@worker_options).start
+    if @worker_options[:num_processes] == 1
+      Delayed::Worker.new(@worker_options).start
+    else
+      def fork_delayed(worker_index)
+        puts "starting worker #{worker_index}"
+
+        fork do
+          Delayed::Worker.after_fork
+          worker = Delayed::Worker.new(@worker_options)
+          worker.name_prefix = "delayed_job.#{worker_index} "
+          worker.start
+        end
+      end
+
+      Delayed::Worker.before_fork
+      @worker_options[:num_processes].times do |worker_index|
+        fork_delayed(worker_index)
+      end
+
+      worker_index = @worker_options[:num_processes]
+
+      while true do
+        Process.wait()
+
+        fork_delayed(worker_index)
+        worker_index = worker_index + 1
+      end
+    end
   end
 
   desc 'Start a delayed_job worker and exit when all available jobs are complete.'
