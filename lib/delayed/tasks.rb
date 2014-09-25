@@ -1,4 +1,19 @@
 namespace :jobs do
+  def fork_delayed(worker_index)
+    worker_name = "delayed_job.#{worker_index}"
+    
+    worker_pid = fork do
+      Delayed::Worker.after_fork
+      worker = Delayed::Worker.new(@worker_options)
+      worker.name_prefix = worker_name
+      worker.start
+    end
+    
+    puts "started #{worker_name} with pid=#{worker_pid}"
+    
+    return worker_name, worker_pid
+  end
+  
   desc "Clear the delayed_job queue."
   task :clear => :environment do
     Delayed::Job.delete_all
@@ -9,28 +24,30 @@ namespace :jobs do
     if @worker_options[:num_processes] == 1
       Delayed::Worker.new(@worker_options).start
     else
-      def fork_delayed(worker_index)
-        puts "starting worker #{worker_index}"
+      stop = false
 
-        fork do
-          Delayed::Worker.after_fork
-          worker = Delayed::Worker.new(@worker_options)
-          worker.name_prefix = "delayed_job.#{worker_index} "
-          worker.start
-        end
+      Signal.trap 'TERM' do
+        stop = true
       end
 
       Delayed::Worker.before_fork
+      
+      workers = {}
       @worker_options[:num_processes].times do |worker_index|
-        fork_delayed(worker_index)
+        worker_name, worker_pid = fork_delayed(worker_index)
+        workers[worker_pid] = worker_name
       end
 
       worker_index = @worker_options[:num_processes]
 
-      while true do
-        Process.wait()
+      while true
+        worker_pid = Process.wait()
+        puts "worker #{workers[worker_pid]} exited - #{$?.to_s }"
+        break if stop
 
-        fork_delayed(worker_index)
+        worker_name, worker_pid = fork_delayed(worker_index)
+        workers[worker_pid] = worker_name
+        
         worker_index = worker_index + 1
       end
     end
