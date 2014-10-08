@@ -200,7 +200,7 @@ You can then do the following:
     # or to run in the foreground
     RAILS_ENV=production script/delayed_job run --exit-on-complete
     
-    # keep parent process around.  Useful for Heroku dyno worker processes
+    # --ontop: keep parent process around.  Useful for Heroku dyno worker processes
     # Passed the :ontop parameter to Daemonize
     RAILS_ENV=production script/delayed_job --ontop -n 2 start
     
