@@ -14,7 +14,8 @@ module Delayed
     def initialize(args) # rubocop:disable MethodLength
       @options = {
         :quiet => true,
-        :pid_dir => "#{Rails.root}/tmp/pids"
+        :pid_dir => "#{Rails.root}/tmp/pids",
+        :ontop => false
       }
 
       @worker_count = 1
@@ -66,6 +67,9 @@ module Delayed
         opt.on('--pool=queue1[,queue2][:worker_count]', 'Specify queues and number of workers for a worker pool') do |pool|
           parse_worker_pool(pool)
         end
+        opt.on('--ontop', 'Specify :ontop to daemonize to persist the parent process.  Helpful for Heroku to keep the dyno alive') do |ontop|
+          @options[:ontop] = true
+        end
         opt.on('--exit-on-complete', 'Exit when no more jobs are available to run. This will exit if all jobs are scheduled to run in the future.') do
           @options[:exit_on_complete] = true
         end
@@ -107,7 +111,7 @@ module Delayed
 
     def run_process(process_name, options = {})
       Delayed::Worker.before_fork
-      Daemons.run_proc(process_name, :dir => options[:pid_dir], :dir_mode => :normal, :monitor => @monitor, :ARGV => @args,:ontop => true ) do |*_args|
+      Daemons.run_proc(process_name, :dir => options[:pid_dir], :dir_mode => :normal, :monitor => @monitor, :ARGV => @args,:ontop => @options[:ontop] ) do |*_args|
         $0 = File.join(options[:prefix], process_name) if @options[:prefix]
         run process_name, options
       end
