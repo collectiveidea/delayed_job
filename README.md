@@ -199,6 +199,11 @@ You can then do the following:
     RAILS_ENV=production script/delayed_job start --exit-on-complete
     # or to run in the foreground
     RAILS_ENV=production script/delayed_job run --exit-on-complete
+    
+    # --ontop: keep parent process around.  Useful for Heroku dyno worker processes
+    # Passed the :ontop parameter to Daemonize
+    RAILS_ENV=production script/delayed_job --ontop -n 2 start
+    
 
 **Rails 4:** *replace script/delayed_job with bin/delayed_job*
 
