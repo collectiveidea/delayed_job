@@ -91,8 +91,8 @@ module Delayed
         Delayed::Worker.lifecycle.run_callbacks(:invoke_job, self) do
           begin
             hook :before
-            payload_object.perform
-            hook :success
+            result = payload_object.perform
+            hook :success, result
           rescue => e
             hook :error, e
             raise e
