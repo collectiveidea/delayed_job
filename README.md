@@ -58,6 +58,11 @@ running the following command:
     rails generate delayed_job:active_record
     rake db:migrate
 
+Development
+===========
+In development mode, if you are using Rails 3.1+, your application code will automatically reload every 100 jobs or when the queue finishes.
+You no longer need to restart Delayed Job every time you update your code in development.
+
 Rails 4
 =======
 If you are using the protected_attributes gem, it must appear before delayed_job in your gemfile.
@@ -289,6 +294,19 @@ NewsletterJob = Struct.new(:text, :emails) do
 end
 ```
 
+On error, the job is scheduled again in 5 seconds + N ** 4, where N is the number of attempts. You can define your own `reschedule_at` method to override this default behavior.
+
+```ruby
+NewsletterJob = Struct.new(:text, :emails) do
+  def perform
+    emails.each { |e| NewsletterMailer.deliver_text_to_email(text, e) }
+  end
+
+  def reschedule_at(current_time, attempts)
+    current_time + 5.seconds
+  end
+end
+```
 
 Hooks
 =====
@@ -345,7 +363,7 @@ create_table :delayed_jobs, :force => true do |table|
 end
 ```
 
-On error, the job is scheduled again in 5 seconds + N ** 4, where N is the number of retries.
+On error, the job is scheduled again in 5 seconds + N ** 4, where N is the number of attempts or using the job's defined `reschedule_at` method.
 
 The default `Worker.max_attempts` is 25. After this, the job either deleted (default), or left in the database with "failed_at" set.
 With the default of 25 attempts, the last retry will be 20 days later, with the last interval being almost 100 hours.

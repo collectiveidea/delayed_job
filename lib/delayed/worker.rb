@@ -100,6 +100,10 @@ module Delayed
       @lifecycle ||= Delayed::Lifecycle.new
     end
 
+    def self.reload_app?
+      defined?(ActionDispatch::Reloader) && Rails.application.config.cache_classes == false
+    end
+
     def initialize(options = {})
       @quiet = options.key?(:quiet) ? options[:quiet] : true
       @failed_reserve_count = 0
@@ -155,6 +159,7 @@ module Delayed
               break
             elsif !stop?
               sleep(self.class.sleep_delay)
+              reload!
             end
           else
             say format("#{count} jobs processed at %.4f j/s, %d failed", count / @realtime, @result.last)
@@ -285,6 +290,12 @@ module Delayed
       @failed_reserve_count += 1
       raise FatalBackendError if @failed_reserve_count >= 10
       nil
+    end
+
+    def reload!
+      return unless self.class.reload_app?
+      ActionDispatch::Reloader.cleanup!
+      ActionDispatch::Reloader.prepare!
     end
   end
 end
