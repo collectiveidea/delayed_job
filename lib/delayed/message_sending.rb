@@ -5,11 +5,13 @@ module Delayed
     def initialize(payload_class, target, options)
       @payload_class = payload_class
       @target = target
-      @options = options
+      @options = options.dup
+      @payload_options = options.slice(:max_attempts)
+      @options.delete(:max_attempts)
     end
 
     def method_missing(method, *args)
-      Job.enqueue({:payload_object => @payload_class.new(@target, method.to_sym, args)}.merge(@options))
+      Job.enqueue({:payload_object => @payload_class.new(@target, method.to_sym, args, @payload_options)}.merge(@options))
     end
   end
 

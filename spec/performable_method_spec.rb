@@ -22,6 +22,20 @@ describe Delayed::PerformableMethod do
     end
   end
 
+  context 'max_attempts' do
+
+    it 'returns a value if provided through options' do
+      payload_object = Delayed::PerformableMethod.new(String, :constants, [], max_attempts: 5)
+      expect(payload_object.max_attempts).to eql 5
+    end
+
+    it 'returns nil if no value is provided through options' do
+      payload_object = Delayed::PerformableMethod.new(String, :constants, [])
+      expect(payload_object.max_attempts).to eql nil
+    end
+
+  end
+
   it "raises a NoMethodError if target method doesn't exist" do
     expect do
       Delayed::PerformableMethod.new(Object, :method_that_does_not_exist, [])

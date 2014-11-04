@@ -140,6 +140,12 @@ end
 
 If you ever want to call a `handle_asynchronously`'d method without Delayed Job, for instance while debugging something at the console, just add `_without_delay` to the method name. For instance, if your original method was `foo`, then call `foo_without_delay`.
 
+max_attempts
+============
+`delay` accepts `max_attempts` as an option parameter. By default, the delayed job worker will retry failing jobs 24 times before giving up on the job, but you can override this behavior by specifying a `max_attempts` option. E.g.
+
+    EmailService.delay(max_attempts: 5).send_welcome_mail(user_id)
+
 Rails 3 Mailers
 ===============
 Due to how mailers are implemented in Rails 3, we had to do a little work around to get delayed_job to work.

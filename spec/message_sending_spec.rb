@@ -118,5 +118,11 @@ describe Delayed::MessageSending do
         end.not_to change(fairy_tail, :happy_ending)
       end.to change { Delayed::Job.count }.by(1)
     end
+
+    it 'passes max_attempts to payload object as option if provided' do
+      expect(Delayed::PerformableMethod).to receive(:new).with(String, :constants, [], max_attempts: 5).and_call_original
+      String.delay(max_attempts: 5).constants
+    end
+
   end
 end
