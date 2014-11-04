@@ -122,4 +122,12 @@ describe Delayed::PerformableMethod do
       end
     end
   end
+
+  it 'serializes correctly' do
+    original_payload_object = Delayed::PerformableMethod.new(String, :constants, [], max_attempts: 5)
+    serialized_payload_object = original_payload_object.to_yaml
+    deserialized_payload_object = YAML.load_dj(serialized_payload_object)
+    expect(deserialized_payload_object.max_attempts).to eql 5
+  end
+
 end
