@@ -4,7 +4,7 @@ module Delayed
   class PerformableMethod
     attr_accessor :object, :method_name, :args, :max_attempts
 
-    delegate :method, :to => :object
+    delegate :method, to: :object
 
     def initialize(object, method_name, args, options = {})
       raise NoMethodError, "undefined method `#{method_name}' for #{object.inspect}" unless object.respond_to?(method_name, true)

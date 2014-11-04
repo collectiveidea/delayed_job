@@ -26,7 +26,7 @@ describe Delayed::MessageSending do
       class Fable
         cattr_accessor :importance
         def tell; end
-        handle_asynchronously :tell, :priority => proc { importance }
+        handle_asynchronously :tell, priority: proc { importance }
       end
 
       it 'sets the priority based on the Fable importance' do
@@ -44,7 +44,7 @@ describe Delayed::MessageSending do
           attr_accessor :importance
           def spin
           end
-          handle_asynchronously :spin, :priority => proc { |y| y.importance }
+          handle_asynchronously :spin, priority: proc { |y| y.importance }
         end
 
         it 'sets the priority based on the Fable importance' do
@@ -94,7 +94,7 @@ describe Delayed::MessageSending do
 
     it 'sets job options' do
       run_at = Time.parse('2010-05-03 12:55 AM')
-      job = FairyTail.delay(:priority => 20, :run_at => run_at).to_s
+      job = FairyTail.delay(priority: 20, run_at: run_at).to_s
       expect(job.run_at).to eq(run_at)
       expect(job.priority).to eq(20)
     end

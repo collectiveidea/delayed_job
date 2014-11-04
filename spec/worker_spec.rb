@@ -24,7 +24,7 @@ describe Delayed::Worker do
   describe 'job_say' do
     before do
       @worker = Delayed::Worker.new
-      @job = double('job', :id => 123, :name => 'ExampleJob')
+      @job = double('job', id: 123, name: 'ExampleJob')
     end
 
     it 'logs with job name and id' do
@@ -138,12 +138,12 @@ describe Delayed::Worker do
       end
     end
 
-    severities = [{:index => 0, :level => 'debug'},
-                  {:index => 1, :level => 'info'},
-                  {:index => 2, :level => 'warn'},
-                  {:index => 3, :level => 'error'},
-                  {:index => 4, :level => 'fatal'},
-                  {:index => 5, :level => 'unknown'}]
+    severities = [{index: 0, level: 'debug'},
+                  {index: 1, level: 'info'},
+                  {index: 2, level: 'warn'},
+                  {index: 3, level: 'error'},
+                  {index: 4, level: 'fatal'},
+                  {index: 5, level: 'unknown'}]
     severities.each do |severity|
       it_behaves_like 'a worker which logs on the correct severity', severity
     end

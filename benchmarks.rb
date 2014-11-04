@@ -9,5 +9,5 @@ Benchmark.bm(10) do |x|
   n = 10_000
   n.times { 'foo'.delay.length }
 
-  x.report { Delayed::Worker.new(:quiet => true).work_off(n) }
+  x.report { Delayed::Worker.new(quiet: true).work_off(n) }
 end

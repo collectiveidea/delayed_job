@@ -49,14 +49,14 @@ ActiveSupport::Dependencies.autoload_paths << File.dirname(__FILE__)
 ActionMailer::Base.extend(Delayed::DelayMail)
 
 # Used to test interactions between DJ and an ORM
-ActiveRecord::Base.establish_connection :adapter => 'sqlite3', :database => ':memory:'
+ActiveRecord::Base.establish_connection adapter: 'sqlite3', database: ':memory:'
 ActiveRecord::Base.logger = Delayed::Worker.logger
 ActiveRecord::Migration.verbose = false
 
 ActiveRecord::Schema.define do
-  create_table :stories, :primary_key => :story_id, :force => true do |table|
+  create_table :stories, primary_key: :story_id, force: true do |table|
     table.string :text
-    table.boolean :scoped, :default => true
+    table.boolean :scoped, default: true
   end
 end
 
@@ -69,7 +69,7 @@ class Story < ActiveRecord::Base
   def whatever(n, _)
     tell * n
   end
-  default_scope { where(:scoped => true) }
+  default_scope { where(scoped: true) }
 
   handle_asynchronously :whatever
 end

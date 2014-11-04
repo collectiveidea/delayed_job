@@ -11,7 +11,7 @@ module Delayed
     end
 
     def method_missing(method, *args)
-      Job.enqueue({:payload_object => @payload_class.new(@target, method.to_sym, args, @payload_options)}.merge(@options))
+      Job.enqueue({payload_object: @payload_class.new(@target, method.to_sym, args, @payload_options)}.merge(@options))
     end
   end
 
@@ -28,7 +28,7 @@ module Delayed
 
     def send_at(time, method, *args)
       warn '[DEPRECATION] `object.send_at(time, :method)` is deprecated. Use `object.delay(:run_at => time).method'
-      __delay__(:run_at => time).__send__(method, *args)
+      __delay__(run_at: time).__send__(method, *args)
     end
 
     module ClassMethods

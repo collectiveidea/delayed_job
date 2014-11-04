@@ -13,8 +13,8 @@ module Delayed
 
     def initialize(args) # rubocop:disable MethodLength
       @options = {
-        :quiet => true,
-        :pid_dir => "#{Rails.root}/tmp/pids"
+        quiet: true,
+        pid_dir: "#{Rails.root}/tmp/pids"
       }
 
       @worker_count = 1
@@ -96,7 +96,7 @@ module Delayed
     def setup_pools
       worker_index = 0
       @worker_pools.each do |queues, worker_count|
-        options = @options.merge(:queues => queues)
+        options = @options.merge(queues: queues)
         worker_count.times do
           process_name = "delayed_job.#{worker_index}"
           run_process(process_name, options)
@@ -107,7 +107,7 @@ module Delayed
 
     def run_process(process_name, options = {})
       Delayed::Worker.before_fork
-      Daemons.run_proc(process_name, :dir => options[:pid_dir], :dir_mode => :normal, :monitor => @monitor, :ARGV => @args) do |*_args|
+      Daemons.run_proc(process_name, dir: options[:pid_dir], dir_mode: :normal, monitor: @monitor, ARGV: @args) do |*_args|
         $0 = File.join(options[:prefix], process_name) if @options[:prefix]
         run process_name, options
       end

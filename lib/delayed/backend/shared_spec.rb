@@ -6,7 +6,7 @@ shared_examples_for 'a delayed_job backend' do
   let(:worker) { Delayed::Worker.new }
 
   def create_job(opts = {})
-    described_class.create(opts.merge(:payload_object => SimpleJob.new))
+    described_class.create(opts.merge(payload_object: SimpleJob.new))
   end
 
   before do
@@ -24,18 +24,18 @@ shared_examples_for 'a delayed_job backend' do
   end
 
   it 'sets run_at automatically if not set' do
-    expect(described_class.create(:payload_object => ErrorJob.new).run_at).not_to be_nil
+    expect(described_class.create(payload_object: ErrorJob.new).run_at).not_to be_nil
   end
 
   it 'does not set run_at automatically if already set' do
     later = described_class.db_time_now + 5.minutes
-    job = described_class.create(:payload_object => ErrorJob.new, :run_at => later)
+    job = described_class.create(payload_object: ErrorJob.new, run_at: later)
     expect(job.run_at).to be_within(1).of(later)
   end
 
   describe '#reload' do
     it 'reloads the payload' do
-      job = described_class.enqueue :payload_object => SimpleJob.new
+      job = described_class.enqueue payload_object: SimpleJob.new
       expect(job.payload_object.object_id).not_to eq(job.reload.payload_object.object_id)
     end
   end
@@ -43,37 +43,37 @@ shared_examples_for 'a delayed_job backend' do
   describe 'enqueue' do
     context 'with a hash' do
       it "raises ArgumentError when handler doesn't respond_to :perform" do
-        expect { described_class.enqueue(:payload_object => Object.new) }.to raise_error(ArgumentError)
+        expect { described_class.enqueue(payload_object: Object.new) }.to raise_error(ArgumentError)
       end
 
       it 'is able to set priority' do
-        job = described_class.enqueue :payload_object => SimpleJob.new, :priority => 5
+        job = described_class.enqueue payload_object: SimpleJob.new, priority: 5
         expect(job.priority).to eq(5)
       end
 
       it 'uses default priority' do
-        job = described_class.enqueue :payload_object => SimpleJob.new
+        job = described_class.enqueue payload_object: SimpleJob.new
         expect(job.priority).to eq(99)
       end
 
       it 'is able to set run_at' do
         later = described_class.db_time_now + 5.minutes
-        job = described_class.enqueue :payload_object => SimpleJob.new, :run_at => later
+        job = described_class.enqueue payload_object: SimpleJob.new, run_at: later
         expect(job.run_at).to be_within(1).of(later)
       end
 
       it 'is able to set queue' do
-        job = described_class.enqueue :payload_object => NamedQueueJob.new, :queue => 'tracking'
+        job = described_class.enqueue payload_object: NamedQueueJob.new, queue: 'tracking'
         expect(job.queue).to eq('tracking')
       end
 
       it 'uses default queue' do
-        job = described_class.enqueue :payload_object => SimpleJob.new
+        job = described_class.enqueue payload_object: SimpleJob.new
         expect(job.queue).to eq(Delayed::Worker.default_queue_name)
       end
 
       it "uses the payload object's queue" do
-        job = described_class.enqueue :payload_object => NamedQueueJob.new
+        job = described_class.enqueue payload_object: NamedQueueJob.new
         expect(job.queue).to eq(NamedQueueJob.new.queue_name)
       end
     end
@@ -175,17 +175,17 @@ shared_examples_for 'a delayed_job backend' do
 
   describe 'payload_object' do
     it 'raises a DeserializationError when the job class is totally unknown' do
-      job = described_class.new :handler => '--- !ruby/object:JobThatDoesNotExist {}'
+      job = described_class.new handler: '--- !ruby/object:JobThatDoesNotExist {}'
       expect { job.payload_object }.to raise_error(Delayed::DeserializationError)
     end
 
     it 'raises a DeserializationError when the job struct is totally unknown' do
-      job = described_class.new :handler => '--- !ruby/struct:StructThatDoesNotExist {}'
+      job = described_class.new handler: '--- !ruby/struct:StructThatDoesNotExist {}'
       expect { job.payload_object }.to raise_error(Delayed::DeserializationError)
     end
 
     it 'raises a DeserializationError when the YAML.load raises argument error' do
-      job = described_class.new :handler => '--- !ruby/struct:GoingToRaiseArgError {}'
+      job = described_class.new handler: '--- !ruby/struct:GoingToRaiseArgError {}'
       expect(YAML).to receive(:load_dj).and_raise(ArgumentError)
       expect { job.payload_object }.to raise_error(Delayed::DeserializationError)
     end
@@ -193,7 +193,7 @@ shared_examples_for 'a delayed_job backend' do
     it 'raises a DeserializationError when the YAML.load raises syntax error' do
       # only test with Psych since the other YAML parsers don't raise a SyntaxError
       if YAML.parser.class.name !~ /syck|yecht/i
-        job = described_class.new :handler => 'message: "no ending quote'
+        job = described_class.new handler: 'message: "no ending quote'
         expect { job.payload_object }.to raise_error(Delayed::DeserializationError)
       end
     end
@@ -209,23 +209,23 @@ shared_examples_for 'a delayed_job backend' do
     end
 
     it 'does not reserve failed jobs' do
-      create_job :attempts => 50, :failed_at => described_class.db_time_now
+      create_job attempts: 50, failed_at: described_class.db_time_now
       expect(described_class.reserve(worker)).to be_nil
     end
 
     it 'does not reserve jobs scheduled for the future' do
-      create_job :run_at => described_class.db_time_now + 1.minute
+      create_job run_at: described_class.db_time_now + 1.minute
       expect(described_class.reserve(worker)).to be_nil
     end
 
     it 'reserves jobs scheduled for the past' do
-      job = create_job :run_at => described_class.db_time_now - 1.minute
+      job = create_job run_at: described_class.db_time_now - 1.minute
       expect(described_class.reserve(worker)).to eq(job)
     end
 
     it 'reserves jobs scheduled for the past when time zones are involved' do
       Time.zone = 'US/Eastern'
-      job = create_job :run_at => described_class.db_time_now - 1.minute
+      job = create_job run_at: described_class.db_time_now - 1.minute
       expect(described_class.reserve(worker)).to eq(job)
     end
 
@@ -243,33 +243,33 @@ shared_examples_for 'a delayed_job backend' do
     end
 
     it 'reserves expired jobs' do
-      job = create_job(:locked_by => 'some other worker', :locked_at => described_class.db_time_now - Delayed::Worker.max_run_time - 1.minute)
+      job = create_job(locked_by: 'some other worker', locked_at: described_class.db_time_now - Delayed::Worker.max_run_time - 1.minute)
       expect(described_class.reserve(worker)).to eq(job)
     end
 
     it 'reserves own jobs' do
-      job = create_job(:locked_by => worker.name, :locked_at => (described_class.db_time_now - 1.minutes))
+      job = create_job(locked_by: worker.name, locked_at: (described_class.db_time_now - 1.minutes))
       expect(described_class.reserve(worker)).to eq(job)
     end
   end
 
   context '#name' do
     it 'is the class name of the job that was enqueued' do
-      expect(described_class.create(:payload_object => ErrorJob.new).name).to eq('ErrorJob')
+      expect(described_class.create(payload_object: ErrorJob.new).name).to eq('ErrorJob')
     end
 
     it 'is the method that will be called if its a performable method object' do
-      job = described_class.new(:payload_object => NamedJob.new)
+      job = described_class.new(payload_object: NamedJob.new)
       expect(job.name).to eq('named_job')
     end
 
     it 'is the instance method that will be called if its a performable method object' do
-      job = Story.create(:text => '...').delay.save
+      job = Story.create(text: '...').delay.save
       expect(job.name).to eq('Story#save')
     end
 
     it 'parses from handler on deserialization error' do
-      job = Story.create(:text => '...').delay.text
+      job = Story.create(text: '...').delay.text
       job.payload_object.object.destroy
       expect(job.reload.name).to eq('Delayed::PerformableMethod')
     end
@@ -282,7 +282,7 @@ shared_examples_for 'a delayed_job backend' do
     end
 
     it 'fetches jobs ordered by priority' do
-      10.times { described_class.enqueue SimpleJob.new, :priority => rand(10) }
+      10.times { described_class.enqueue SimpleJob.new, priority: rand(10) }
       jobs = []
       10.times { jobs << described_class.reserve(worker) }
       expect(jobs.size).to eq(10)
@@ -294,7 +294,7 @@ shared_examples_for 'a delayed_job backend' do
     it 'only finds jobs greater than or equal to min priority' do
       min = 5
       Delayed::Worker.min_priority = min
-      [4, 5, 6].sort_by { |_i| rand }.each { |i| create_job :priority => i }
+      [4, 5, 6].sort_by { |_i| rand }.each { |i| create_job priority: i }
       2.times do
         job = described_class.reserve(worker)
         expect(job.priority).to be >= min
@@ -306,7 +306,7 @@ shared_examples_for 'a delayed_job backend' do
     it 'only finds jobs less than or equal to max priority' do
       max = 5
       Delayed::Worker.max_priority = max
-      [4, 5, 6].sort_by { |_i| rand }.each { |i| create_job :priority => i }
+      [4, 5, 6].sort_by { |_i| rand }.each { |i| create_job priority: i }
       2.times do
         job = described_class.reserve(worker)
         expect(job.priority).to be <= max
@@ -318,7 +318,7 @@ shared_examples_for 'a delayed_job backend' do
 
   context 'clear_locks!' do
     before do
-      @job = create_job(:locked_by => 'worker1', :locked_at => described_class.db_time_now)
+      @job = create_job(locked_by: 'worker1', locked_at: described_class.db_time_now)
     end
 
     it 'clears locks for the given worker' do
@@ -334,7 +334,7 @@ shared_examples_for 'a delayed_job backend' do
 
   context 'unlock' do
     before do
-      @job = create_job(:locked_by => 'worker', :locked_at => described_class.db_time_now)
+      @job = create_job(locked_by: 'worker', locked_at: described_class.db_time_now)
     end
 
     it 'clears locks' do
@@ -364,8 +364,8 @@ shared_examples_for 'a delayed_job backend' do
       it 'only works off jobs which are from its queue' do
         expect(SimpleJob.runs).to eq(0)
 
-        create_job(:queue => 'large')
-        create_job(:queue => 'small')
+        create_job(queue: 'large')
+        create_job(queue: 'small')
         worker.work_off
 
         expect(SimpleJob.runs).to eq(1)
@@ -380,9 +380,9 @@ shared_examples_for 'a delayed_job backend' do
       it 'only works off jobs which are from its queue' do
         expect(SimpleJob.runs).to eq(0)
 
-        create_job(:queue => 'large')
-        create_job(:queue => 'small')
-        create_job(:queue => 'medium')
+        create_job(queue: 'large')
+        create_job(queue: 'small')
+        create_job(queue: 'medium')
         create_job
         worker.work_off
 
@@ -398,8 +398,8 @@ shared_examples_for 'a delayed_job backend' do
       it 'works off all jobs' do
         expect(SimpleJob.runs).to eq(0)
 
-        create_job(:queue => 'one')
-        create_job(:queue => 'two')
+        create_job(queue: 'one')
+        create_job(queue: 'two')
         create_job
         worker.work_off
 
@@ -453,7 +453,7 @@ shared_examples_for 'a delayed_job backend' do
   describe 'yaml serialization' do
     context 'when serializing jobs' do
       it 'raises error ArgumentError for new records' do
-        story = Story.new(:text => 'hello')
+        story = Story.new(text: 'hello')
         if story.respond_to?(:new_record?)
           expect { story.delay.tell }.to raise_error(
             ArgumentError,
@@ -463,7 +463,7 @@ shared_examples_for 'a delayed_job backend' do
       end
 
       it 'raises error ArgumentError for destroyed records' do
-        story = Story.create(:text => 'hello')
+        story = Story.create(text: 'hello')
         story.destroy
         expect { story.delay.tell }.to raise_error(
           ArgumentError,
@@ -474,14 +474,14 @@ shared_examples_for 'a delayed_job backend' do
 
     context 'when reload jobs back' do
       it 'reloads changed attributes' do
-        story = Story.create(:text => 'hello')
+        story = Story.create(text: 'hello')
         job = story.delay.tell
-        story.update_attributes :text => 'goodbye'
+        story.update_attributes text: 'goodbye'
         expect(job.reload.payload_object.object.text).to eq('goodbye')
       end
 
       it 'raises deserialization error for destroyed records' do
-        story = Story.create(:text => 'hello')
+        story = Story.create(text: 'hello')
         job = story.delay.tell
         story.destroy
         expect { job.reload.payload_object }.to raise_error(Delayed::DeserializationError)
@@ -498,7 +498,7 @@ shared_examples_for 'a delayed_job backend' do
     describe 'running a job' do
       it 'fails after Worker.max_run_time' do
         Delayed::Worker.max_run_time = 1.second
-        job = Delayed::Job.create :payload_object => LongRunningJob.new
+        job = Delayed::Job.create payload_object: LongRunningJob.new
         worker.run(job)
         expect(job.reload.last_error).to match(/expired/)
         expect(job.reload.last_error).to match(/Delayed::Worker\.max_run_time is only 1 second/)
@@ -512,7 +512,7 @@ shared_examples_for 'a delayed_job backend' do
 
         it 'marks the job as failed' do
           Delayed::Worker.destroy_failed_jobs = false
-          job = described_class.create! :handler => '--- !ruby/object:JobThatDoesNotExist {}'
+          job = described_class.create! handler: '--- !ruby/object:JobThatDoesNotExist {}'
           worker.work_off
           job.reload
           expect(job).to be_failed
@@ -522,7 +522,7 @@ shared_examples_for 'a delayed_job backend' do
 
     describe 'failed jobs' do
       before do
-        @job = Delayed::Job.enqueue(ErrorJob.new, :run_at => described_class.db_time_now - 1)
+        @job = Delayed::Job.enqueue(ErrorJob.new, run_at: described_class.db_time_now - 1)
       end
 
       after do
@@ -570,13 +570,13 @@ shared_examples_for 'a delayed_job backend' do
 
     context 'reschedule' do
       before do
-        @job = Delayed::Job.create :payload_object => SimpleJob.new
+        @job = Delayed::Job.create payload_object: SimpleJob.new
       end
 
       shared_examples_for 'any failure more than Worker.max_attempts times' do
         context "when the job's payload has a #failure hook" do
           before do
-            @job = Delayed::Job.create :payload_object => OnPermanentFailureJob.new
+            @job = Delayed::Job.create payload_object: OnPermanentFailureJob.new
             expect(@job.payload_object).to respond_to(:failure)
           end
 

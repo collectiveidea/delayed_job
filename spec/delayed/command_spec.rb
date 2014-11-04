@@ -40,13 +40,13 @@ describe Delayed::Command do
       expect(Dir).to receive(:mkdir).with('./tmp/pids').once
 
       [
-        ['delayed_job.0', {:quiet => true, :pid_dir => './tmp/pids', :queues => []}],
-        ['delayed_job.1', {:quiet => true, :pid_dir => './tmp/pids', :queues => ['test_queue']}],
-        ['delayed_job.2', {:quiet => true, :pid_dir => './tmp/pids', :queues => ['test_queue']}],
-        ['delayed_job.3', {:quiet => true, :pid_dir => './tmp/pids', :queues => ['test_queue']}],
-        ['delayed_job.4', {:quiet => true, :pid_dir => './tmp/pids', :queues => ['test_queue']}],
-        ['delayed_job.5', {:quiet => true, :pid_dir => './tmp/pids', :queues => %w[mailers misc]}],
-        ['delayed_job.6', {:quiet => true, :pid_dir => './tmp/pids', :queues => %w[mailers misc]}]
+        ['delayed_job.0', {quiet: true, pid_dir: './tmp/pids', queues: []}],
+        ['delayed_job.1', {quiet: true, pid_dir: './tmp/pids', queues: ['test_queue']}],
+        ['delayed_job.2', {quiet: true, pid_dir: './tmp/pids', queues: ['test_queue']}],
+        ['delayed_job.3', {quiet: true, pid_dir: './tmp/pids', queues: ['test_queue']}],
+        ['delayed_job.4', {quiet: true, pid_dir: './tmp/pids', queues: ['test_queue']}],
+        ['delayed_job.5', {quiet: true, pid_dir: './tmp/pids', queues: %w[mailers misc]}],
+        ['delayed_job.6', {quiet: true, pid_dir: './tmp/pids', queues: %w[mailers misc]}]
       ].each do |args|
         expect(command).to receive(:run_process).with(*args).once
       end

@@ -3,7 +3,7 @@ require 'helper'
 require 'action_mailer'
 class MyMailer < ActionMailer::Base
   def signup(email)
-    mail :to => email, :subject => 'Delaying Emails', :from => 'delayedjob@example.com', :body => 'Delaying Emails Body'
+    mail to: email, subject: 'Delaying Emails', from: 'delayedjob@example.com', body: 'Delaying Emails Body'
   end
 end
 
@@ -30,8 +30,8 @@ describe ActionMailer::Base do
   describe Delayed::PerformableMailer do
     describe 'perform' do
       it 'calls the method and #deliver on the mailer' do
-        email = double('email', :deliver => true)
-        mailer_class = double('MailerClass', :signup => email)
+        email = double('email', deliver: true)
+        mailer_class = double('MailerClass', signup: email)
         mailer = Delayed::PerformableMailer.new(mailer_class, :signup, ['john@example.com'])
 
         expect(mailer_class).to receive(:signup).with('john@example.com')
