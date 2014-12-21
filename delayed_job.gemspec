@@ -5,10 +5,10 @@ Gem::Specification.new do |spec|
   spec.email          = ['brian@collectiveidea.com']
   spec.files          = %w[CHANGELOG.md CONTRIBUTING.md LICENSE.md README.md delayed_job.gemspec]
   spec.files         += Dir['{contrib,lib,recipes}/**/*']
-  spec.homepage       = 'https://github.com/BjoernKW/delayed_job'
+  spec.homepage       = 'http://github.com/collectiveidea/delayed_job'
   spec.licenses       = ['MIT']
   spec.name           = 'delayed_job'
   spec.require_paths  = ['lib']
   spec.summary        = 'Database-backed asynchronous priority queue system -- Extracted from Shopify'
-  spec.version        = '4.0.4-rails420'
+  spec.version        = '4.0.4'
 end
