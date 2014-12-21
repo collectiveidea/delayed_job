@@ -37,7 +37,7 @@ module Delayed
             klass = result.class
             id = result[klass.primary_key]
             begin
-              klass.find(id)
+              klass.find_by!(klass.primary_key => id)
             rescue ActiveRecord::RecordNotFound => error # rubocop:disable BlockNesting
               raise Delayed::DeserializationError, "ActiveRecord::RecordNotFound, class: #{klass}, primary key: #{id} (#{error.message})"
             end
