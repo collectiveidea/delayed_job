@@ -216,7 +216,7 @@ module Delayed
 
     # Reschedule the job in the future (when a job fails).
     # Uses an exponential scale depending on the number of failed attempts.
-    def reschedule(job, time = nil)
+    def reschedule(job, time = nil, error = nil)
       if (job.attempts += 1) < max_attempts(job)
         time ||= job.reschedule_at
         job.run_at = time
@@ -224,14 +224,14 @@ module Delayed
         job.save!
       else
         job_say job, "REMOVED permanently because of #{job.attempts} consecutive failures", 'error'
-        failed(job)
+        failed(job, error)
       end
     end
 
-    def failed(job)
+    def failed(job, error = nil)
       self.class.lifecycle.run_callbacks(:failure, self, job) do
         begin
-          job.hook(:failure)
+          job.hook(:failure, error)
         rescue => error
           say "Error when running failure callback: #{error}", 'error'
           say error.backtrace.join("\n"), 'error'
@@ -270,7 +270,7 @@ module Delayed
     def handle_failed_job(job, error)
       job.last_error = "#{error.message}\n#{error.backtrace.join("\n")}"
       job_say job, "FAILED (#{job.attempts} prior attempts) with #{error.class.name}: #{error.message}", 'error'
-      reschedule(job)
+      reschedule(job, nil, error)
     end
 
     # Run the next job we can get an exclusive lock on.
