@@ -30,6 +30,19 @@ multitude of core tasks. Amongst those tasks are:
 
 [twitter]: https://twitter.com/delayedjob
 
+Steps to setup delayed jobs
+===========================
+
+* [Install][install] the gems according to your configuration(whether active-record or mongoid)
+* [Setup the table][delayed_jobs_table] where the delayed jobs will be logged and read from
+* [Queue][queue_jobs] the jobs to be executed in background
+* [Start][DJ_daemon] delayed job daemon to start running the queued jobs
+
+[install]: https://github.com/jaspreet21anand/delayed_job#installation
+[delayed_jobs_table]: https://github.com/jaspreet21anand/delayed_job#gory-details
+[DJ_daemon]: https://github.com/jaspreet21anand/delayed_job#running-jobs
+[queue_jobs]: https://github.com/jaspreet21anand/delayed_job#queuing-jobs
+
 Installation
 ============
 delayed_job 3.0.0 only supports Rails 3.0+. See the [2.0
