@@ -34,14 +34,14 @@ Steps to setup delayed jobs
 ===========================
 
 * [Install][install] the gems according to your configuration(whether active-record or mongoid)
-* [Setup the table][delayed_jobs_table] where the delayed jobs will be logged in and read from to be executed
+* [Setup the table][delayed_jobs_table] where the jobs will be inserted and read from for execution
 * [Queue][queue_jobs] the jobs to be executed in background
 * [Start][DJ_daemon] delayed job daemon to start running the queued jobs
 
-[install]: https://github.com/jaspreet21anand/delayed_job#installation
-[delayed_jobs_table]: https://github.com/jaspreet21anand/delayed_job#gory-details
-[DJ_daemon]: https://github.com/jaspreet21anand/delayed_job#running-jobs
-[queue_jobs]: https://github.com/jaspreet21anand/delayed_job#queuing-jobs
+[install]: #installation
+[delayed_jobs_table]: #gory-details
+[DJ_daemon]: #running-jobs
+[queue_jobs]: #queuing-jobs
 
 Installation
 ============
