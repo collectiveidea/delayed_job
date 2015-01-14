@@ -124,10 +124,12 @@ class LongTasks
     2.hours.from_now
   end
 
-  def call_a_class_method
-    # Some other code
+  class << self
+    def call_a_class_method
+      # Some other code
+    end
+    handle_asynchronously :call_a_class_method, :run_at => Proc.new { when_to_run }
   end
-  handle_asynchronously :call_a_class_method, :run_at => Proc.new { when_to_run }
 
   attr_reader :how_important
 

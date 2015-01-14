@@ -34,8 +34,10 @@ module Delayed
         when /^!ruby\/object/
           result = super
           if defined?(ActiveRecord::Base) && result.is_a?(ActiveRecord::Base)
+            klass = result.class
+            id = result[klass.primary_key]
             begin
-              result.class.unscoped.find(result[result.class.primary_key])
+              klass.unscoped.find(id)
             rescue ActiveRecord::RecordNotFound => error # rubocop:disable BlockNesting
               raise Delayed::DeserializationError, "ActiveRecord::RecordNotFound, class: #{klass}, primary key: #{id} (#{error.message})"
             end

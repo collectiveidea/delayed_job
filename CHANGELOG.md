@@ -1,3 +1,15 @@
+4.0.6 - 2014-12-22
+==================
+* Revert removing test files from the gem
+
+4.0.5 - 2014-12-22
+==================
+* Support for Rails 4.2
+* Allow user to override where DJ writes log output
+* First attempt at automatic code reloading
+* Clearer error message when ActiveRecord object no longer exists
+* Various improvements to the README
+
 4.0.4 - 2014-09-24
 ==================
 * Fix using options passed into delayed_job command

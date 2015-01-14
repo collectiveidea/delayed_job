@@ -40,5 +40,4 @@ describe ActionMailer::Base do
       end
     end
   end
-
 end

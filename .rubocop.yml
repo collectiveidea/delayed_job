@@ -1,3 +1,6 @@
+AbcSize:
+  Enabled: false
+
 # Enforce outdenting of access modifiers (i.e. public, private, protected)
 AccessModifierIndentation:
   EnforcedStyle: outdent
@@ -64,6 +67,9 @@ LineLength:
 MethodLength:
   CountComments: false
   Max: 53
+
+MultilineOperationIndentation:
+  EnforcedStyle: indented
 
 # Avoid long parameter lists
 ParameterLists:

@@ -35,7 +35,5 @@ namespace :jobs do
     if unprocessed_jobs > 0
       raise "#{unprocessed_jobs} jobs older than #{args[:max_age]} seconds have not been processed yet"
     end
-
   end
-
 end
