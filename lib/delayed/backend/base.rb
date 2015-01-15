@@ -93,7 +93,7 @@ module Delayed
             hook :before
             payload_object.perform
             hook :success
-          rescue Exception => e
+          rescue Exception => e # rubocop:disable RescueException
             hook :error, e
             if e.class == Exception
               raise StandardError, e.message
