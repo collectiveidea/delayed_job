@@ -93,9 +93,13 @@ module Delayed
             hook :before
             payload_object.perform
             hook :success
-          rescue => e
+          rescue Exception => e
             hook :error, e
-            raise e
+            if e.class == Exception
+              raise StandardError, e.message
+            else
+              raise e
+            end
           ensure
             hook :after
           end
