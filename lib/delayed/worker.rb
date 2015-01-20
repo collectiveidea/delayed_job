@@ -209,7 +209,7 @@ module Delayed
     rescue DeserializationError => error
       job.last_error = "#{error.message}\n#{error.backtrace.join("\n")}"
       failed(job)
-    rescue => error
+    rescue Exception => error
       self.class.lifecycle.run_callbacks(:error, self, job) { handle_failed_job(job, error) }
       return false  # work failed
     end

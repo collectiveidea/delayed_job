@@ -42,6 +42,53 @@ describe Delayed::Worker do
     end
   end
 
+  describe 'run' do
+    let(:job) { double('job', :id => 123, :name => 'ExampleJob') }
+    let(:worker) { Delayed::Worker.new }
+    let(:result) { worker.run(job) }
+
+    before do
+      allow(worker).to receive(:job_say)
+      allow(worker).to receive(:max_run_time)
+    end
+
+    context 'successfully processed' do
+      it do
+        expect(job).to receive(:invoke_job).and_return(true)
+        expect(worker).to receive(:failed).never
+        expect(worker).to receive(:handle_failed_job).never
+        expect(job).to receive(:destroy)
+        expect(result).to eq(true)
+      end
+    end
+
+    context 'raises a general exception' do
+      class JobError < Exception; end
+      let(:error) { JobError.new }
+
+      it do
+        expect(job).to receive(:invoke_job).and_raise(error)
+        expect(job).to receive(:destroy).never
+        expect(worker).to receive(:failed).never
+        expect(worker).to receive(:handle_failed_job).with(job, error)
+        expect(result).to eq(false)
+      end
+    end
+
+    context 'raises DeserializationError' do
+      let(:error) { Delayed::DeserializationError.new }
+
+      it do
+        expect(job).to receive(:invoke_job).and_raise(error)
+        expect(job).to receive(:last_error=)
+        expect(job).to receive(:destroy).never
+        expect(worker).to receive(:failed).with(job).and_return('failed')
+        expect(worker).to receive(:handle_failed_job).never
+        expect(result).to eq('failed')
+      end
+    end
+  end
+
   context 'worker read-ahead' do
     before do
       @read_ahead = Delayed::Worker.read_ahead
