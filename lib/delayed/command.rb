@@ -118,6 +118,8 @@ module Delayed
 
       Delayed::Worker.after_fork
       Delayed::Worker.logger ||= Logger.new(File.join(Rails.root, 'log', 'delayed_job.log'))
+      
+      ActiveRecord::Base.logger = Delayed::Worker.logger if Delayed::Worker.backend == :active_record
 
       worker = Delayed::Worker.new(options)
       worker.name_prefix = "#{worker_name} "
