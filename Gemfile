@@ -17,14 +17,14 @@ end
 
 group :test do
   if ENV['RAILS_VERSION'] == 'edge'
-    gem 'activerecord', :github => 'rails/rails'
-    gem 'actionmailer', :github => 'rails/rails'
+    gem 'activerecord', github: 'rails/rails'
+    gem 'actionmailer', github: 'rails/rails'
   else
     gem 'activerecord', (ENV['RAILS_VERSION'] || ['>= 3.0', '< 5.0'])
     gem 'actionmailer', (ENV['RAILS_VERSION'] || ['>= 3.0', '< 5.0'])
   end
 
-  gem 'coveralls', :require => false
+  gem 'coveralls', require: false
   gem 'rspec', '>= 3'
   gem 'rubocop', '>= 0.25'
   gem 'simplecov', '>= 0.9'

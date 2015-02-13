@@ -2,11 +2,11 @@ require 'active_support/core_ext/module/delegation'
 
 module Delayed
   class PerformableMethod
-    attr_accessor :object, :method_name, :args
+    attr_accessor :object, :method_name, :args, :max_attempts
 
-    delegate :method, :to => :object
+    delegate :method, to: :object
 
-    def initialize(object, method_name, args)
+    def initialize(object, method_name, args, options = {})
       raise NoMethodError, "undefined method `#{method_name}' for #{object.inspect}" unless object.respond_to?(method_name, true)
 
       if object.respond_to?(:persisted?) && !object.persisted?
@@ -16,6 +16,7 @@ module Delayed
       self.object       = object
       self.args         = args
       self.method_name  = method_name.to_sym
+      self.max_attempts = options[:max_attempts]
     end
 
     def display_name

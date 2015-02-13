@@ -37,6 +37,6 @@ module YAML
   def load_dj(yaml)
     # See https://github.com/dtao/safe_yaml
     # When the method is there, we need to load our YAML like this...
-    respond_to?(:unsafe_load) ? load(yaml, :safe => false) : load(yaml)
+    respond_to?(:unsafe_load) ? load(yaml, safe: false) : load(yaml)
   end
 end

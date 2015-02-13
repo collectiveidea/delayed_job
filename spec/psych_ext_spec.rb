@@ -1,6 +1,6 @@
 require 'helper'
 
-describe 'Psych::Visitors::ToRuby', :if => defined?(Psych::Visitors::ToRuby) do
+describe 'Psych::Visitors::ToRuby', if: defined?(Psych::Visitors::ToRuby) do
   context BigDecimal do
     it 'deserializes correctly' do
       deserialized = YAML.load("--- !ruby/object:BigDecimal 18:0.1337E2\n...\n")
