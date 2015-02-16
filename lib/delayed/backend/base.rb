@@ -128,6 +128,11 @@ module Delayed
         payload_object.max_attempts if payload_object.respond_to?(:max_attempts)
       end
 
+      def destroy_failed_jobs
+        payload_object.destroy_failed_jobs if payload_object.respond_to?(:destroy_failed_jobs)
+      rescue DeserializationError # rubocop:disable HandleExceptions
+      end
+
       def max_run_time
         return unless payload_object.respond_to?(:max_run_time)
         return unless (run_time = payload_object.max_run_time)

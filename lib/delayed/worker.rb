@@ -247,7 +247,7 @@ module Delayed
           say "Error when running failure callback: #{error}", 'error'
           say error.backtrace.join("\n"), 'error'
         ensure
-          self.class.destroy_failed_jobs ? job.destroy : job.fail!
+          destroy_failed_jobs(job) ? job.destroy : job.fail!
         end
       end
     end
@@ -274,6 +274,10 @@ module Delayed
 
     def max_run_time(job)
       job.max_run_time || self.class.max_run_time
+    end
+
+    def destroy_failed_jobs(job)
+      job.destroy_failed_jobs || self.class.destroy_failed_jobs
     end
 
   protected
