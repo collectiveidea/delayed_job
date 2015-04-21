@@ -8,33 +8,16 @@ module Delayed
       module ClassMethods
         # Add a job to the queue
         def enqueue(*args) # rubocop:disable CyclomaticComplexity
-          options = args.extract_options!
-          options[:payload_object] ||= args.shift
-          options[:priority]       ||= Delayed::Worker.default_priority
-
-          if options[:queue].nil?
-            if options[:payload_object].respond_to?(:queue_name)
-              options[:queue] = options[:payload_object].queue_name
-            end
-            options[:queue] ||= Delayed::Worker.default_queue_name
-          end
-
-          if args.size > 0
-            warn '[DEPRECATION] Passing multiple arguments to `#enqueue` is deprecated. Pass a hash with :priority and :run_at.'
-            options[:priority] = args.first || options[:priority]
-            options[:run_at]   = args[1]
-          end
-
-          unless options[:payload_object].respond_to?(:perform)
-            raise ArgumentError, 'Cannot enqueue items which do not respond to perform'
-          end
+          options = enqueue_options(*args)
 
           new(options).tap do |job|
-            Delayed::Worker.lifecycle.run_callbacks(:enqueue, job) do
-              job.hook(:enqueue)
-              Delayed::Worker.delay_job?(job) ? job.save : job.invoke_job
-            end
+            enqueue_or_invoke_job(job)
           end
+        end
+
+        def enqueue_once(*args)
+          job = find(*args)
+          enqueue_or_invoke_job(job) unless job.persisted?
         end
 
         def reserve(worker, max_run_time = Worker.max_run_time)
@@ -60,6 +43,48 @@ module Delayed
         def work_off(num = 100)
           warn '[DEPRECATION] `Delayed::Job.work_off` is deprecated. Use `Delayed::Worker.new.work_off instead.'
           Delayed::Worker.new.work_off(num)
+        end
+
+        private
+
+        def enqueue_options(*args)
+          options = args.extract_options!
+          options[:payload_object] ||= args.shift
+          options[:priority]       ||= Delayed::Worker.default_priority
+
+          if options[:queue].nil?
+            if options[:payload_object].respond_to?(:queue_name)
+              options[:queue] = options[:payload_object].queue_name
+            end
+            options[:queue] ||= Delayed::Worker.default_queue_name
+          end
+
+          if args.size > 0
+            warn '[DEPRECATION] Passing multiple arguments to `#enqueue` is deprecated. Pass a hash with :priority and :run_at.'
+            options[:priority] = args.first || options[:priority]
+            options[:run_at]   = args[1]
+          end
+
+          unless options[:payload_object].respond_to?(:perform)
+            raise ArgumentError, 'Cannot enqueue items which do not respond to perform'
+          end
+
+          options
+        end
+
+        def enqueue_or_invoke_job(job)
+          Delayed::Worker.lifecycle.run_callbacks(:enqueue, job) do
+            job.hook(:enqueue)
+            Delayed::Worker.delay_job?(job) ? job.save : job.invoke_job
+          end
+        end
+
+        def find(*args)
+          options = enqueue_options(*args)
+
+          job = new(options)
+          raise ArgumentError, "Back-end doesn't support find_one" unless job.respond_to?(:find_one)
+          job.find_one || job
         end
       end
 

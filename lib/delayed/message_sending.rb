@@ -8,8 +8,16 @@ module Delayed
       @options = options
     end
 
+    def once
+      @options ||= {}
+      @options[:once] = true
+      self
+    end
+
     def method_missing(method, *args)
-      Job.enqueue({:payload_object => @payload_class.new(@target, method.to_sym, args)}.merge(@options))
+      singleton_job = @options.delete(:once) if @options
+      options = {:payload_object => @payload_class.new(@target, method.to_sym, args)}.merge(@options)
+      singleton_job ? Job.enqueue_once(options) : Job.enqueue(options)
     end
   end
 
