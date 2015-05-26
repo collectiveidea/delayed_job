@@ -228,7 +228,7 @@ module Delayed
     rescue DeserializationError => error
       job.error = error
       failed(job)
-    rescue => error
+    rescue Exception => error
       self.class.lifecycle.run_callbacks(:error, self, job) { handle_failed_job(job, error) }
       return false  # work failed
     end
