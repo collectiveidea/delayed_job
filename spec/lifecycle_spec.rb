@@ -3,16 +3,19 @@ require 'helper'
 describe Delayed::Lifecycle do
   let(:lifecycle) { Delayed::Lifecycle.new }
   let(:callback) { lambda { |*_args| } }
+  let(:outer_callback) { lambda { |*_args| } }
   let(:arguments) { [1] }
   let(:behavior) { double(Object, :before! => nil, :after! => nil, :inside! => nil) }
   let(:wrapped_block) { proc { behavior.inside! } }
 
   describe 'before callbacks' do
     before(:each) do
+      lifecycle.before(:execute, &outer_callback)
       lifecycle.before(:execute, &callback)
     end
 
-    it 'executes before wrapped block' do
+    it 'executes before callbacks in order' do
+      expect(outer_callback).to receive(:call).with(*arguments).ordered
       expect(callback).to receive(:call).with(*arguments).ordered
       expect(behavior).to receive(:inside!).ordered
       lifecycle.run_callbacks :execute, *arguments, &wrapped_block
@@ -21,12 +24,14 @@ describe Delayed::Lifecycle do
 
   describe 'after callbacks' do
     before(:each) do
+      lifecycle.after(:execute, &outer_callback)
       lifecycle.after(:execute, &callback)
     end
 
-    it 'executes after wrapped block' do
+    it 'executes after callbacks in reverse order' do
       expect(behavior).to receive(:inside!).ordered
       expect(callback).to receive(:call).with(*arguments).ordered
+      expect(outer_callback).to receive(:call).with(*arguments).ordered
       lifecycle.run_callbacks :execute, *arguments, &wrapped_block
     end
   end
