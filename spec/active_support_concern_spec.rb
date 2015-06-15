@@ -5,7 +5,7 @@ describe 'ActiveSupport::Concern' do
     module TestConcern
       extend ActiveSupport::Concern
 
-      class_methods do
+      module ClassMethods
         def concern_test_method
         end
       end
