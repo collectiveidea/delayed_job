@@ -29,7 +29,7 @@ class Struct
     # Constantize the object so that ActiveSupport can attempt
     # its auto loading magic. Will raise LoadError if not successful.
     name.constantize
-    "Struct::#{ name }"
+    "Struct::#{name}"
   end
 end
 
