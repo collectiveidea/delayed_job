@@ -29,7 +29,7 @@ module Delayed
       __delay__(:run_at => time).__send__(method, *args)
     end
 
-    module ClassMethods
+    module AsynchronousClassMethods
       def handle_asynchronously(method, opts = {})
         aliased_method, punctuation = method.to_s.sub(/([?!=])$/, ''), $1 # rubocop:disable PerlBackrefs
         with_method, without_method = "#{aliased_method}_with_delay#{punctuation}", "#{aliased_method}_without_delay#{punctuation}"
