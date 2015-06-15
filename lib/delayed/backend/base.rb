@@ -74,7 +74,7 @@ module Delayed
       end
       alias_method :failed, :failed?
 
-      ParseObjectFromYaml = /\!ruby\/\w+\:([^\s]+)/ # rubocop:disable ConstantName
+      ParseObjectFromYaml = %r{\!ruby\/\w+\:([^\s]+)} # rubocop:disable ConstantName
 
       def name
         @name ||= payload_object.respond_to?(:display_name) ? payload_object.display_name : payload_object.class.name
