@@ -34,6 +34,9 @@ module Delayed
         when /^!ruby\/object/
           result = super
           if defined?(ActiveRecord::Base) && result.is_a?(ActiveRecord::Base)
+            attributes = result.instance_variable_get('@attributes')
+            attributes.define_singleton_method(:fetch_value) do |name| self[name] end unless attributes.respond_to?(:fetch_value)
+
             klass = result.class
             id = result[klass.primary_key]
             begin
