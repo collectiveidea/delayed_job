@@ -200,7 +200,8 @@ module Delayed
     # Do num jobs and return stats on success/failure.
     # Exit early if interrupted.
     def work_off(num = 100)
-      success, failure = 0, 0
+      success = 0
+      failure = 0
 
       num.times do
         case reserve_and_run_one_job

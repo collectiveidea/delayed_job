@@ -1,3 +1,4 @@
+# rubocop:disable SpaceAroundOperators
 Gem::Specification.new do |spec|
   spec.add_dependency 'activesupport', ['>= 3.0', '< 5.0']
   spec.authors        = ['Brandon Keepers', 'Brian Ryckbost', 'Chris Gaffney', 'David Genord II', 'Erik Michaels-Ober', 'Matt Griffin', 'Steve Richert', 'Tobias Lütke']
@@ -13,3 +14,4 @@ Gem::Specification.new do |spec|
   spec.test_files     = Dir.glob('spec/**/*')
   spec.version        = '4.0.6'
 end
+# rubocop:enable SpaceAroundOperators

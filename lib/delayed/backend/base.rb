@@ -10,7 +10,7 @@ module Delayed
         def enqueue(*args) # rubocop:disable CyclomaticComplexity
           options = args.extract_options!
           options[:payload_object] ||= args.shift
-          options[:priority]       ||= Delayed::Worker.default_priority
+          options[:priority] ||= Delayed::Worker.default_priority
 
           if options[:queue].nil?
             if options[:payload_object].respond_to?(:queue_name)
@@ -74,7 +74,7 @@ module Delayed
       end
       alias_method :failed, :failed?
 
-      ParseObjectFromYaml = /\!ruby\/\w+\:([^\s]+)/ # rubocop:disable ConstantName
+      ParseObjectFromYaml = %r{\!ruby/\w+\:([^\s]+)} # rubocop:disable ConstantName
 
       def name
         @name ||= payload_object.respond_to?(:display_name) ? payload_object.display_name : payload_object.class.name
