@@ -20,10 +20,12 @@ describe ActionMailer::Base do
   end
 
   describe 'delay on a mail object' do
-    it 'raises an exception' do
+    it 'delays the mail object' do
       expect do
-        MyMailer.signup('john@example.com').delay
-      end.to raise_error(RuntimeError)
+        job = MyMailer.signup('john@example.com').delay.deliver
+        expect(job.payload_object.class).to eq(Delayed::PerformableMail)
+        expect(job.payload_object.method_name).to eq(:deliver)
+      end.to change { Delayed::Job.count }.by(1)
     end
   end
 

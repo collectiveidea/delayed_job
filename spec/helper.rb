@@ -13,6 +13,7 @@ end
 require 'logger'
 require 'rspec'
 
+require 'mail'
 require 'action_mailer'
 require 'active_support/dependencies'
 require 'active_record'
@@ -46,6 +47,11 @@ Delayed::Worker.backend = :test
 ActiveSupport::Dependencies.autoload_paths << File.dirname(__FILE__)
 
 # Add this to simulate Railtie initializer being executed
+module Mail
+  class Message
+    include(Delayed::DelayMailMessage)
+  end
+end
 ActionMailer::Base.extend(Delayed::DelayMail)
 
 # Used to test interactions between DJ and an ORM

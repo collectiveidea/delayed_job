@@ -6,6 +6,7 @@ require 'delayed/performable_method'
 
 if defined?(ActionMailer)
   require 'action_mailer/version'
+  require 'delayed/performable_mail'
   require 'delayed/performable_mailer'
 end
 

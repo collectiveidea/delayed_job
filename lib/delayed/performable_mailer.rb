@@ -14,9 +14,3 @@ module Delayed
     end
   end
 end
-
-Mail::Message.class_eval do
-  def delay(*_args)
-    fail 'Use MyMailer.delay.mailer_action(args) to delay sending of emails.'
-  end
-end
