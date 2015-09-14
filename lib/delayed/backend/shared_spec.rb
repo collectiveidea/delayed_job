@@ -529,7 +529,6 @@ shared_examples_for 'a delayed_job backend' do
         it 'marks the job as failed' do
           Delayed::Worker.destroy_failed_jobs = false
           job = described_class.create! :handler => '--- !ruby/object:JobThatDoesNotExist {}'
-          expect(job).to receive(:destroy_failed_jobs?).and_return(false)
           worker.work_off
           job.reload
           expect(job).to be_failed
