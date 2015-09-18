@@ -161,7 +161,7 @@ shared_examples_for 'a delayed_job backend' do
       job = described_class.enqueue(CallbackJob.new)
       expect(job.payload_object).to receive(:perform).and_raise(RuntimeError.new('fail'))
 
-      expect { job.invoke_job }.to raise_error
+      expect { job.invoke_job }.to raise_error(RuntimeError)
       expect(CallbackJob.messages).to eq(['enqueue', 'before', 'error: RuntimeError', 'after'])
     end
 

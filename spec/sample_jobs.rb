@@ -23,7 +23,7 @@ class ErrorJob
   cattr_accessor :runs
   @runs = 0
   def perform
-    raise 'did not work'
+    raise Exception, 'did not work'
   end
 end
 

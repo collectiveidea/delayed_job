@@ -91,6 +91,9 @@ PercentLiteralDelimiters:
 RaiseArgs:
   EnforcedStyle: exploded
 
+RegexpLiteral:
+  Enabled: false
+
 RescueModifier:
   Enabled: false
 

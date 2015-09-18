@@ -68,7 +68,7 @@ describe Delayed::PerformableMethod do
       story = Story.create
       expect(story).to receive(:error).with(an_instance_of(Delayed::Job), an_instance_of(RuntimeError))
       expect(story).to receive(:tell).and_raise(RuntimeError)
-      expect { story.delay.tell.invoke_job }.to raise_error
+      expect { story.delay.tell.invoke_job }.to raise_error(RuntimeError)
     end
 
     it 'delegates failure hook to object' do
@@ -98,7 +98,7 @@ describe Delayed::PerformableMethod do
         story = Story.create
         expect(story).to receive(:error).with(an_instance_of(Delayed::Job), an_instance_of(RuntimeError))
         expect(story).to receive(:tell).and_raise(RuntimeError)
-        expect { story.delay.tell }.to raise_error
+        expect { story.delay.tell }.to raise_error(RuntimeError)
       end
 
       it 'delegates failure hook to object' do

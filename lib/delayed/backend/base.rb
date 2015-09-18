@@ -10,7 +10,7 @@ module Delayed
         def enqueue(*args) # rubocop:disable CyclomaticComplexity
           options = args.extract_options!
           options[:payload_object] ||= args.shift
-          options[:priority]       ||= Delayed::Worker.default_priority
+          options[:priority] ||= Delayed::Worker.default_priority
 
           if options[:queue].nil?
             if options[:payload_object].respond_to?(:queue_name)

@@ -62,6 +62,7 @@ describe Delayed::MessageSending do
     class FairyTail
       attr_accessor :happy_ending
       def self.princesses; end
+
       def tell
         @happy_ending = true
       end
