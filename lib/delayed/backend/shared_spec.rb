@@ -550,6 +550,26 @@ shared_examples_for 'a delayed_job backend' do
       end
     end
 
+    context 'when the logger fails' do
+      before do
+        logger = double('logger')
+        expect(logger).to receive(:info).with(/RUNNING/)
+        expect(logger).to receive(:info).with(/COMPLETED/).
+          and_raise(RuntimeError, 'Something went wrong with logging')
+
+        @old_logger = Delayed::Worker.logger
+        Delayed::Worker.logger = logger
+
+        @job = Delayed::Job.enqueue(SimpleJob.new)
+      end
+
+      after { Delayed::Worker.logger = @old_logger }
+
+      it 'should not swallow the logger exception' do
+        expect { worker.run(@job) }.to raise_error(RuntimeError, 'Something went wrong with logging')
+      end
+    end
+
     describe 'failed jobs' do
       before do
         @job = Delayed::Job.enqueue(ErrorJob.new, :run_at => described_class.db_time_now - 1)
