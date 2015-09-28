@@ -230,8 +230,14 @@ module Delayed
       job.error = error
       failed(job)
     rescue Exception => error # rubocop:disable RescueException
-      self.class.lifecycle.run_callbacks(:error, self, job) { handle_failed_job(job, error) }
-      return false # work failed
+      if job.persisted?
+        self.class.lifecycle.run_callbacks(:error, self, job) { handle_failed_job(job, error) }
+        false
+      else
+        # something went wrong, but the job was destroyed, which means it was
+        # processed successfully
+        true
+      end
     end
 
     # Reschedule the job in the future (when a job fails).
