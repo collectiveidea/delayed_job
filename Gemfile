@@ -19,6 +19,7 @@ group :test do
   if ENV['RAILS_VERSION'] == 'edge'
     gem 'activerecord', :github => 'rails/rails'
     gem 'actionmailer', :github => 'rails/rails'
+    gem 'arel', :github => 'rails/arel'
   else
     gem 'activerecord', (ENV['RAILS_VERSION'] || ['>= 3.0', '< 5.0'])
     gem 'actionmailer', (ENV['RAILS_VERSION'] || ['>= 3.0', '< 5.0'])
