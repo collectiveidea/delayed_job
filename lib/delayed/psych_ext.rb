@@ -31,18 +31,20 @@ module Delayed
         return revive(Psych.load_tags[object.tag], object) if Psych.load_tags[object.tag]
 
         case object.tag
-        when /^!ruby\/object/
+        when %r{^!ruby/object}
           result = super
           if defined?(ActiveRecord::Base) && result.is_a?(ActiveRecord::Base)
+            klass = result.class
+            id = result[klass.primary_key]
             begin
-              result.class.find(result[result.class.primary_key])
+              klass.find(id)
             rescue ActiveRecord::RecordNotFound => error # rubocop:disable BlockNesting
               raise Delayed::DeserializationError, "ActiveRecord::RecordNotFound, class: #{klass}, primary key: #{id} (#{error.message})"
             end
           else
             result
           end
-        when /^!ruby\/ActiveRecord:(.+)$/
+        when %r{^!ruby/ActiveRecord:(.+)$}
           klass = resolve_class(Regexp.last_match[1])
           payload = Hash[*object.children.map { |c| accept c }]
           id = payload['attributes'][klass.primary_key]
@@ -52,7 +54,7 @@ module Delayed
           rescue ActiveRecord::RecordNotFound => error
             raise Delayed::DeserializationError, "ActiveRecord::RecordNotFound, class: #{klass}, primary key: #{id} (#{error.message})"
           end
-        when /^!ruby\/Mongoid:(.+)$/
+        when %r{^!ruby/Mongoid:(.+)$}
           klass = resolve_class(Regexp.last_match[1])
           payload = Hash[*object.children.map { |c| accept c }]
           id = payload['attributes']['_id']
@@ -61,7 +63,7 @@ module Delayed
           rescue Mongoid::Errors::DocumentNotFound => error
             raise Delayed::DeserializationError, "Mongoid::Errors::DocumentNotFound, class: #{klass}, primary key: #{id} (#{error.message})"
           end
-        when /^!ruby\/DataMapper:(.+)$/
+        when %r{^!ruby/DataMapper:(.+)$}
           klass = resolve_class(Regexp.last_match[1])
           payload = Hash[*object.children.map { |c| accept c }]
           begin

@@ -7,32 +7,16 @@ module Delayed
 
       module ClassMethods
         # Add a job to the queue
-        def enqueue(*args) # rubocop:disable CyclomaticComplexity
-          options = args.extract_options!
-          options[:payload_object] ||= args.shift
-          options[:priority]       ||= Delayed::Worker.default_priority
+        def enqueue(*args)
+          job_options = Delayed::Backend::JobPreparer.new(*args).prepare
+          enqueue_job(job_options)
+        end
 
-          if options[:queue].nil?
-            if options[:payload_object].respond_to?(:queue_name)
-              options[:queue] = options[:payload_object].queue_name
-            end
-            options[:queue] ||= Delayed::Worker.default_queue_name
-          end
-
-          if args.size > 0
-            warn '[DEPRECATION] Passing multiple arguments to `#enqueue` is deprecated. Pass a hash with :priority and :run_at.'
-            options[:priority] = args.first || options[:priority]
-            options[:run_at]   = args[1]
-          end
-
-          unless options[:payload_object].respond_to?(:perform)
-            raise ArgumentError, 'Cannot enqueue items which do not respond to perform'
-          end
-
+        def enqueue_job(options)
           new(options).tap do |job|
             Delayed::Worker.lifecycle.run_callbacks(:enqueue, job) do
               job.hook(:enqueue)
-              Delayed::Worker.delay_jobs ? job.save : job.invoke_job
+              Delayed::Worker.delay_job?(job) ? job.save : job.invoke_job
             end
           end
         end
@@ -63,12 +47,18 @@ module Delayed
         end
       end
 
+      attr_reader :error
+      def error=(error)
+        @error = error
+        self.last_error = "#{error.message}\n#{error.backtrace.join("\n")}" if self.respond_to?(:last_error=)
+      end
+
       def failed?
         !!failed_at
       end
       alias_method :failed, :failed?
 
-      ParseObjectFromYaml = /\!ruby\/\w+\:([^\s]+)/ # rubocop:disable ConstantName
+      ParseObjectFromYaml = %r{\!ruby/\w+\:([^\s]+)} # rubocop:disable ConstantName
 
       def name
         @name ||= payload_object.respond_to?(:display_name) ? payload_object.display_name : payload_object.class.name
@@ -93,7 +83,7 @@ module Delayed
             hook :before
             payload_object.perform
             hook :success
-          rescue => e
+          rescue Exception => e # rubocop:disable RescueException
             hook :error, e
             raise e
           ensure
@@ -137,6 +127,12 @@ module Delayed
         else
           run_time
         end
+      end
+
+      def destroy_failed_jobs?
+        payload_object.respond_to?(:destroy_failed_jobs?) ? payload_object.destroy_failed_jobs? : Delayed::Worker.destroy_failed_jobs
+      rescue DeserializationError
+        Delayed::Worker.destroy_failed_jobs
       end
 
       def fail!

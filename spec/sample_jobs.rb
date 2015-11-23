@@ -1,4 +1,5 @@
-class NamedJob < Struct.new(:perform)
+NamedJob = Struct.new(:perform)
+class NamedJob
   def display_name
     'named_job'
   end
@@ -22,11 +23,12 @@ class ErrorJob
   cattr_accessor :runs
   @runs = 0
   def perform
-    raise 'did not work'
+    raise Exception, 'did not work'
   end
 end
 
-class CustomRescheduleJob < Struct.new(:offset)
+CustomRescheduleJob = Struct.new(:offset)
+class CustomRescheduleJob
   cattr_accessor :runs
   @runs = 0
   def perform

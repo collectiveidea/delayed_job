@@ -154,4 +154,22 @@ describe Delayed::Worker do
       @worker.say(@text, Delayed::Worker.default_log_level)
     end
   end
+
+  describe 'plugin registration' do
+    it 'does not double-register plugins on worker instantiation' do
+      performances = 0
+      plugin = Class.new(Delayed::Plugin) do
+        callbacks do |lifecycle|
+          lifecycle.before(:enqueue) { performances += 1 }
+        end
+      end
+      Delayed::Worker.plugins << plugin
+
+      Delayed::Worker.new
+      Delayed::Worker.new
+      Delayed::Worker.lifecycle.run_callbacks(:enqueue, nil) {}
+
+      expect(performances).to eq(1)
+    end
+  end
 end

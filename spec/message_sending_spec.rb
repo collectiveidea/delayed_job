@@ -62,6 +62,7 @@ describe Delayed::MessageSending do
     class FairyTail
       attr_accessor :happy_ending
       def self.princesses; end
+
       def tell
         @happy_ending = true
       end
@@ -117,6 +118,26 @@ describe Delayed::MessageSending do
           fairy_tail.delay.tell
         end.not_to change(fairy_tail, :happy_ending)
       end.to change { Delayed::Job.count }.by(1)
+    end
+
+    it 'does delay when delay_jobs is a proc returning true' do
+      Delayed::Worker.delay_jobs = ->(_job) { true }
+      fairy_tail = FairyTail.new
+      expect do
+        expect do
+          fairy_tail.delay.tell
+        end.not_to change(fairy_tail, :happy_ending)
+      end.to change { Delayed::Job.count }.by(1)
+    end
+
+    it 'does not delay the job when delay_jobs is a proc returning false' do
+      Delayed::Worker.delay_jobs = ->(_job) { false }
+      fairy_tail = FairyTail.new
+      expect do
+        expect do
+          fairy_tail.delay.tell
+        end.to change(fairy_tail, :happy_ending).from(nil).to(true)
+      end.not_to change { Delayed::Job.count }
     end
   end
 end

@@ -1,6 +1,7 @@
 # Make sure this file does not get required manually
 module Autoloaded
-  class Struct < ::Struct.new(nil)
+  Struct = ::Struct.new(nil)
+  class Struct
     def perform
     end
   end

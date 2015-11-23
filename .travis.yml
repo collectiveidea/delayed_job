@@ -8,6 +8,7 @@ env:
     - RAILS_VERSION="~> 3.2.0"
     - RAILS_VERSION="~> 4.0.0"
     - RAILS_VERSION="~> 4.1.0"
+    - RAILS_VERSION="~> 4.2.0"
     - RAILS_VERSION="edge"
 rvm:
   - 1.9.3

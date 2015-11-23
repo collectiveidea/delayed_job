@@ -1,5 +1,6 @@
 module Autoloaded
-  class InstanceStruct < ::Struct.new(nil)
+  InstanceStruct = ::Struct.new(nil)
+  class InstanceStruct
     def perform
     end
   end

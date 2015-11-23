@@ -19,7 +19,7 @@ namespace :jobs do
       :min_priority => ENV['MIN_PRIORITY'],
       :max_priority => ENV['MAX_PRIORITY'],
       :queues => (ENV['QUEUES'] || ENV['QUEUE'] || '').split(','),
-      :quiet => false
+      :quiet => ENV['QUIET']
     }
 
     @worker_options[:sleep_delay] = ENV['SLEEP_DELAY'].to_i if ENV['SLEEP_DELAY']
@@ -35,7 +35,5 @@ namespace :jobs do
     if unprocessed_jobs > 0
       raise "#{unprocessed_jobs} jobs older than #{args[:max_age]} seconds have not been processed yet"
     end
-
   end
-
 end
