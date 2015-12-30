@@ -113,7 +113,7 @@ end
 class StoryWrapperJob < SimpleJob
   def initialize
     # sample object referenced twice should get compressed during yaml serialization to use aliases, which should then be deserializable.
-    @story = Story.create!(text: "My great story")
+    @story = Story.create!(:text => 'My great story')
     @story_again = @story
   end
 
