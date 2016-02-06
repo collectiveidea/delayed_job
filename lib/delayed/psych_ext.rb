@@ -93,7 +93,7 @@ module Psych
       def visit_Psych_Nodes_Mapping_with_class(object)
         return revive(Psych.load_tags[object.tag], object) if Psych.load_tags[object.tag]
 
-        case object.tag
+        case object.tag.to_s
         when /^!ruby\/ActiveRecord:(.+)$/
           klass = resolve_class($1)
           payload = Hash[*object.children.map { |c| accept c }]
