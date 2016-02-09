@@ -31,6 +31,7 @@ module Delayed
       end
 
       def set_priority
+        options[:priority] ||= options[:payload_object].priority if options[:payload_object].respond_to?(:priority)
         options[:priority] ||= Delayed::Worker.default_priority
         queue_attributes = Delayed::Worker.queue_attributes.select { |queue| queue[:name].to_s == options[:queue] }
         options[:priority] = queue_attributes.first[:priority] if queue_attributes.any?

@@ -348,6 +348,20 @@ NewsletterJob = Struct.new(:text, :emails) do
 end
 ```
 
+To set a default priority for a custom job that overrides Delayed::Worker.default_priority, you can define a priority method on the job
+
+```ruby
+NewsletterJob = Struct.new(:text, :emails) do
+  def perform
+    emails.each { |e| NewsletterMailer.deliver_text_to_email(text, e) }
+  end
+
+  def priority
+    42
+  end
+end
+```
+
 On error, the job is scheduled again in 5 seconds + N ** 4, where N is the number of attempts. You can define your own `reschedule_at` method to override this default behavior.
 
 ```ruby

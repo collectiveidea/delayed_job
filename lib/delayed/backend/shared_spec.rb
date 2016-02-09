@@ -47,13 +47,18 @@ shared_examples_for 'a delayed_job backend' do
       end
 
       it 'is able to set priority' do
-        job = described_class.enqueue :payload_object => SimpleJob.new, :priority => 5
+        job = described_class.enqueue :payload_object => Priority42QueueJob.new, :priority => 5
         expect(job.priority).to eq(5)
       end
 
       it 'uses default priority' do
         job = described_class.enqueue :payload_object => SimpleJob.new
         expect(job.priority).to eq(99)
+      end
+
+      it 'uses the job specified priority' do
+        job = described_class.enqueue :payload_object => Priority42QueueJob.new
+        expect(job.priority).to eq(42)
       end
 
       it 'is able to set run_at' do
