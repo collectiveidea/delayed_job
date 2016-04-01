@@ -127,7 +127,7 @@ module Delayed
     end
 
     def self.signals_to_stop_worker
-      @signals_to_stop_worker ||= ['INT', 'TERM']
+      @signals_to_stop_worker ||= %w[INT TERM]
     end
 
     def initialize(options = {})
