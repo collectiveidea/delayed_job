@@ -397,19 +397,40 @@ shared_examples_for 'a delayed_job backend' do
     end
 
     context 'when worker does not have queue set' do
-      before(:each) do
-        worker.queues = []
+      context 'but has exclude_queues' do 
+        before(:each) do
+          worker.queues = []
+          worker.exclude_queues = ['two']
+        end
+
+        it 'works off all jobs, except excluded' do
+          expect(SimpleJob.runs).to eq(0)
+
+          create_job(:queue => 'one')
+          create_job(:queue => 'two')
+          create_job
+          worker.work_off
+
+          expect(SimpleJob.runs).to eq(2)
+        end
       end
 
-      it 'works off all jobs' do
-        expect(SimpleJob.runs).to eq(0)
+      context 'and also no exclude_queues' do
+        before(:each) do
+          worker.queues = []
+          worker.exclude_queues = []
+        end
 
-        create_job(:queue => 'one')
-        create_job(:queue => 'two')
-        create_job
-        worker.work_off
+        it 'works off all jobs' do
+          expect(SimpleJob.runs).to eq(0)
 
-        expect(SimpleJob.runs).to eq(3)
+          create_job(:queue => 'one')
+          create_job(:queue => 'two')
+          create_job
+          worker.work_off
+
+          expect(SimpleJob.runs).to eq(3)
+        end
       end
     end
   end

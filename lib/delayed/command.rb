@@ -71,6 +71,14 @@ module Delayed
         opt.on('--queue=queue', 'Specify which queue DJ must look up for jobs') do |queue|
           @options[:queues] = queue.split(',')
         end
+        opt.on('--exclude_queues=queues', 'Specify which queues DJ must NOT look up for jobs') do |exclude_queues|
+          @options[:exclude_queues] = exclude_queues.split(',')
+        end
+        opt.on('--eval_queues=evalstring', "Specify a string, which will be eval'ed to where() while lookup. E.g. \"['created_at < ',2.days.ago]\"") do |eval_queues|
+          # this will fail (throwing an exception), if option eval_queues is not a valid argument to eval or where
+          Delayed::Job.where(eval(eval_queues)).any?
+          @options[:eval_queues] = eval_queues
+        end
         opt.on('--pool=queue1[,queue2][:worker_count]', 'Specify queues and number of workers for a worker pool') do |pool|
           parse_worker_pool(pool)
         end

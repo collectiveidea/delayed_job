@@ -14,6 +14,8 @@ module Delayed
     DEFAULT_DEFAULT_PRIORITY = 0
     DEFAULT_DELAY_JOBS       = true
     DEFAULT_QUEUES           = [].freeze
+    DEFAULT_EXCLUDE_QUEUES   = [].freeze
+    DEFAULT_EVAL_QUEUES      = nil
     DEFAULT_QUEUE_ATTRIBUTES = [].freeze
     DEFAULT_READ_AHEAD       = 5
 
@@ -24,6 +26,10 @@ module Delayed
 
     # Named queue into which jobs are enqueued by default
     cattr_accessor :default_queue_name
+
+    # Named queues to exclude
+    cattr_accessor :exclude_queues, :eval_queues
+
 
     cattr_reader :backend
 
@@ -38,6 +44,8 @@ module Delayed
       self.default_priority  = DEFAULT_DEFAULT_PRIORITY
       self.delay_jobs        = DEFAULT_DELAY_JOBS
       self.queues            = DEFAULT_QUEUES
+      self.exclude_queues    = DEFAULT_EXCLUDE_QUEUES
+      self.eval_queues       = DEFAULT_EVAL_QUEUES
       self.queue_attributes  = DEFAULT_QUEUE_ATTRIBUTES
       self.read_ahead        = DEFAULT_READ_AHEAD
       @lifecycle             = nil
@@ -126,7 +134,7 @@ module Delayed
       @quiet = options.key?(:quiet) ? options[:quiet] : true
       @failed_reserve_count = 0
 
-      [:min_priority, :max_priority, :sleep_delay, :read_ahead, :queues, :exit_on_complete].each do |option|
+      [:min_priority, :max_priority, :sleep_delay, :read_ahead, :queues, :exit_on_complete, :exclude_queues, :eval_queues].each do |option|
         self.class.send("#{option}=", options[option]) if options.key?(option)
       end
 
