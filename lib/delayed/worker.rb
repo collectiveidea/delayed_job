@@ -127,7 +127,7 @@ module Delayed
     end
 
     def self.signals_to_stop_worker
-      @@_signals_to_stop_worker ||= %w(INT TERM)
+      @signals_to_stop_worker ||= ['INT', 'TERM']
     end
 
     def initialize(options = {})
@@ -156,7 +156,7 @@ module Delayed
     # Setting the name to nil will reset the default worker name
     attr_writer :name
 
-    def start # rubocop:disable CyclomaticComplexity, PerceivedComplexity
+    def start
       register_signal_handlers
 
       say 'Starting job worker'
@@ -326,6 +326,5 @@ module Delayed
         end
       end
     end
-
   end
 end
