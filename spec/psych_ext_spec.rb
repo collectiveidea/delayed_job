@@ -31,4 +31,14 @@ describe 'Psych::Visitors::ToRuby', :if => defined?(Psych::Visitors::ToRuby) do
       expect(deserialized.instance_variable_get(:@check)).to eq(12)
     end
   end
+
+  context 'errors' do
+    it 'raises a DeserializationError' do
+      yaml = <<-YAML
+--- !ruby/marshalable:Delegator
+  :__v2__:
+YAML
+      expect { Psych.load_dj(yaml) }.to raise_error Delayed::DeserializationError
+    end
+  end
 end
