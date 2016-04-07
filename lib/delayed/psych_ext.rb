@@ -74,7 +74,11 @@ module Delayed
             raise Delayed::DeserializationError, "DataMapper::ObjectNotFoundError, class: #{klass} (#{error.message})"
           end
         else
-          super
+          begin
+            super
+          rescue Exception => error
+            raise Delayed::DeserializationError, "#{error.class}, class: #{klass} (#{error.message})"
+          end
         end
       end
 
