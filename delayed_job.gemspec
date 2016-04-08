@@ -1,3 +1,5 @@
+#encoding: UTF-8
+
 Gem::Specification.new do |spec|
   spec.add_dependency 'activesupport', ['>= 3.0', '< 5.1']
   spec.authors        = ['Brandon Keepers', 'Brian Ryckbost', 'Chris Gaffney', 'David Genord II', 'Erik Michaels-Ober', 'Matt Griffin', 'Steve Richert', 'Tobias Lütke']
