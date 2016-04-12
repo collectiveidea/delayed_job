@@ -1,3 +1,8 @@
+Next
+====
+
+* Fix worker crashing when job succeeds but logger fails
+
 4.1.1 - 2015-09-24
 ==================
 * Fix shared specs for back-ends that reload objects

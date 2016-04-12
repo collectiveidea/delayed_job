@@ -94,6 +94,11 @@ module Delayed
 
         def destroy
           self.class.all.delete(self)
+          freeze
+        end
+
+        def persisted?
+          self.class.all.include?(self)
         end
 
         def save
