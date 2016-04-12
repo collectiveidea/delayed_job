@@ -19,6 +19,12 @@ class NamedQueueJob < SimpleJob
   end
 end
 
+class Priority42QueueJob < SimpleJob
+  def priority
+    42
+  end
+end
+
 class ErrorJob
   cattr_accessor :runs
   @runs = 0
