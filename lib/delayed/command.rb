@@ -126,6 +126,7 @@ module Delayed
 
       Delayed::Worker.after_fork
       Delayed::Worker.logger ||= Logger.new(File.join(@options[:log_dir], 'delayed_job.log'))
+      $0 = $0 + " #{options[:queues]*','}"
 
       worker = Delayed::Worker.new(options)
       worker.name_prefix = "#{worker_name} "
