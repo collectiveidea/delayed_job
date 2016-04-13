@@ -208,7 +208,7 @@ handle_asynchronously :tweet_later, :queue => 'tweets'
 You can configure default priorities for named queues:
 
 ```ruby
-Delayed::Worker.queue_attributes = [
+Delayed::Worker.queues = [
   { name: :high_priority, priority: -10 },
   { name: :low_priority, priority: 10 }
 ]
