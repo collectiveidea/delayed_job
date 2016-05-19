@@ -77,6 +77,9 @@ module Delayed
         opt.on('--exit-on-complete', 'Exit when no more jobs are available to run. This will exit if all jobs are scheduled to run in the future.') do
           @options[:exit_on_complete] = true
         end
+        opt.on('--max-run-time N', 'Specify maximum run time of jobs (in seconds). Overrides Delayed::Worker.max_run_time') do |n|
+          @options[:max_run_time] = n.to_i
+        end
       end
       @args = opts.parse!(args)
     end

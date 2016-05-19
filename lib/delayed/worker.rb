@@ -131,7 +131,7 @@ module Delayed
       @quiet = options.key?(:quiet) ? options[:quiet] : true
       @failed_reserve_count = 0
 
-      [:min_priority, :max_priority, :sleep_delay, :read_ahead, :queues, :exit_on_complete].each do |option|
+      [:min_priority, :max_priority, :sleep_delay, :read_ahead, :queues, :exit_on_complete, :max_run_time].each do |option|
         self.class.send("#{option}=", options[option]) if options.key?(option)
       end
 
