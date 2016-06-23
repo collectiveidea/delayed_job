@@ -80,6 +80,9 @@ module Delayed
         opt.on('--daemon-options a, b, c', Array, 'options to be passed through to daemons gem') do |daemon_options|
           @daemon_options = daemon_options
         end
+        opt.on('--kill-waittime=n', 'Amount of time in seconds to wait to kill the process after sending the stop command (default: 20)') do |n|
+          @options[:force_kill_waittime] = n.to_i
+        end
       end
       @args = opts.parse!(args) + (@daemon_options || [])
     end
@@ -118,7 +121,16 @@ module Delayed
 
     def run_process(process_name, options = {})
       Delayed::Worker.before_fork
-      Daemons.run_proc(process_name, :dir => options[:pid_dir], :dir_mode => :normal, :monitor => @monitor, :ARGV => @args) do |*_args|
+
+      opts = {
+        :dir => options[:pid_dir],
+        :dir_mode => :normal,
+        :monitor => @monitor,
+        :ARGV => @args,
+        :force_kill_waittime => options[:force_kill_waittime] || 20
+      }
+
+      Daemons.run_proc(process_name, opts) do |*_args|
         $0 = File.join(options[:prefix], process_name) if @options[:prefix]
         run process_name, options
       end
