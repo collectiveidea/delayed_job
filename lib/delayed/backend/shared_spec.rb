@@ -200,10 +200,6 @@ shared_examples_for 'a delayed_job backend' do
   end
 
   describe 'reserve' do
-    before do
-      Delayed::Worker.max_run_time = 2.minutes
-    end
-
     after do
       Time.zone = nil
     end
@@ -239,11 +235,6 @@ shared_examples_for 'a delayed_job backend' do
 
     it 'reserves open jobs' do
       job = create_job
-      expect(described_class.reserve(worker)).to eq(job)
-    end
-
-    it 'reserves expired jobs' do
-      job = create_job(:locked_by => 'some other worker', :locked_at => described_class.db_time_now - Delayed::Worker.max_run_time - 1.minute)
       expect(described_class.reserve(worker)).to eq(job)
     end
 
@@ -436,33 +427,6 @@ shared_examples_for 'a delayed_job backend' do
     end
   end
 
-  describe '#max_run_time' do
-    before(:each) { @job = described_class.enqueue SimpleJob.new }
-
-    it 'is not defined' do
-      expect(@job.max_run_time).to be_nil
-    end
-
-    it 'results in a default run time when not defined' do
-      expect(worker.max_run_time(@job)).to eq(Delayed::Worker::DEFAULT_MAX_RUN_TIME)
-    end
-
-    it 'uses the max_run_time value on the payload when defined' do
-      expect(@job.payload_object).to receive(:max_run_time).and_return(30.minutes)
-      expect(@job.max_run_time).to eq(30.minutes)
-    end
-
-    it 'results in an overridden run time when defined' do
-      expect(@job.payload_object).to receive(:max_run_time).and_return(45.minutes)
-      expect(worker.max_run_time(@job)).to eq(45.minutes)
-    end
-
-    it 'job set max_run_time can not exceed default max run time' do
-      expect(@job.payload_object).to receive(:max_run_time).and_return(Delayed::Worker::DEFAULT_MAX_RUN_TIME + 60)
-      expect(worker.max_run_time(@job)).to eq(Delayed::Worker::DEFAULT_MAX_RUN_TIME)
-    end
-  end
-
   describe 'destroy_failed_jobs' do
     context 'with a SimpleJob' do
       before(:each) do
@@ -537,16 +501,6 @@ shared_examples_for 'a delayed_job backend' do
     end
 
     describe 'running a job' do
-      it 'fails after Worker.max_run_time' do
-        Delayed::Worker.max_run_time = 1.second
-        job = Delayed::Job.create :payload_object => LongRunningJob.new
-        worker.run(job)
-        expect(job.error).to_not be_nil
-        expect(job.reload.last_error).to match(/expired/)
-        expect(job.reload.last_error).to match(/Delayed::Worker\.max_run_time is only 1 second/)
-        expect(job.attempts).to eq(1)
-      end
-
       context 'when the job raises a deserialization error' do
         after do
           Delayed::Worker.destroy_failed_jobs = true

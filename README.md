@@ -310,22 +310,6 @@ NewsletterJob = Struct.new(:text, :emails) do
 end
 ```
 
-To set a per-job max run time that overrides the Delayed::Worker.max_run_time you can define a max_run_time method on the job
-
-NOTE: this can ONLY be used to set a max_run_time that is lower than Delayed::Worker.max_run_time. Otherwise the lock on the job would expire and another worker would start the working on the in progress job.
-
-```ruby
-NewsletterJob = Struct.new(:text, :emails) do
-  def perform
-    emails.each { |e| NewsletterMailer.deliver_text_to_email(text, e) }
-  end
-
-  def max_run_time
-    120 # seconds
-  end
-end
-```
-
 To set a per-job default for destroying failed jobs that overrides the Delayed::Worker.destroy_failed_jobs you can define a destroy_failed_jobs? method on the job
 
 ```ruby
@@ -428,9 +412,6 @@ On error, the job is scheduled again in 5 seconds + N ** 4, where N is the numbe
 The default `Worker.max_attempts` is 25. After this, the job either deleted (default), or left in the database with "failed_at" set.
 With the default of 25 attempts, the last retry will be 20 days later, with the last interval being almost 100 hours.
 
-The default `Worker.max_run_time` is 4.hours. If your job takes longer than that, another computer could pick it up. It's up to you to
-make sure your job doesn't exceed this time. You should set this to the longest time you think the job could take.
-
 By default, it will delete failed jobs (and it always deletes successful jobs). If you want to keep failed jobs, set
 `Delayed::Worker.destroy_failed_jobs = false`. The failed jobs will be marked with non-null failed_at.
 
@@ -461,7 +442,6 @@ Here is an example of changing job parameters in Rails:
 Delayed::Worker.destroy_failed_jobs = false
 Delayed::Worker.sleep_delay = 60
 Delayed::Worker.max_attempts = 3
-Delayed::Worker.max_run_time = 5.minutes
 Delayed::Worker.read_ahead = 10
 Delayed::Worker.default_queue_name = 'default'
 Delayed::Worker.delay_jobs = !Rails.env.test?

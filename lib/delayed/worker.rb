@@ -1,4 +1,3 @@
-require 'timeout'
 require 'active_support/dependencies'
 require 'active_support/core_ext/numeric/time'
 require 'active_support/core_ext/class/attribute_accessors'
@@ -12,14 +11,13 @@ module Delayed
     DEFAULT_LOG_LEVEL        = 'info'.freeze
     DEFAULT_SLEEP_DELAY      = 5
     DEFAULT_MAX_ATTEMPTS     = 25
-    DEFAULT_MAX_RUN_TIME     = 4.hours
     DEFAULT_DEFAULT_PRIORITY = 0
     DEFAULT_DELAY_JOBS       = true
     DEFAULT_QUEUES           = [].freeze
     DEFAULT_QUEUE_ATTRIBUTES = HashWithIndifferentAccess.new.freeze
     DEFAULT_READ_AHEAD       = 5
 
-    cattr_accessor :min_priority, :max_priority, :max_attempts, :max_run_time,
+    cattr_accessor :min_priority, :max_priority, :max_attempts,
                    :default_priority, :sleep_delay, :logger, :delay_jobs, :queues,
                    :read_ahead, :plugins, :destroy_failed_jobs, :exit_on_complete,
                    :default_log_level
@@ -36,7 +34,6 @@ module Delayed
       self.default_log_level = DEFAULT_LOG_LEVEL
       self.sleep_delay       = DEFAULT_SLEEP_DELAY
       self.max_attempts      = DEFAULT_MAX_ATTEMPTS
-      self.max_run_time      = DEFAULT_MAX_RUN_TIME
       self.default_priority  = DEFAULT_DEFAULT_PRIORITY
       self.delay_jobs        = DEFAULT_DELAY_JOBS
       self.queues            = DEFAULT_QUEUES
@@ -227,7 +224,7 @@ module Delayed
     def run(job)
       job_say job, 'RUNNING'
       runtime = Benchmark.realtime do
-        Timeout.timeout(max_run_time(job).to_i, WorkerTimeout) { job.invoke_job }
+        job.invoke_job
         job.destroy
       end
       job_say job, format('COMPLETED after %.4f', runtime)
@@ -285,10 +282,6 @@ module Delayed
 
     def max_attempts(job)
       job.max_attempts || self.class.max_attempts
-    end
-
-    def max_run_time(job)
-      job.max_run_time || self.class.max_run_time
     end
 
   protected
