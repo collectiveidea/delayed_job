@@ -21,11 +21,11 @@ module Delayed
           end
         end
 
-        def reserve(worker, max_run_time = Worker.max_run_time)
+        def reserve(worker)
           # We get up to 5 jobs from the db. In case we cannot get exclusive access to a job we try the next.
           # this leads to a more even distribution of jobs across the worker processes
-          find_available(worker.name, worker.read_ahead, max_run_time).detect do |job|
-            job.lock_exclusively!(max_run_time, worker.name)
+          find_available(worker.name, worker.read_ahead).detect do |job|
+            job.lock_exclusively!(worker.name)
           end
         end
 
@@ -116,17 +116,6 @@ module Delayed
 
       def max_attempts
         payload_object.max_attempts if payload_object.respond_to?(:max_attempts)
-      end
-
-      def max_run_time
-        return unless payload_object.respond_to?(:max_run_time)
-        return unless (run_time = payload_object.max_run_time)
-
-        if run_time > Delayed::Worker.max_run_time
-          Delayed::Worker.max_run_time
-        else
-          run_time
-        end
       end
 
       def destroy_failed_jobs?

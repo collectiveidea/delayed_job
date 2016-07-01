@@ -58,10 +58,10 @@ module Delayed
         end
 
         # Find a few candidate jobs to run (in case some immediately get locked by others).
-        def self.find_available(worker_name, limit = 5, max_run_time = Worker.max_run_time) # rubocop:disable CyclomaticComplexity, PerceivedComplexity
+        def self.find_available(worker_name, limit = 5) # rubocop:disable CyclomaticComplexity
           jobs = all.select do |j|
             j.run_at <= db_time_now &&
-              (j.locked_at.nil? || j.locked_at < db_time_now - max_run_time || j.locked_by == worker_name) &&
+              (j.locked_at.nil? || j.locked_by == worker_name) &&
               !j.failed?
           end
           jobs.select! { |j| j.priority <= Worker.max_priority } if Worker.max_priority
@@ -72,7 +72,7 @@ module Delayed
 
         # Lock this job for this worker.
         # Returns true if we have the lock, false otherwise.
-        def lock_exclusively!(_max_run_time, worker)
+        def lock_exclusively!(worker)
           now = self.class.db_time_now
           if locked_by != worker
             # We don't own this job so we will update the locked_by name and the locked_at

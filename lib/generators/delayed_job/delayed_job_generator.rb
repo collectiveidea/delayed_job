@@ -6,6 +6,6 @@ class DelayedJobGenerator < Rails::Generators::Base
 
   def create_executable_file
     template 'script', "#{Delayed::Compatibility.executable_prefix}/delayed_job"
-    chmod "#{Delayed::Compatibility.executable_prefix}/delayed_job", 0755
+    chmod "#{Delayed::Compatibility.executable_prefix}/delayed_job", 755
   end
 end
