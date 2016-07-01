@@ -1,6 +1,4 @@
 module Delayed
-  class InvalidCallback < Exception; end
-
   class Lifecycle
     EVENTS = {
       :enqueue    => [:job],
