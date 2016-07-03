@@ -80,6 +80,53 @@ describe Delayed::Worker do
     end
   end
 
+  context 'worker daemon' do
+    after do
+      Delayed::Worker.sleep_delay = Delayed::Worker::DEFAULT_SLEEP_DELAY
+    end
+
+    it 'exits the loop when interrupted' do
+      Delayed::Worker.sleep_delay = 60
+      worker = Delayed::Worker.new
+
+      thread = Thread.new do
+        sleep(0.5)
+        worker.stop
+      end
+      begin
+        Timeout.timeout(2) do
+          worker.start
+        end
+      ensure
+        thread.join
+      end
+    end
+
+    it 'honors the sleep delay' do
+      Delayed::Worker.sleep_delay = 0.5
+      worker = Delayed::Worker.new
+      expect(worker).to receive(:reload!).once
+
+      thread = Thread.new do
+        sleep(0.7)
+        worker.stop
+      end
+      begin
+        Timeout.timeout(2) do
+          initial = process_time
+          worker.start
+          expect(process_time).to be_within(0.2).of(initial + 0.7)
+        end
+      ensure
+        thread.join
+      end
+    end
+
+    def process_time
+      Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    end
+  end
+
   context 'worker job reservation' do
     before do
       Delayed::Worker.exit_on_complete = true
