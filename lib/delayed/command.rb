@@ -74,6 +74,9 @@ module Delayed
         opt.on('--pool=queue1[,queue2][:worker_count]', 'Specify queues and number of workers for a worker pool') do |pool|
           parse_worker_pool(pool)
         end
+        opt.on('-s', '--stage', 'Specify stage on process names') do |s|
+          @options[:stage] = s
+        end
         opt.on('--exit-on-complete', 'Exit when no more jobs are available to run. This will exit if all jobs are scheduled to run in the future.') do
           @options[:exit_on_complete] = true
         end
@@ -94,11 +97,11 @@ module Delayed
         if worker_count > 1
           raise ArgumentError, 'Cannot specify both --number-of-workers and --identifier'
         else
-          run_process("delayed_job.#{@options[:identifier]}", @options)
+          run_process("#{default_process_name}.#{@options[:identifier]}", @options)
         end
       else
         worker_count.times do |worker_index|
-          process_name = worker_count == 1 ? 'delayed_job' : "delayed_job.#{worker_index}"
+          process_name = worker_count == 1 ? "#{default_process_name}" : "#{default_process_name}.#{worker_index}"
           run_process(process_name, @options)
         end
       end
@@ -109,7 +112,7 @@ module Delayed
       @worker_pools.each do |queues, worker_count|
         options = @options.merge(:queues => queues)
         worker_count.times do
-          process_name = "delayed_job.#{worker_index}"
+          process_name = "#{default_process_name}.#{worker_index}"
           run_process(process_name, options)
           worker_index += 1
         end
@@ -128,7 +131,7 @@ module Delayed
       Dir.chdir(root)
 
       Delayed::Worker.after_fork
-      Delayed::Worker.logger ||= Logger.new(File.join(@options[:log_dir], 'delayed_job.log'))
+      Delayed::Worker.logger ||= Logger.new(File.join(@options[:log_dir], "#{default_process_name}.log"))
 
       worker = Delayed::Worker.new(options)
       worker.name_prefix = "#{worker_name} "
@@ -141,6 +144,11 @@ module Delayed
     end
 
   private
+
+    def default_process_name
+      return "delayed_job" unless @options[:stage]
+      "#{ENV['RAILS_ENV'] ? "#{ENV['RAILS_ENV']}_" : ""}delayed_job"
+    end
 
     def parse_worker_pool(pool)
       @worker_pools ||= []
