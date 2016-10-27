@@ -88,7 +88,10 @@ module Delayed
         setup_pools
       elsif @options[:identifier]
         if worker_count > 1
-          raise ArgumentError, 'Cannot specify both --number-of-workers and --identifier'
+          worker_count.times do |worker_index|
+            process_name = "delayed_job.#{@options[:identifier]}#{worker_index}"
+            run_process(process_name, @options)
+          end
         else
           run_process("delayed_job.#{@options[:identifier]}", @options)
         end
