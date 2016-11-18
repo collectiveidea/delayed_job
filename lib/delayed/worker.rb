@@ -226,10 +226,7 @@ module Delayed
 
     def run(job)
       job_say job, 'RUNNING'
-      runtime = Benchmark.realtime do
-        Timeout.timeout(max_run_time(job).to_i, WorkerTimeout) { job.invoke_job }
-        job.destroy
-      end
+      runtime = run_with_timeout(job)
       job_say job, format('COMPLETED after %.4f', runtime)
       return true # did work
     rescue DeserializationError => error
@@ -238,6 +235,16 @@ module Delayed
     rescue Exception => error # rubocop:disable RescueException
       self.class.lifecycle.run_callbacks(:error, self, job) { handle_failed_job(job, error) }
       return false # work failed
+    end
+
+    def run_with_timeout(job)
+      max_run_time = max_run_time(job).to_i
+      Benchmark.realtime do
+        Timeout.timeout(max_run_time) { job.invoke_job }
+        job.destroy
+      end
+    rescue Timeout::Error
+      raise WorkerTimeout.new(job, max_run_time)
     end
 
     # Reschedule the job in the future (when a job fails).
