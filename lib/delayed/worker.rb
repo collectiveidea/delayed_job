@@ -226,18 +226,21 @@ module Delayed
 
     def run(job)
       job_say job, 'RUNNING'
-      runtime = Benchmark.realtime do
-        Timeout.timeout(max_run_time(job).to_i, WorkerTimeout) { job.invoke_job }
-        job.destroy
+      begin
+        runtime = Benchmark.realtime do
+          Timeout.timeout(max_run_time(job).to_i, WorkerTimeout) { job.invoke_job }
+          job.destroy
+        end
+      rescue DeserializationError => error
+        job.error = error
+        failed(job)
+        return false # work failed
+      rescue Exception => error # rubocop:disable RescueException
+        self.class.lifecycle.run_callbacks(:error, self, job) { handle_failed_job(job, error) }
+        return false # work failed
       end
       job_say job, format('COMPLETED after %.4f', runtime)
-      return true # did work
-    rescue DeserializationError => error
-      job.error = error
-      failed(job)
-    rescue Exception => error # rubocop:disable RescueException
-      self.class.lifecycle.run_callbacks(:error, self, job) { handle_failed_job(job, error) }
-      return false # work failed
+      true # did work
     end
 
     # Reschedule the job in the future (when a job fails).

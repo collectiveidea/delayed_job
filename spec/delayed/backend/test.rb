@@ -94,6 +94,7 @@ module Delayed
 
         def destroy
           self.class.all.delete(self)
+          freeze
         end
 
         def save
