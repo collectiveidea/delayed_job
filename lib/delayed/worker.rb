@@ -168,6 +168,10 @@ module Delayed
 
       say 'Starting job worker'
 
+      if defined?(Rails) && ENV["WORKER"].present?
+        File.write(File.join(Rails.root, "tmp", "pids", "delayed_job.#{ENV["WORKER"]}.pid"), Process.pid)
+      end
+
       self.class.lifecycle.run_callbacks(:execute, self) do
         loop do
           self.class.lifecycle.run_callbacks(:loop, self) do
@@ -196,6 +200,10 @@ module Delayed
     end
 
     def stop
+      if defined?(Rails) && ENV["WORKER"].present?
+        FileUtils.rm(File.join(Rails.root, "tmp", "pids", "delayed_job.#{ENV["WORKER"]}.pid").to_s)
+      end
+
       @exit = true
     end
 
