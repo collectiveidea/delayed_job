@@ -82,7 +82,11 @@ module Delayed
             hook :success
           rescue Exception => e # rubocop:disable RescueException
             hook :error, e
-            raise e
+            if e.class == Exception
+              raise StandardError, e.message
+            else
+              raise e
+            end
           ensure
             hook :after
           end
