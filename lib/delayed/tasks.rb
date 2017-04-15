@@ -36,4 +36,13 @@ namespace :jobs do
       raise "#{unprocessed_jobs} jobs older than #{args[:max_age]} seconds have not been processed yet"
     end
   end
+
+  desc "Works all jobs in the queue (if any) and exits."
+  task :work_once => :environment do
+    job_count = Delayed::Job.count
+    puts "There are #{job_count} jobs in the queue."
+    result = Delayed::Job.work_off job_count
+    puts "#{result.sum} jobs processed: #{result.first} succeeded, #{result.last} failed." 
+  end
+
 end
