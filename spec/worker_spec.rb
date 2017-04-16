@@ -21,6 +21,15 @@ describe Delayed::Worker do
     end
   end
 
+  describe 'queues=' do
+    before do
+      Delayed::Worker.queues = %w[mailers NULL]
+    end
+    it 'sets the array to include nil' do
+      expect(Delayed::Worker.queues).to eq(['mailers', nil])
+    end
+  end
+
   describe 'job_say' do
     before do
       @worker = Delayed::Worker.new
