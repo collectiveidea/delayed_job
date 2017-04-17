@@ -5,8 +5,10 @@ namespace :jobs do
   end
 
   desc 'Start a delayed_job worker.'
-  task :work => :environment_options do
-    Delayed::Worker.new(@worker_options).start
+  task :work => :environment_options, [:n] do |task, args|
+    (args[:n] || 1).times do
+      Delayed::Worker.new(@worker_options).start
+    end
   end
 
   desc 'Start a delayed_job worker and exit when all available jobs are complete.'
