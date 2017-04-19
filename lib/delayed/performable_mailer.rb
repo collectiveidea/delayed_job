@@ -6,6 +6,10 @@ module Delayed
       mailer = object.send(method_name, *args)
       mailer.respond_to?(:deliver_now) ? mailer.deliver_now : mailer.deliver
     end
+
+    def display_name
+      "#{object}.#{method_name}"
+    end
   end
 
   module DelayMail
