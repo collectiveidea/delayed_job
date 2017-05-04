@@ -48,8 +48,8 @@ module Delayed
     # Add or remove plugins in this list before the worker is instantiated
     self.plugins = [Delayed::Plugins::ClearLocks]
 
-    # By default failed jobs are destroyed after too many attempts. If you want to keep them around
-    # (perhaps to inspect the reason for the failure), set this to false.
+    # To allow analysis, failed jobs remain in the queue after too many attempts. If you want to delete
+    # them, set this to true.
     self.destroy_failed_jobs = false
 
     # By default, Signals INT and TERM set @exit, and the worker exits upon completion of the current job.
