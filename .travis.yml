@@ -5,7 +5,7 @@ env:
   matrix:
     - RAILS_VERSION="~> 4.2.0"
     - RAILS_VERSION="~> 5.0.0"
-    - RAILS_VERSION="~> 5.1.0.rc1"
+    - RAILS_VERSION="~> 5.1.0"
     - RAILS_VERSION="edge"
 rvm:
   - 2.1
@@ -27,7 +27,7 @@ matrix:
     - rvm: ruby-head
     - env: RAILS_VERSION="edge"
     - rvm: jruby-9.0.5.0
-      env: RAILS_VERSION="~> 5.1.0.rc1"
+      env: RAILS_VERSION="~> 5.1.0"
   fast_finish: true
   # legacy testing
   # things still run and we don't have a good reason to break it
@@ -48,7 +48,7 @@ matrix:
     - rvm: 2.1
       env: RAILS_VERSION="~> 5.0.0"
     - rvm: 2.1
-      env: RAILS_VERSION="~> 5.1.0.rc1"
+      env: RAILS_VERSION="~> 5.1.0"
     - rvm: 2.1
       env: RAILS_VERSION="edge"
 
