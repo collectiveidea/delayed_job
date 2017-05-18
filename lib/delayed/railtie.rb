@@ -13,6 +13,10 @@ module Delayed
       elsif defined?(RAILS_DEFAULT_LOGGER)
         RAILS_DEFAULT_LOGGER
       end
+
+      ActiveSupport.on_load(:active_record) do
+        require 'delayed/yaml_ext'
+      end
     end
 
     rake_tasks do
