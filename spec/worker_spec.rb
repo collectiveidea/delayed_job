@@ -121,11 +121,8 @@ describe Delayed::Worker do
       @worker = Delayed::Worker.new
       @worker.name = 'ExampleJob'
       @worker.logger = double('job')
-      time = Time.now
-      allow(Time).to receive(:now).and_return(time)
       @text = 'Job executed'
       @worker_name = '[Worker(ExampleJob)]'
-      @expected_time = time.strftime('%FT%T%z')
     end
 
     after(:each) do
@@ -135,13 +132,13 @@ describe Delayed::Worker do
     shared_examples_for 'a worker which logs on the correct severity' do |severity|
       it "logs a message on the #{severity[:level].upcase} level given a string" do
         expect(@worker.logger).to receive(:send).
-          with(severity[:level], "#{@expected_time}: #{@worker_name} #{@text}")
+          with(severity[:level], "#{@worker_name} #{@text}")
         @worker.say(@text, severity[:level])
       end
 
       it "logs a message on the #{severity[:level].upcase} level given a fixnum" do
         expect(@worker.logger).to receive(:send).
-          with(severity[:level], "#{@expected_time}: #{@worker_name} #{@text}")
+          with(severity[:level], "#{@worker_name} #{@text}")
         @worker.say(@text, severity[:index])
       end
     end
@@ -158,7 +155,7 @@ describe Delayed::Worker do
 
     it 'logs a message on the default log\'s level' do
       expect(@worker.logger).to receive(:send).
-        with('info', "#{@expected_time}: #{@worker_name} #{@text}")
+        with('info', "#{@worker_name} #{@text}")
       @worker.say(@text, Delayed::Worker.default_log_level)
     end
   end
