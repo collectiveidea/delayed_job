@@ -276,13 +276,18 @@ module Delayed
 
     def say(text, level = default_log_level)
       text = "[Worker(#{name})] #{text}"
-      puts text unless @quiet
-      return unless logger
-      # TODO: Deprecate use of Fixnum log levels
-      unless level.is_a?(String)
-        level = Logger::Severity.constants.detect { |i| Logger::Severity.const_get(i) == level }.to_s.downcase
+
+      if logger
+        # TODO: Deprecate use of Fixnum log levels
+        unless level.is_a?(String)
+          level = Logger::Severity.constants.detect { |i| Logger::Severity.const_get(i) == level }.to_s.downcase
+        end
+        logger.send(level, "#{Time.now.strftime('%FT%T%z')}: #{text}")
+      elsif @quiet
+        return
+      else
+        puts text
       end
-      logger.send(level, "#{Time.now.strftime('%FT%T%z')}: #{text}")
     end
 
     def max_attempts(job)
