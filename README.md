@@ -59,8 +59,8 @@ Run `bundle install` to install the backend and delayed_job gems.
 The Active Record backend requires a jobs table. You can create that table by
 running the following command:
 
-    rails generate delayed_job:active_record
-    rake db:migrate
+    bundle exec rails generate delayed_job:active_record
+    bundle exec rake db:migrate
 
 For Rails 4.2, see [below](#rails-42)
 
@@ -93,8 +93,8 @@ Delayed Job 3.0.0 introduces a new column to the delayed_jobs table.
 
 If you're upgrading from Delayed Job 2.x, run the upgrade generator to create a migration to add the column.
 
-    rails generate delayed_job:upgrade
-    rake db:migrate
+    bundle exec rails generate delayed_job:upgrade
+    bundle exec rake db:migrate
 
 Queuing Jobs
 ============
