@@ -534,6 +534,13 @@ shared_examples_for 'a delayed_job backend' do
         expect { job.reload.payload_object }.to raise_error(Delayed::DeserializationError)
       end
     end
+
+    context 'when db object is an instance variable of another object' do
+      it 'can work!' do
+        job = Delayed::Job.create :payload_object => StoryWrapperJob.new
+        expect(job.reload.payload_object).to be_a StoryWrapperJob
+      end
+    end
   end
 
   describe 'worker integration' do
