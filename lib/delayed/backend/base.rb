@@ -55,12 +55,9 @@ module Delayed
       end
       alias_method :failed, :failed?
 
-      ParseObjectFromYaml = %r{\!ruby/\w+\:([^\s]+)} # rubocop:disable ConstantName
 
       def name
         @name ||= payload_object.respond_to?(:display_name) ? payload_object.display_name : payload_object.class.name
-      rescue DeserializationError
-        ParseObjectFromYaml.match(handler)[1]
       end
 
       def payload_object=(object)
@@ -69,9 +66,14 @@ module Delayed
       end
 
       def payload_object
-        @payload_object ||= YAML.load_dj(handler)
-      rescue TypeError, LoadError, NameError, ArgumentError, SyntaxError, Psych::SyntaxError => e
-        raise DeserializationError, "Job failed to load: #{e.message}. Handler: #{handler.inspect}"
+        return @payload_object if @payload_object
+        @payload_object = YAML.load_dj(handler)
+        unless @payload_object.respond_to?(:perform)
+          @payload_object = Backend::InvalidPayload.new(handler, NoMethodError.new("undefined method `perform' for #{@payload_object.inspect}"))
+        end
+        @payload_object
+      rescue Exception => e # rubocop:disable RescueException
+        @payload_object = Backend::InvalidPayload.new(handler, e)
       end
 
       def invoke_job
@@ -100,7 +102,6 @@ module Delayed
           method = payload_object.method(name)
           method.arity.zero? ? method.call : method.call(self, *args)
         end
-      rescue DeserializationError # rubocop:disable HandleExceptions
       end
 
       def reschedule_at
@@ -128,8 +129,6 @@ module Delayed
 
       def destroy_failed_jobs?
         payload_object.respond_to?(:destroy_failed_jobs?) ? payload_object.destroy_failed_jobs? : Delayed::Worker.destroy_failed_jobs
-      rescue DeserializationError
-        Delayed::Worker.destroy_failed_jobs
       end
 
       def fail!

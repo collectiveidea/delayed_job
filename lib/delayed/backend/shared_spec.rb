@@ -180,27 +180,27 @@ shared_examples_for 'a delayed_job backend' do
   end
 
   describe 'payload_object' do
-    it 'raises a DeserializationError when the job class is totally unknown' do
+    it 'creates an InvalidPayload when the job class is totally unknown' do
       job = described_class.new :handler => '--- !ruby/object:JobThatDoesNotExist {}'
-      expect { job.payload_object }.to raise_error(Delayed::DeserializationError)
+      expect(job.payload_object).to be_kind_of(Delayed::Backend::InvalidPayload)
     end
 
-    it 'raises a DeserializationError when the job struct is totally unknown' do
+    it 'creates an InvalidPayload when the job struct is totally unknown' do
       job = described_class.new :handler => '--- !ruby/struct:StructThatDoesNotExist {}'
-      expect { job.payload_object }.to raise_error(Delayed::DeserializationError)
+      expect(job.payload_object).to be_kind_of(Delayed::Backend::InvalidPayload)
     end
 
-    it 'raises a DeserializationError when the YAML.load raises argument error' do
+    it 'creates an InvalidPayload when the YAML.load raises argument error' do
       job = described_class.new :handler => '--- !ruby/struct:GoingToRaiseArgError {}'
       expect(YAML).to receive(:load_dj).and_raise(ArgumentError)
-      expect { job.payload_object }.to raise_error(Delayed::DeserializationError)
+      expect(job.payload_object).to be_kind_of(Delayed::Backend::InvalidPayload)
     end
 
-    it 'raises a DeserializationError when the YAML.load raises syntax error' do
+    it 'creates an InvalidPayload when the YAML.load raises syntax error' do
       # only test with Psych since the other YAML parsers don't raise a SyntaxError
       if YAML.parser.class.name !~ /syck|yecht/i
         job = described_class.new :handler => 'message: "no ending quote'
-        expect { job.payload_object }.to raise_error(Delayed::DeserializationError)
+        expect(job.payload_object).to be_kind_of(Delayed::Backend::InvalidPayload)
       end
     end
   end
@@ -527,11 +527,11 @@ shared_examples_for 'a delayed_job backend' do
         expect(job.reload.payload_object.object.text).to eq('goodbye')
       end
 
-      it 'raises deserialization error for destroyed records' do
+      it 'creates an invalid payload for destroyed records' do
         story = Story.create(:text => 'hello')
         job = story.delay.tell
         story.destroy
-        expect { job.reload.payload_object }.to raise_error(Delayed::DeserializationError)
+        expect(job.reload.payload_object).to be_kind_of(Delayed::Backend::InvalidPayload)
       end
     end
   end
