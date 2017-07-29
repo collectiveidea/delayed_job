@@ -55,7 +55,6 @@ module Delayed
       end
       alias_method :failed, :failed?
 
-
       def name
         @name ||= payload_object.respond_to?(:display_name) ? payload_object.display_name : payload_object.class.name
       end
@@ -98,10 +97,9 @@ module Delayed
       end
 
       def hook(name, *args)
-        if payload_object.respond_to?(name)
-          method = payload_object.method(name)
-          method.arity.zero? ? method.call : method.call(self, *args)
-        end
+        return unless payload_object.respond_to?(name)
+        method = payload_object.method(name)
+        method.arity.zero? ? method.call : method.call(self, *args)
       end
 
       def reschedule_at

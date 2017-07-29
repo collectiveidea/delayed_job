@@ -4,7 +4,8 @@ module Delayed
       ParseObjectFromYaml = %r{\!ruby/\w+\:([^\s]+)} # rubocop:disable ConstantName
 
       def initialize(handler, exception)
-        @handler, @exception = handler, deserialization_error(exception)
+        @handler   = handler
+        @exception = deserialization_error(exception)
       end
 
       def display_name
@@ -17,7 +18,7 @@ module Delayed
       end
 
       def deserialization_error(e)
-        return e if e.kind_of?(DeserializationError)
+        return e if e.is_a?(DeserializationError)
         DeserializationError.new "Job failed to load: #{e.message}. Handler: #{@handler.inspect}"
       end
     end
