@@ -98,7 +98,7 @@ module Delayed
       def hook(name, *args)
         if payload_object.respond_to?(name)
           method = payload_object.method(name)
-          method.arity.zero? ? method.call : method.call(self, *args)
+          method.arity <= 0 ? method.call : method.call(self, *args)
         end
       rescue DeserializationError # rubocop:disable HandleExceptions
       end
