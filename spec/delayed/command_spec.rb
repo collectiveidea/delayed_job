@@ -176,4 +176,18 @@ describe Delayed::Command do
       command.daemonize
     end
   end
+
+  describe 'prefix option' do
+    it 'should run processes with prefix in the process name' do
+      command = Delayed::Command.new(['--prefix=my_prefix'])
+      Daemons = double
+      expect(FileUtils).to receive(:mkdir_p).with('./tmp/pids').once
+      args = ['my_prefix.delayed_job', {:dir => './tmp/pids',
+                                        :dir_mode => :normal,
+                                        :monitor => false,
+                                        :ARGV => []}]
+      expect(Daemons).to receive(:run_proc).with(*args).once
+      command.daemonize
+    end
+  end
 end

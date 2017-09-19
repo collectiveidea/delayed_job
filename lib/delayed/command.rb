@@ -119,6 +119,7 @@ module Delayed
     end
 
     def run_process(process_name, options = {})
+      process_name = "#{@options[:prefix]}.#{process_name}" if @options[:prefix]
       Delayed::Worker.before_fork
       Daemons.run_proc(process_name, :dir => options[:pid_dir], :dir_mode => :normal, :monitor => @monitor, :ARGV => @args) do |*_args|
         $0 = File.join(options[:prefix], process_name) if @options[:prefix]
