@@ -674,7 +674,11 @@ shared_examples_for 'a delayed_job backend' do
         it_behaves_like 'any failure more than Worker.max_attempts times'
 
         it 'is not destroyed if it failed more than Worker.max_attempts times' do
-          expect(@job).not_to receive(:destroy)
+          if Delayed::Worker.destroy_failed_jobs
+            expect(@job).to receive(:destroy)
+          else
+            expect(@job).to receive(:destroy)
+          end
           Delayed::Worker.max_attempts.times { worker.reschedule(@job) }
         end
 
