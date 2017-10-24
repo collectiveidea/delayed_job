@@ -379,7 +379,7 @@ You can define hooks on your job that will be called at different stages in the 
 
 ```ruby
 class ParanoidNewsletterJob < NewsletterJob
-  def enqueue(job)
+  def on_job_enqueue(job)
     record_stat 'newsletter_job/enqueue'
   end
 
@@ -387,23 +387,23 @@ class ParanoidNewsletterJob < NewsletterJob
     emails.each { |e| NewsletterMailer.deliver_text_to_email(text, e) }
   end
 
-  def before(job)
+  def before_job_run(job)
     record_stat 'newsletter_job/start'
   end
 
-  def after(job)
+  def after_job_run(job)
     record_stat 'newsletter_job/after'
   end
 
-  def success(job)
+  def on_job_success(job)
     record_stat 'newsletter_job/success'
   end
 
-  def error(job, exception)
+  def on_job_error(job, exception)
     Airbrake.notify(exception)
   end
 
-  def failure(job)
+  def on_job_failure(job)
     page_sysadmin_in_the_middle_of_the_night
   end
 end

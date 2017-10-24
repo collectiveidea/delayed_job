@@ -148,7 +148,7 @@ shared_examples_for 'a delayed_job backend' do
       CallbackJob.messages = []
     end
 
-    %w[before success after].each do |callback|
+    %w[before_job_run on_job_success after_job_run].each do |callback|
       it "calls #{callback} with job" do
         job = described_class.enqueue(CallbackJob.new)
         expect(job.payload_object).to receive(callback).with(job)
@@ -156,26 +156,26 @@ shared_examples_for 'a delayed_job backend' do
       end
     end
 
-    it 'calls before and after callbacks' do
+    it 'calls before_job_run and after_job_run callbacks' do
       job = described_class.enqueue(CallbackJob.new)
-      expect(CallbackJob.messages).to eq(['enqueue'])
+      expect(CallbackJob.messages).to eq(['on_job_enqueue'])
       job.invoke_job
-      expect(CallbackJob.messages).to eq(%w[enqueue before perform success after])
+      expect(CallbackJob.messages).to eq(%w[on_job_enqueue before_job_run perform on_job_success after_job_run])
     end
 
-    it 'calls the after callback with an error' do
+    it 'calls the after_job_run callback with an error' do
       job = described_class.enqueue(CallbackJob.new)
       expect(job.payload_object).to receive(:perform).and_raise(RuntimeError.new('fail'))
 
       expect { job.invoke_job }.to raise_error(RuntimeError)
-      expect(CallbackJob.messages).to eq(['enqueue', 'before', 'error: RuntimeError', 'after'])
+      expect(CallbackJob.messages).to eq(['on_job_enqueue', 'before_job_run', 'on_job_error: RuntimeError', 'after_job_run'])
     end
 
-    it 'calls error when before raises an error' do
+    it 'calls on_job_error when before raises an error' do
       job = described_class.enqueue(CallbackJob.new)
-      expect(job.payload_object).to receive(:before).and_raise(RuntimeError.new('fail'))
+      expect(job.payload_object).to receive(:before_job_run).and_raise(RuntimeError.new('fail'))
       expect { job.invoke_job }.to raise_error(RuntimeError)
-      expect(CallbackJob.messages).to eq(['enqueue', 'error: RuntimeError', 'after'])
+      expect(CallbackJob.messages).to eq(['on_job_enqueue', 'on_job_error: RuntimeError', 'after_job_run'])
     end
   end
 
@@ -624,14 +624,14 @@ shared_examples_for 'a delayed_job backend' do
       end
 
       shared_examples_for 'any failure more than Worker.max_attempts times' do
-        context "when the job's payload has a #failure hook" do
+        context "when the job's payload has a #on_job_failure hook" do
           before do
             @job = Delayed::Job.create :payload_object => OnPermanentFailureJob.new
-            expect(@job.payload_object).to respond_to(:failure)
+            expect(@job.payload_object).to respond_to(:on_job_failure)
           end
 
           it 'runs that hook' do
-            expect(@job.payload_object).to receive(:failure)
+            expect(@job.payload_object).to receive(:on_job_failure)
             worker.reschedule(@job)
           end
 
@@ -643,19 +643,19 @@ shared_examples_for 'a delayed_job backend' do
           end
         end
 
-        context "when the job's payload has no #failure hook" do
+        context "when the job's payload has no #on_job_failure hook" do
           # It's a little tricky to test this in a straightforward way,
           # because putting a not_to receive expectation on
-          # @job.payload_object.failure makes that object incorrectly return
-          # true to payload_object.respond_to? :failure, which is what
-          # reschedule uses to decide whether to call failure. So instead, we
+          # @job.payload_object.on_job_failure makes that object incorrectly return
+          # true to payload_object.respond_to? :on_job_failure, which is what
+          # reschedule uses to decide whether to call on_job_failure. So instead, we
           # just make sure that the payload_object as it already stands doesn't
-          # respond_to? failure, then shove it through the iterated reschedule
+          # respond_to? on_job_failure, then shove it through the iterated reschedule
           # loop and make sure we don't get a NoMethodError (caused by calling
-          # that nonexistent failure method).
+          # that nonexistent on_job_failure method).
 
           before do
-            expect(@job.payload_object).not_to respond_to(:failure)
+            expect(@job.payload_object).not_to respond_to(:on_job_failure)
           end
 
           it 'does not try to run that hook' do
