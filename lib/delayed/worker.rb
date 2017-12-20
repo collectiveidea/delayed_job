@@ -16,7 +16,7 @@ module Delayed
     DEFAULT_DEFAULT_PRIORITY = 0
     DEFAULT_DELAY_JOBS       = true
     DEFAULT_QUEUES           = [].freeze
-    DEFAULT_QUEUE_ATTRIBUTES = HashWithIndifferentAccess.new.freeze
+    DEFAULT_QUEUE_ATTRIBUTES = ActiveSupport::HashWithIndifferentAccess.new.freeze
     DEFAULT_READ_AHEAD       = 5
 
     cattr_accessor :min_priority, :max_priority, :max_attempts, :max_run_time,
