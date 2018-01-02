@@ -76,7 +76,7 @@ module Delayed
         else
           begin
             super
-          rescue Exception => error
+          rescue ScriptError => error
             raise Delayed::DeserializationError, "#{error.class}, class: #{klass} (#{error.message})"
           end
         end
