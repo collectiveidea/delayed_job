@@ -112,6 +112,8 @@ module Delayed
       end
 
       self.plugins.each { |klass| klass.new }
+
+      Delayed::Backend::ActiveRecord::Job.switch_to_ht_mode if options[:use_ht_mode]
     end
 
     # Every worker has a unique name which by default is the pid of the process. There are some

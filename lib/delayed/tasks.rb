@@ -9,6 +9,11 @@ namespace :jobs do
     Delayed::Worker.new(@worker_options).start
   end
 
+  desc "Start a delayed_job worker."
+  task :ht_delayed_worker => :environment_options do
+    Delayed::Worker.new(@worker_options.merge(use_ht_mode: true)).start
+  end
+
   desc "Start a delayed_job worker and exit when all available jobs are complete."
   task :workoff => :environment_options do
     Delayed::Worker.new(@worker_options.merge({:exit_on_complete => true})).start

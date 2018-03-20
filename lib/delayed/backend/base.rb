@@ -37,6 +37,8 @@ module Delayed
               job.invoke_job
             end
           end
+        rescue ::ActiveRecord::RecordNotUnique => exception
+          logger.warn("Duplicate job ignored: - #{exception.message}") if logger.present?
         end
 
         def reserve(worker, max_run_time = Worker.max_run_time)
