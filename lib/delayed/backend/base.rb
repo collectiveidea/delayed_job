@@ -25,7 +25,9 @@ module Delayed
             raise ArgumentError, 'Cannot enqueue items which do not respond to perform'
           end
 
-          if Delayed::Worker.delay_jobs
+          is_rake_task = defined?(::Rake) && ::Rake&.application&.top_level_tasks.present?
+
+          if Delayed::Worker.delay_jobs && !is_rake_task
             self.new(options).tap do |job|
               Delayed::Worker.lifecycle.run_callbacks(:enqueue, job) do
                 job.hook(:enqueue)
