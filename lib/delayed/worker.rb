@@ -18,7 +18,7 @@ module Delayed
 
     cattr_accessor :min_priority, :max_priority, :max_attempts, :max_run_time,
       :default_priority, :sleep_delay, :logger, :delay_jobs, :queues,
-      :read_ahead, :plugins, :destroy_failed_jobs, :exit_on_complete
+      :read_ahead, :plugins, :destroy_failed_jobs, :exit_on_complete, :archive_failed_jobs
 
     # Named queue into which jobs are enqueued by default
     cattr_accessor :default_queue_name
@@ -232,7 +232,13 @@ module Delayed
     def failed(job)
       self.class.lifecycle.run_callbacks(:failure, self, job) do
         job.hook(:failure)
-        self.class.destroy_failed_jobs ? job.destroy : job.fail!
+        if self.class.destroy_failed_jobs
+          job.destroy
+        elsif self.class.archive_failed_jobs && job.respond_to?(:archive)
+          job.archive
+        else
+          job.fail!
+        end
       end
     end
 
