@@ -8,17 +8,19 @@ require 'benchmark'
 
 module Delayed
   class Worker
-    DEFAULT_SLEEP_DELAY      = 5
-    DEFAULT_MAX_ATTEMPTS     = 25
-    DEFAULT_MAX_RUN_TIME     = 4.hours
-    DEFAULT_DEFAULT_PRIORITY = 0
-    DEFAULT_DELAY_JOBS       = true
-    DEFAULT_QUEUES           = []
-    DEFAULT_READ_AHEAD       = 5
+    DEFAULT_SLEEP_DELAY           = 5
+    DEFAULT_MAX_ATTEMPTS          = 25
+    DEFAULT_MAX_RUN_TIME          = 4.hours
+    DEFAULT_DEFAULT_PRIORITY      = 0
+    DEFAULT_DELAY_JOBS            = true
+    DEFAULT_QUEUES                = []
+    DEFAULT_READ_AHEAD            = 5
+    DEFAULT_ARCHIVE_FAILED_JOBS   = true
+    DEFAULT_ALLOW_DELAY_FROM_RAKE = true
 
     cattr_accessor :min_priority, :max_priority, :max_attempts, :max_run_time,
       :default_priority, :sleep_delay, :logger, :delay_jobs, :queues,
-      :read_ahead, :plugins, :destroy_failed_jobs, :exit_on_complete, :archive_failed_jobs
+      :read_ahead, :plugins, :destroy_failed_jobs, :exit_on_complete, :archive_failed_jobs, :allow_delay_from_rake
 
     # Named queue into which jobs are enqueued by default
     cattr_accessor :default_queue_name
@@ -29,13 +31,15 @@ module Delayed
     attr_accessor :name_prefix
 
     def self.reset
-      self.sleep_delay      = DEFAULT_SLEEP_DELAY
-      self.max_attempts     = DEFAULT_MAX_ATTEMPTS
-      self.max_run_time     = DEFAULT_MAX_RUN_TIME
-      self.default_priority = DEFAULT_DEFAULT_PRIORITY
-      self.delay_jobs       = DEFAULT_DELAY_JOBS
-      self.queues           = DEFAULT_QUEUES
-      self.read_ahead       = DEFAULT_READ_AHEAD
+      self.sleep_delay           = DEFAULT_SLEEP_DELAY
+      self.max_attempts          = DEFAULT_MAX_ATTEMPTS
+      self.max_run_time          = DEFAULT_MAX_RUN_TIME
+      self.default_priority      = DEFAULT_DEFAULT_PRIORITY
+      self.delay_jobs            = DEFAULT_DELAY_JOBS
+      self.queues                = DEFAULT_QUEUES
+      self.read_ahead            = DEFAULT_READ_AHEAD
+      self.archive_failed_jobs   = DEFAULT_ARCHIVE_FAILED_JOBS
+      self.allow_delay_from_rake = DEFAULT_ALLOW_DELAY_FROM_RAKE
     end
 
     reset
