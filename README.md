@@ -5,11 +5,11 @@ you're reading the documentation for the master branch.
 
 Delayed::Job
 ============
-[![Gem Version](https://badge.fury.io/rb/delayed_job.png)][gem]
-[![Build Status](https://travis-ci.org/collectiveidea/delayed_job.png?branch=master)][travis]
-[![Dependency Status](https://gemnasium.com/collectiveidea/delayed_job.png?travis)][gemnasium]
-[![Code Climate](https://codeclimate.com/github/collectiveidea/delayed_job.png)][codeclimate]
-[![Coverage Status](https://coveralls.io/repos/collectiveidea/delayed_job/badge.png?branch=master)][coveralls]
+[![Gem Version](https://badge.fury.io/rb/delayed_job.svg)][gem]
+[![Build Status](https://travis-ci.org/collectiveidea/delayed_job.svg?branch=master)][travis]
+[![Dependency Status](https://gemnasium.com/collectiveidea/delayed_job.svg?travis)][gemnasium]
+[![Code Climate](https://codeclimate.com/github/collectiveidea/delayed_job.svg)][codeclimate]
+[![Coverage Status](https://coveralls.io/repos/collectiveidea/delayed_job/badge.svg?branch=master)][coveralls]
 
 [gem]: https://rubygems.org/gems/delayed_job
 [travis]: https://travis-ci.org/collectiveidea/delayed_job
