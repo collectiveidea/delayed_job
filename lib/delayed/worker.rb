@@ -135,6 +135,10 @@ module Delayed
         self.class.send("#{option}=", options[option]) if options.key?(option)
       end
 
+      @exit ||= nil
+      @name_prefix ||= ''
+      @name ||= nil
+
       # Reset lifecycle on the offhand chance that something lazily
       # triggered its creation before all plugins had been registered.
       self.class.setup_lifecycle
