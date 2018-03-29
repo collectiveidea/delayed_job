@@ -31,6 +31,10 @@ module Delayed
             allow_delay = !is_rake_task || options[:run_at].present?
           end
 
+          unless allow_delay
+            jobs_logger.warn("Ignoring delayed job from rake task.") if logger_defined?
+          end
+
           if Delayed::Worker.delay_jobs && allow_delay
             self.new(options).tap do |job|
               Delayed::Worker.lifecycle.run_callbacks(:enqueue, job) do
@@ -44,7 +48,11 @@ module Delayed
             end
           end
         rescue ::ActiveRecord::RecordNotUnique => exception
-          jobs_logger.warn("Duplicate job ignored: - #{exception.message}") if defined?(:jobs_logger) && jobs_logger.present?
+          jobs_logger.warn("Duplicate job ignored: - #{exception.message}") if logger_defined?
+        end
+
+        def logger_defined?
+          defined?(:jobs_logger) && jobs_logger.present?
         end
 
         def reserve(worker, max_run_time = Worker.max_run_time)
