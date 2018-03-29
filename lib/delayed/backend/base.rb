@@ -44,7 +44,7 @@ module Delayed
             end
           end
         rescue ::ActiveRecord::RecordNotUnique => exception
-          logger.warn("Duplicate job ignored: - #{exception.message}") if logger.present?
+          jobs_logger.warn("Duplicate job ignored: - #{exception.message}") if defined?(:jobs_logger) && jobs_logger.present?
         end
 
         def reserve(worker, max_run_time = Worker.max_run_time)
