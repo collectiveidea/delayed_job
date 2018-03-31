@@ -3,13 +3,15 @@ module Delayed
 
   class Lifecycle
     EVENTS = {
-      :enqueue    => [:job],
-      :execute    => [:worker],
-      :loop       => [:worker],
-      :perform    => [:worker, :job],
-      :error      => [:worker, :job],
-      :failure    => [:worker, :job],
-      :invoke_job => [:job]
+      :enqueue               => [:job],
+      :execute               => [:worker],
+      :loop                  => [:worker],
+      :perform               => [:worker, :job],
+      :error                 => [:worker, :job],
+      :failure               => [:worker, :job],
+      :invoke_job            => [:job],
+      :duplicate_job         => [:job],
+      :synchronous_execution => [:job],
     }
 
     def initialize
