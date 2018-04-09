@@ -9,12 +9,13 @@ env:
     - RAILS_VERSION="~> 4.2.0"
     - RAILS_VERSION="~> 5.0.0"
     - RAILS_VERSION="~> 5.1.0"
+    - RAILS_VERSION="~> 5.2.0"
     - RAILS_VERSION="edge"
 rvm:
-  - 2.2.9
-  - 2.3.6
-  - 2.4.3
-  - 2.5.0
+  - 2.2.10
+  - 2.3.7
+  - 2.4.4
+  - 2.5.1
   - jruby-9.1.15.0
   - jruby-head
   - ruby-head
@@ -28,24 +29,26 @@ matrix:
     - env: RAILS_VERSION="edge"
     - rvm: jruby-9.1.15.0
       env: RAILS_VERSION="~> 5.1.0"
+    - rvm: jruby-9.1.15.0
+      env: RAILS_VERSION="~> 5.2.0"
   fast_finish: true
   # legacy testing
   # things still run and we don't have a good reason to break it
   # but we don't need to keep running the full matrix
   include:
-    - rvm: 2.3.6
+    - rvm: 2.3.7
       env: RAILS_VERSION="~> 3.0.0"
-    - rvm: 2.3.6
+    - rvm: 2.3.7
       env: RAILS_VERSION="~> 3.1.0"
-    - rvm: 2.3.6
+    - rvm: 2.3.7
       env: RAILS_VERSION="~> 3.2.0"
-    - rvm: 2.3.6
+    - rvm: 2.3.7
       env: RAILS_VERSION="~> 4.0.0"
-    - rvm: 2.3.6
+    - rvm: 2.3.7
       env: RAILS_VERSION="~> 4.1.0"
     - rvm: 2.1.10
       env: RAILS_VERSION="~> 4.2.0"
   exclude:
-    - rvm: 2.2.9
+    - rvm: 2.2.10
       env: RAILS_VERSION="edge"
 sudo: false
