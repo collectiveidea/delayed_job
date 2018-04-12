@@ -115,9 +115,13 @@ module Delayed
         self.class.send("#{option}=", options[option]) if options.has_key?(option)
       end
 
-      self.plugins.each { |klass| klass.new }
+      self.class.initialize_plugins
 
       Delayed::Backend::ActiveRecord::Job.switch_to_ht_mode if options[:use_ht_mode]
+    end
+
+    def self.initialize_plugins
+      self.plugins.each { |klass| klass.new }
     end
 
     # Every worker has a unique name which by default is the pid of the process. There are some
