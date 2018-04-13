@@ -1,3 +1,7 @@
+4.1.5 - 2018-04-13
+=================
+* Allow Rails 5.2
+
 4.1.4 - 2017-12-29
 =================
 * Use `yaml_tag` instead of deprecated `yaml_as` (#996)
