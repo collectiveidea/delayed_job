@@ -7,7 +7,6 @@ env:
     - JRUBY_OPTS="$JRUBY_OPTS --debug"
   matrix:
     - RAILS_VERSION="~> 4.2.0"
-    - RAILS_VERSION="~> 5.0.0"
     - RAILS_VERSION="~> 5.1.0"
     - RAILS_VERSION="~> 5.2.0"
     - RAILS_VERSION="edge"
@@ -48,6 +47,8 @@ matrix:
       env: RAILS_VERSION="~> 4.1.0"
     - rvm: 2.1.10
       env: RAILS_VERSION="~> 4.2.0"
+    - rvm: 2.4.4
+      env: RAILS_VERSION="~> 5.0.0"
   exclude:
     - rvm: 2.2.10
       env: RAILS_VERSION="edge"
