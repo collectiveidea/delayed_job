@@ -1,6 +1,5 @@
 module Autoloaded
   class InstanceClazz
-    def perform
-    end
+    def perform; end
   end
 end

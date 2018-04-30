@@ -25,30 +25,30 @@ Capistrano::Configuration.instance.load do
     end
 
     def args
-      fetch(:delayed_job_args, "")
+      fetch(:delayed_job_args, '')
     end
 
     def roles
       fetch(:delayed_job_server_role, :app)
     end
-    
+
     def delayed_job_command
-      fetch(:delayed_job_command, "script/delayed_job")
+      fetch(:delayed_job_command, 'script/delayed_job')
     end
 
-    desc "Stop the delayed_job process"
+    desc 'Stop the delayed_job process'
     task :stop, :roles => lambda { roles } do
-      run "cd #{current_path};#{rails_env} #{delayed_job_command} stop"
+      run "cd #{current_path} && #{rails_env} #{delayed_job_command} stop #{args}"
     end
 
-    desc "Start the delayed_job process"
+    desc 'Start the delayed_job process'
     task :start, :roles => lambda { roles } do
-      run "cd #{current_path};#{rails_env} #{delayed_job_command} start #{args}"
+      run "cd #{current_path} && #{rails_env} #{delayed_job_command} start #{args}"
     end
 
-    desc "Restart the delayed_job process"
+    desc 'Restart the delayed_job process'
     task :restart, :roles => lambda { roles } do
-      run "cd #{current_path};#{rails_env} #{delayed_job_command} restart #{args}"
+      run "cd #{current_path} && #{rails_env} #{delayed_job_command} restart #{args}"
     end
   end
 end
