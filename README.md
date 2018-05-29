@@ -230,7 +230,7 @@ Running Jobs
 `script/delayed_job` can be used to manage a background process which will
 start working off jobs.
 
-To do so, add `gem "daemons"` to your `Gemfile` and make sure you've run `rails
+To do so, add `gem 'daemons'` to your `Gemfile` and make sure you've run `rails
 generate delayed_job`.
 
 You can then do the following:
