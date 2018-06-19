@@ -251,7 +251,7 @@ module Delayed
         job.unlock
         job.save!
       else
-        job_say job, "REMOVED permanently because of #{job.attempts} consecutive failures", 'error'
+        job_say(job, "REMOVED permanently because of #{job.attempts} consecutive failures", 'error') if job.destroy_failed_jobs?
         failed(job)
       end
     end
