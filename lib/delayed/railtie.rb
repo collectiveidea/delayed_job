@@ -5,7 +5,9 @@ module Delayed
   class Railtie < Rails::Railtie
     initializer :after_initialize do
       ActiveSupport.on_load(:action_mailer) do
-        ActionMailer::Base.extend(Delayed::DelayMail)
+        if defined?(Delayed::DelayMail)
+          ActionMailer::Base.extend(Delayed::DelayMail)
+        end
       end
 
       Delayed::Worker.logger ||= if defined?(Rails)
