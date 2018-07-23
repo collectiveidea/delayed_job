@@ -6,7 +6,7 @@ shared_examples_for 'a delayed_job backend' do
   let(:worker) { Delayed::Worker.new }
 
   def create_job(opts = {})
-    described_class.create(opts.merge(:payload_object => SimpleJob.new))
+    described_class.create({ :payload_object => SimpleJob.new, :version => Delayed::Worker.current_version }.merge(opts))
   end
 
   before do
@@ -15,6 +15,7 @@ shared_examples_for 'a delayed_job backend' do
     Delayed::Worker.default_priority = 99
     Delayed::Worker.delay_jobs = true
     Delayed::Worker.default_queue_name = 'default_tracking'
+    Delayed::Worker.current_version = '123'
     SimpleJob.runs = 0
     described_class.delete_all
   end
@@ -75,6 +76,16 @@ shared_examples_for 'a delayed_job backend' do
       it "uses the payload object's queue" do
         job = described_class.enqueue :payload_object => NamedQueueJob.new
         expect(job.queue).to eq(NamedQueueJob.new.queue_name)
+      end
+
+      it 'is able to set version' do
+        job = described_class.enqueue :payload_object => SimpleJob.new, :version => 'abc'
+        expect(job.version).to eq('abc')
+      end
+
+      it 'uses configured version' do
+        job = described_class.enqueue :payload_object => SimpleJob.new
+        expect(job.version).to eq(Delayed::Worker.current_version)
       end
     end
 
@@ -256,6 +267,17 @@ shared_examples_for 'a delayed_job backend' do
     it 'reserves own jobs' do
       job = create_job(:locked_by => worker.name, :locked_at => (described_class.db_time_now - 1.minutes))
       expect(described_class.reserve(worker)).to eq(job)
+    end
+
+    it 'reserves jobs with configured version' do
+      job = create_job version: '123'
+      expect(described_class.reserve(worker)).to eq(job)
+    end
+
+    it 'does not reserve jobs with version other than the configured version' do
+      job = create_job version: '456'
+      expect(job.version).to eq('456')
+      expect(described_class.reserve(worker)).to be_nil
     end
   end
 
@@ -560,7 +582,7 @@ shared_examples_for 'a delayed_job backend' do
 
         it 'marks the job as failed' do
           Delayed::Worker.destroy_failed_jobs = false
-          job = described_class.create! :handler => '--- !ruby/object:JobThatDoesNotExist {}'
+          job = described_class.create! :handler => '--- !ruby/object:JobThatDoesNotExist {}', :version => Delayed::Worker.current_version
           expect_any_instance_of(described_class).to receive(:destroy_failed_jobs?).and_return(false)
           worker.work_off
           job.reload

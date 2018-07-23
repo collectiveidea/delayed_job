@@ -12,6 +12,7 @@ module Delayed
         set_payload
         set_queue_name
         set_priority
+        set_version
         handle_deprecation
         options
       end
@@ -33,6 +34,10 @@ module Delayed
       def set_priority
         queue_attribute = Delayed::Worker.queue_attributes[options[:queue]]
         options[:priority] ||= (queue_attribute && queue_attribute[:priority]) || Delayed::Worker.default_priority
+      end
+
+      def set_version
+        options[:version] ||= Delayed::Worker.current_version
       end
 
       def handle_deprecation

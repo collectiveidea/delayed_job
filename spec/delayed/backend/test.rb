@@ -15,6 +15,7 @@ module Delayed
         attr_accessor :locked_by
         attr_accessor :failed_at
         attr_accessor :queue
+        attr_accessor :version
 
         include Delayed::Backend::Base
 
@@ -67,6 +68,7 @@ module Delayed
           jobs.select! { |j| j.priority <= Worker.max_priority } if Worker.max_priority
           jobs.select! { |j| j.priority >= Worker.min_priority } if Worker.min_priority
           jobs.select! { |j| Worker.queues.include?(j.queue) } if Worker.queues.any?
+          jobs.select! { |j| j.version == Worker.current_version }
           jobs.sort_by! { |j| [j.priority, j.run_at] }[0..limit - 1]
         end
 

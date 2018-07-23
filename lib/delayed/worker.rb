@@ -27,6 +27,9 @@ module Delayed
     # Named queue into which jobs are enqueued by default
     cattr_accessor :default_queue_name
 
+    # Version to which jobs created by this worker will be scoped by default
+    cattr_accessor :current_version
+
     cattr_reader :backend, :queue_attributes
 
     # name_prefix is ignored if name is set directly
