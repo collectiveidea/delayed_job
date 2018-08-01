@@ -6,7 +6,7 @@ shared_examples_for 'a delayed_job backend' do
   let(:worker) { Delayed::Worker.new }
 
   def create_job(opts = {})
-    described_class.create({ :payload_object => SimpleJob.new, :version => Delayed::Worker.current_version }.merge(opts))
+    described_class.create({:payload_object => SimpleJob.new, :version => Delayed::Worker.current_version}.merge(opts))
   end
 
   before do
@@ -270,12 +270,12 @@ shared_examples_for 'a delayed_job backend' do
     end
 
     it 'reserves jobs with configured version' do
-      job = create_job version: '123'
+      job = create_job :version => '123'
       expect(described_class.reserve(worker)).to eq(job)
     end
 
     it 'does not reserve jobs with version other than the configured version' do
-      job = create_job version: '456'
+      job = create_job :version => '456'
       expect(job.version).to eq('456')
       expect(described_class.reserve(worker)).to be_nil
     end
