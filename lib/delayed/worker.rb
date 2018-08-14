@@ -116,8 +116,6 @@ module Delayed
       end
 
       self.class.initialize_plugins
-
-      Delayed::Backend::ActiveRecord::Job.switch_to_ht_mode if options[:use_ht_mode]
     end
 
     def self.initialize_plugins
