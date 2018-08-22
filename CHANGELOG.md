@@ -1,3 +1,7 @@
+4.1.6 - UMNRELEASED
+=================
+* Addition of `Delayed::UnprocessedJobError` for rake task (#1044)
+
 4.1.5 - 2018-04-13
 =================
 * Allow Rails 5.2
