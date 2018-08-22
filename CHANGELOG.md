@@ -1,3 +1,8 @@
+master (unreleased)
+===================
+* Allow namespaced configuration env vars with `DELAYED_JOB_`-prefix
+* Deprecate non-namespaced configuration env vars
+
 4.1.5 - 2018-04-13
 =================
 * Allow Rails 5.2
