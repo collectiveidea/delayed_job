@@ -270,6 +270,31 @@ Work off queues by setting the `QUEUE` or `QUEUES` environment variable.
     QUEUE=tracking rake jobs:work
     QUEUES=mailers,tasks rake jobs:work
 
+Config File
+===========
+
+You can specify your delayed_job background process options in
+`config/delayed_job.yml`. The options are named the same as the
+commandline arguments and you may also specify options nested inside
+your environment to override the defaults.
+
+Here's an example `delayed_job.yml` file using
+
+    ---
+    number_of_workers: 5
+    pools:
+      - tracking
+      - mailers,tasks:2
+
+    development:
+      number_of_workers: 10
+
+    # queues:
+    #  - critical
+    #  - mailers
+
+You can also use Erb in this file if you'd like to set options with Ruby.
+
 Restarting delayed_job
 ======================
 
