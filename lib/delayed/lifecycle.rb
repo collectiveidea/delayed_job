@@ -73,7 +73,7 @@ module Delayed
       when :before
         @before << callback
       when :after
-        @after << callback
+        @after.prepend(callback)
       when :around
         chain = @around # use a local variable so that the current chain is closed over in the following lambda
         @around = lambda { |*a, &block| chain.call(*a) { |*b| callback.call(*b, &block) } }
