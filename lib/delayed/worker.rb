@@ -142,7 +142,11 @@ module Delayed
       # Reset lifecycle on the offhand chance that something lazily
       # triggered its creation before all plugins had been registered.
       self.class.setup_lifecycle
-      Delayed::Backend::ActiveRecord::Job.switch_to_ht_mode if options[:use_ht_mode]
+      self.class.initialize_plugins
+    end
+
+    def self.initialize_plugins
+      self.plugins.each { |klass| klass.new }
     end
 
     # Every worker has a unique name which by default is the pid of the process. There are some
