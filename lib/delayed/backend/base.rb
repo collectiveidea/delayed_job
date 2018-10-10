@@ -13,11 +13,26 @@ module Delayed
         end
 
         def enqueue_job(options)
+          allow_delay = true
+          unless Delayed::Worker.allow_delay_from_rake
+            is_rake_task = defined?(::Rake) && ::Rake&.application&.top_level_tasks.present?
+            allow_delay = !is_rake_task || options[:run_at].present?
+          end
+
           new(options).tap do |job|
             Delayed::Worker.lifecycle.run_callbacks(:enqueue, job) do
               job.hook(:enqueue)
-              Delayed::Worker.delay_job?(job) ? job.save : job.invoke_job
+              if Delayed::Worker.delay_job?(job) && allow_delay
+                job.save
+              else
+                Delayed::Worker.lifecycle.run_callbacks(:synchronous_execution, job) do
+                  job.invoke_job
+                end
+              end
             end
+          end
+        rescue ::ActiveRecord::RecordNotUnique => exception
+          Delayed::Worker.lifecycle.run_callbacks(:duplicate_job, Delayed::Job.new(:payload_object => options[:payload_object])) do
           end
         end
 
