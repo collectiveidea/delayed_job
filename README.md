@@ -67,9 +67,9 @@ Development
 In development mode, if you are using Rails 3.1+, your application code will automatically reload every 100 jobs or when the queue finishes.
 You no longer need to restart Delayed Job every time you update your code in development.
 
-Rails 4.2
-=========
-Set the queue_adapter in config/application.rb
+Active Job
+==========
+In Rails 4.2+, set the queue_adapter in config/application.rb
 
 ```ruby
 config.active_job.queue_adapter = :delayed_job
