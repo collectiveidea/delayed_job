@@ -33,7 +33,7 @@ module Delayed
         case object.tag
         when %r{^!ruby/object}
           result = super
-          if defined?(ActiveRecord::Base) && result.is_a?(ActiveRecord::Base)
+          if jruby_is_seriously_borked && result.is_a?(ActiveRecord::Base)
             klass = result.class
             id = result[klass.primary_key]
             begin
@@ -76,6 +76,13 @@ module Delayed
         else
           super
         end
+      end
+
+      # defined? is triggering something really messed up in
+      # jruby causing both the if AND else clauses to execute,
+      # however if the check is run here, everything is fine
+      def jruby_is_seriously_borked
+        defined?(ActiveRecord::Base)
       end
 
       def resolve_class(klass_name)

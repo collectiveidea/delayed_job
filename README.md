@@ -1,19 +1,17 @@
 **If you're viewing this at https://github.com/collectiveidea/delayed_job,
 you're reading the documentation for the master branch.
 [View documentation for the latest release
-(4.1.3).](https://github.com/collectiveidea/delayed_job/tree/v4.1.3)**
+(4.1.5).](https://github.com/collectiveidea/delayed_job/tree/v4.1.5)**
 
 Delayed::Job
 ============
 [![Gem Version](https://badge.fury.io/rb/delayed_job.png)][gem]
 [![Build Status](https://travis-ci.org/collectiveidea/delayed_job.png?branch=master)][travis]
-[![Dependency Status](https://gemnasium.com/collectiveidea/delayed_job.png?travis)][gemnasium]
 [![Code Climate](https://codeclimate.com/github/collectiveidea/delayed_job.png)][codeclimate]
 [![Coverage Status](https://coveralls.io/repos/collectiveidea/delayed_job/badge.png?branch=master)][coveralls]
 
 [gem]: https://rubygems.org/gems/delayed_job
 [travis]: https://travis-ci.org/collectiveidea/delayed_job
-[gemnasium]: https://gemnasium.com/collectiveidea/delayed_job
 [codeclimate]: https://codeclimate.com/github/collectiveidea/delayed_job
 [coveralls]: https://coveralls.io/r/collectiveidea/delayed_job
 
@@ -222,7 +220,7 @@ object.delay(:queue => 'high_priority', priority: 0).method
 You can start processes to only work certain queues with the `queue` and `queues`
 options defined below. Processes started without specifying a queue will run jobs
 from **any** queue. To effectively have a process that runs jobs where a queue is not
-specified, set a default queue name with `Delayed::Worker.default_queue_name` and 
+specified, set a default queue name with `Delayed::Worker.default_queue_name` and
 have the processes run that queue.
 
 Running Jobs

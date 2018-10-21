@@ -1,7 +1,5 @@
 source 'https://rubygems.org'
 
-rails_version = ENV['RAILS_VERSION'] || ''
-
 gem 'rake'
 
 platforms :ruby do
@@ -9,15 +7,18 @@ platforms :ruby do
 end
 
 platforms :jruby do
-  gem 'jruby-openssl'
-  if rails_version == 'edge' || rails_version.match(/5\.\d+\.\d+/)
-    gem 'activerecord-jdbcsqlite3-adapter',
-        :git => 'https://github.com/jruby/activerecord-jdbc-adapter.git',
-        :branch => 'rails-5'
+  if ENV['RAILS_VERSION'] == '~> 4.2.0'
+    gem 'activerecord-jdbcsqlite3-adapter', '< 50.0'
   else
     gem 'activerecord-jdbcsqlite3-adapter'
   end
+  gem 'jruby-openssl'
   gem 'mime-types', ['~> 2.6', '< 2.99']
+  if ENV['RAILS_VERSION'] == 'edge'
+    gem 'railties', :github => 'rails/rails'
+  else
+    gem 'railties', (ENV['RAILS_VERSION'] || ['>= 3.0', '< 5.3'])
+  end
 end
 
 platforms :rbx do
@@ -29,8 +30,8 @@ group :test do
     gem 'actionmailer', :github => 'rails/rails'
     gem 'activerecord', :github => 'rails/rails'
   else
-    gem 'actionmailer', (ENV['RAILS_VERSION'] || ['>= 3.0', '< 5.2'])
-    gem 'activerecord', (ENV['RAILS_VERSION'] || ['>= 3.0', '< 5.2'])
+    gem 'actionmailer', (ENV['RAILS_VERSION'] || ['>= 3.0', '< 5.3'])
+    gem 'activerecord', (ENV['RAILS_VERSION'] || ['>= 3.0', '< 5.3'])
   end
 
   gem 'coveralls', :require => false
