@@ -7,14 +7,15 @@ env:
     - JRUBY_OPTS="$JRUBY_OPTS --debug"
   matrix:
     - RAILS_VERSION="~> 4.2.0"
-    - RAILS_VERSION="~> 5.0.0"
     - RAILS_VERSION="~> 5.1.0"
+    - RAILS_VERSION="~> 5.2.0"
     - RAILS_VERSION="edge"
 rvm:
   - 2.1.10
   - 2.2.7
   - 2.3.4
   - 2.4.1
+  - 2.5.3
   - jruby-9.1.8.0
   - jruby-head
   - rbx-2
@@ -45,9 +46,13 @@ matrix:
       env: RAILS_VERSION="~> 4.1.0"
   exclude:
     - rvm: 2.1.10
-      env: RAILS_VERSION="~> 5.0.0"
-    - rvm: 2.1.10
       env: RAILS_VERSION="~> 5.1.0"
     - rvm: 2.1.10
+      env: RAILS_VERSION="~> 5.2.0"
+    - rvm: 2.1.10
+      env: RAILS_VERSION="edge"
+    - rvm: 2.2.7
+      env: RAILS_VERSION="edge"
+    - rvm: 2.3.4
       env: RAILS_VERSION="edge"
 sudo: false
