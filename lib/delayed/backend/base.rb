@@ -35,7 +35,7 @@ module Delayed
             self.new(options).tap do |job|
               Delayed::Worker.lifecycle.run_callbacks(:enqueue, job) do
                 job.hook(:enqueue)
-                job.save
+                job.save!
               end
             end
           else
@@ -45,7 +45,7 @@ module Delayed
               end
             end
           end
-        rescue ::ActiveRecord::RecordNotUnique => exception
+        rescue ::ActiveRecord::RecordInvalid => exception
           Delayed::Worker.lifecycle.run_callbacks(:duplicate_job, Delayed::Job.new(:payload_object => options[:payload_object])) do
           end
         end
