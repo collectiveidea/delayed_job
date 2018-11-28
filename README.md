@@ -60,7 +60,7 @@ running the following command:
     rails generate delayed_job:active_record
     rake db:migrate
 
-For Rails 4.2, see [below](#rails-42)
+For Rails 4.2+, see [below](#active-job)
 
 Development
 ===========
