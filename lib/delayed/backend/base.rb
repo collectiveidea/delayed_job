@@ -75,7 +75,7 @@ module Delayed
       def name
         @name ||= payload_object.respond_to?(:display_name) ? payload_object.display_name : payload_object.class.name
       rescue DeserializationError
-        ParseObjectFromYaml.match(handler)[1]
+        handler.nil? ? 'missing object' : ParseObjectFromYaml.match(handler)[1]
       end
 
       def payload_object=(object)
