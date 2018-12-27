@@ -15,7 +15,7 @@ rvm:
   - 2.3.7
   - 2.4.4
   - 2.5.1
-  - jruby-9.1.15.0
+  - jruby-9.1.17.0
   - jruby-head
   - ruby-head
 before_install:
@@ -26,9 +26,7 @@ matrix:
     - rvm: jruby-head
     - rvm: ruby-head
     - env: RAILS_VERSION="edge"
-    - rvm: jruby-9.1.15.0
-      env: RAILS_VERSION="~> 5.1.0"
-    - rvm: jruby-9.1.15.0
+    - rvm: jruby-9.1.17.0
       env: RAILS_VERSION="~> 5.2.0"
   fast_finish: true
   # legacy testing
