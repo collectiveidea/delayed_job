@@ -265,10 +265,11 @@ cancel the rake task with `CTRL-C`.
 
 If you want to just run all available jobs and exit you can use `rake jobs:workoff`
 
-Work off queues by setting the `QUEUE` or `QUEUES` environment variable.
+Work off queues by setting the `DELAYED_JOB_QUEUE` or `DELAYED_JOB_QUEUES`
+environment variable.
 
-    QUEUE=tracking rake jobs:work
-    QUEUES=mailers,tasks rake jobs:work
+    DELAYED_JOB_QUEUE=tracking rake jobs:work
+    DELAYED_JOB_QUEUES=mailers,tasks rake jobs:work
 
 Restarting delayed_job
 ======================
