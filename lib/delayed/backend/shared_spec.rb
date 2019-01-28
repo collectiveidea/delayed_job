@@ -523,7 +523,7 @@ shared_examples_for 'a delayed_job backend' do
       it 'reloads changed attributes' do
         story = Story.create(:text => 'hello')
         job = story.delay.tell
-        story.update_attributes :text => 'goodbye'
+        story.update :text => 'goodbye'
         expect(job.reload.payload_object.object.text).to eq('goodbye')
       end
 
