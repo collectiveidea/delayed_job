@@ -130,6 +130,9 @@ module Delayed
     def initialize(options = {})
       @quiet = options.key?(:quiet) ? options[:quiet] : true
       @failed_reserve_count = 0
+      @name = nil
+      @name_prefix = nil
+      @exit = nil
 
       [:min_priority, :max_priority, :sleep_delay, :read_ahead, :queues, :exit_on_complete].each do |option|
         self.class.send("#{option}=", options[option]) if options.key?(option)
