@@ -15,6 +15,7 @@ rvm:
   - 2.3.7
   - 2.4.4
   - 2.5.3
+  - 2.6.1
   - jruby-9.1.15.0
   - jruby-head
   - ruby-head
@@ -53,5 +54,7 @@ matrix:
     - rvm: 2.2.10
       env: RAILS_VERSION="edge"
     - rvm: 2.3.7
+      env: RAILS_VERSION="edge"
+    - rvm: 2.4.4
       env: RAILS_VERSION="edge"
 sudo: false
