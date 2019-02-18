@@ -148,7 +148,8 @@ module Delayed
       end
 
       def fail!
-        update_attributes(:failed_at => self.class.db_time_now)
+        self.failed_at = self.class.db_time_now
+        save!
       end
 
     protected
