@@ -375,6 +375,9 @@ Hooks
 =====
 You can define hooks on your job that will be called at different stages in the process:
 
+
+**NOTE:** If you are using ActiveJob these hooks are **not** available to your jobs. You will need to use ActiveJob's callbacks. You can find details here https://guides.rubyonrails.org/active_job_basics.html#callbacks
+
 ```ruby
 class ParanoidNewsletterJob < NewsletterJob
   def enqueue(job)
