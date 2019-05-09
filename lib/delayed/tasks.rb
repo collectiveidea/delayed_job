@@ -27,7 +27,7 @@ namespace :jobs do
   end
 
   desc "Exit with error status if any jobs older than max_age seconds haven't been attempted yet."
-  task :check, [:max_age,:not_locked] => :environment do |_, args|
+  task :check, [:max_age, :not_locked] => :environment do |_, args|
     args.with_defaults(:max_age => 300, :not_locked => false)
 
     unprocessed_jobs = Delayed::Job.where('attempts = 0 AND created_at < ?', Time.now - args[:max_age].to_i)
