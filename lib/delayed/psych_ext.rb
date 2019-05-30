@@ -12,9 +12,22 @@ module Delayed
 end
 
 module Psych
+  # allow set references to serialize old dependencies by news
+  class << self; attr_accessor :old_class_references end
+  @old_class_references = {}
+
   def self.load_dj(yaml)
     result = parse(yaml)
     result ? Delayed::PsychExt::ToRuby.create.accept(result) : result
+  end
+
+  class ClassLoader
+  private
+
+    def find(klassname)
+      klassname = ::Psych.old_class_references[klassname] || klassname
+      @cache[klassname] ||= resolve(klassname)
+    end
   end
 end
 
@@ -90,6 +103,17 @@ module Delayed
         klass_name.constantize
       rescue
         super
+      end
+
+    private
+
+      def revive(klass, node)
+        if klass.is_a? String
+          klassname = ::Psych.old_class_references[klass] || klass
+          klass = Kernel.const_get(klassname) rescue klassname
+        end
+        s = register(node, klass.allocate)
+        init_with(s, revive_hash({}, node), node)
       end
     end
   end

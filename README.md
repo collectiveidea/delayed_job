@@ -479,6 +479,22 @@ Cleaning up
 ===========
 You can invoke `rake jobs:clear` to delete all jobs in the queue.
 
+Upgrade old references
+===========================
+Maybe you get errors in your jobs like this.
+```
+ERROR -- : 2019-03-15T10:11:04+0000: [Worker(delayed_job host:xxx pid:776)] Job Delayed::PerformableMethod (id=1) FAILED permanently with Delayed::DeserializationError: Job failed to load: undefined class/module ActiveRecord::ConnectionAdapters::AbstractMysqlAdapter::MysqlDateTime
+```
+
+You have to search all conflictive references, find theirs new names and set to fix them.
+
+```ruby
+# config/initializers/delayed_job_config.rb
+Psych.old_class_references = {
+  'ActiveRecord::ConnectionAdapters::AbstractMysqlAdapter::MysqlDateTime' => 'ActiveRecord::ConnectionAdapters::AbstractMysqlAdapter::MysqlString'
+}
+```
+
 Having problems?
 ================
 Good places to get help are:
