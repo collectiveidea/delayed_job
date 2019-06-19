@@ -1,3 +1,10 @@
+4.1.6 - 2019-06-19
+=================
+* Properly initialize ActionMailer outside railties (#1077)
+* Fix Psych load_tags support (#1093)
+* Replace REMOVED with FAILED in log message (#1048)
+* Misc doc updates (#1052, #1074, #1064, #1063)
+
 4.1.5 - 2018-04-13
 =================
 * Allow Rails 5.2
