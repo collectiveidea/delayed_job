@@ -18,5 +18,9 @@ ActiveSupport.on_load(:action_mailer) do
   ActionMailer::Base.extend(Delayed::DelayMail)
 end
 
+module Delayed
+  autoload :PerformableMailer, 'delayed/performable_mailer'
+end
+
 Object.send(:include, Delayed::MessageSending)
 Module.send(:include, Delayed::MessageSendingClassMethods)
