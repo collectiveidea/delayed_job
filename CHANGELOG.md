@@ -1,3 +1,7 @@
+4.1.7 - 2019-06-20
+=================
+* Fix loading Delayed::PerformableMailer when ActionMailer isn't loaded yet
+
 4.1.6 - 2019-06-19
 =================
 * Properly initialize ActionMailer outside railties (#1077)
