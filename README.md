@@ -1,14 +1,14 @@
 **If you're viewing this at https://github.com/collectiveidea/delayed_job,
 you're reading the documentation for the master branch.
 [View documentation for the latest release
-(4.1.5).](https://github.com/collectiveidea/delayed_job/tree/v4.1.5)**
+(4.1.7).](https://github.com/collectiveidea/delayed_job/tree/v4.1.7)**
 
 Delayed::Job
 ============
-[![Gem Version](https://badge.fury.io/rb/delayed_job.png)][gem]
-[![Build Status](https://travis-ci.org/collectiveidea/delayed_job.png?branch=master)][travis]
-[![Code Climate](https://codeclimate.com/github/collectiveidea/delayed_job.png)][codeclimate]
-[![Coverage Status](https://coveralls.io/repos/collectiveidea/delayed_job/badge.png?branch=master)][coveralls]
+[![Gem Version](https://badge.fury.io/rb/delayed_job.svg)][gem]
+[![Build Status](https://travis-ci.org/collectiveidea/delayed_job.svg?branch=master)][travis]
+[![Code Climate](https://codeclimate.com/github/collectiveidea/delayed_job.svg)][codeclimate]
+[![Coverage Status](https://coveralls.io/repos/collectiveidea/delayed_job/badge.svg?branch=master)][coveralls]
 
 [gem]: https://rubygems.org/gems/delayed_job
 [travis]: https://travis-ci.org/collectiveidea/delayed_job
@@ -60,7 +60,7 @@ running the following command:
     rails generate delayed_job:active_record
     rake db:migrate
 
-For Rails 4.2, see [below](#rails-42)
+For Rails 4.2+, see [below](#active-job)
 
 Development
 ===========
@@ -375,6 +375,9 @@ Hooks
 =====
 You can define hooks on your job that will be called at different stages in the process:
 
+
+**NOTE:** If you are using ActiveJob these hooks are **not** available to your jobs. You will need to use ActiveJob's callbacks. You can find details here https://guides.rubyonrails.org/active_job_basics.html#callbacks
+
 ```ruby
 class ParanoidNewsletterJob < NewsletterJob
   def enqueue(job)
@@ -428,7 +431,7 @@ end
 
 On error, the job is scheduled again in 5 seconds + N ** 4, where N is the number of attempts or using the job's defined `reschedule_at` method.
 
-The default `Worker.max_attempts` is 25. After this, the job either deleted (default), or left in the database with "failed_at" set.
+The default `Worker.max_attempts` is 25. After this, the job is either deleted (default), or left in the database with "failed_at" set.
 With the default of 25 attempts, the last retry will be 20 days later, with the last interval being almost 100 hours.
 
 The default `Worker.max_run_time` is 4.hours. If your job takes longer than that, another computer could pick it up. It's up to you to

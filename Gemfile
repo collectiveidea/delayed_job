@@ -3,7 +3,13 @@ source 'https://rubygems.org'
 gem 'rake'
 
 platforms :ruby do
-  gem 'sqlite3'
+  # Rails 5.1 is the first to work with sqlite 1.4
+  # TODO: When new versions of 5.1 and 5.2 are cut, sqlite 1.4 will work
+  # if ENV['RAILS_VERSION'].split.last < '5.1'
+  gem 'sqlite3', '< 1.4'
+  # else
+  #   gem 'sqlite3'
+  # end
 end
 
 platforms :jruby do
