@@ -15,18 +15,18 @@ rvm:
   - 2.4.5
   - 2.5.3
   - 2.6.1
-  - jruby-9.1.15.0
+  - jruby-9.2.7.0
   - jruby-head
   - ruby-head
-jdk: oraclejdk8
+jdk: oraclejdk11
 matrix:
   allow_failures:
     - rvm: jruby-head
     - rvm: ruby-head
     - env: RAILS_VERSION="edge"
-    - rvm: jruby-9.1.15.0
+    - rvm: jruby-9.2.7.0
       env: RAILS_VERSION="~> 5.1.0"
-    - rvm: jruby-9.1.15.0
+    - rvm: jruby-9.2.7.0
       env: RAILS_VERSION="~> 5.2.0"
   fast_finish: true
   # legacy testing

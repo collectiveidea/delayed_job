@@ -28,7 +28,13 @@ module Delayed
       end
 
       def visit_Psych_Nodes_Mapping(object) # rubocop:disable CyclomaticComplexity, MethodName, PerceivedComplexity
-        return revive(Psych.load_tags[object.tag], object) if Psych.load_tags[object.tag]
+        klass = Psych.load_tags[object.tag]
+        if klass
+          # Implementation changed here https://github.com/ruby/psych/commit/2c644e184192975b261a81f486a04defa3172b3f
+          # load_tags used to have class values, now the values are strings
+          klass = resolve_class(klass) if klass.is_a?(String)
+          return revive(klass, object)
+        end
 
         case object.tag
         when %r{^!ruby/object}
