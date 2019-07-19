@@ -1,7 +1,7 @@
 **If you're viewing this at https://github.com/collectiveidea/delayed_job,
 you're reading the documentation for the master branch.
 [View documentation for the latest release
-(4.1.5).](https://github.com/collectiveidea/delayed_job/tree/v4.1.5)**
+(4.1.7).](https://github.com/collectiveidea/delayed_job/tree/v4.1.7)**
 
 Delayed::Job
 ============
