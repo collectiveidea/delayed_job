@@ -1,3 +1,7 @@
+4.1.8 - 2019-08-16
+=================
+* Support for Rails 6.0.0
+
 4.1.7 - 2019-06-20
 =================
 * Fix loading Delayed::PerformableMailer when ActionMailer isn't loaded yet
