@@ -154,16 +154,18 @@ module Delayed
     attr_writer :name
 
     def start # rubocop:disable CyclomaticComplexity, PerceivedComplexity
+      sleeping = false
+
       trap('TERM') do
         Thread.new { say 'Exiting...' }
         stop
-        raise SignalException, 'TERM' if self.class.raise_signal_exceptions
+        raise SignalException, 'TERM' if self.class.raise_signal_exceptions || sleeping
       end
 
       trap('INT') do
         Thread.new { say 'Exiting...' }
         stop
-        raise SignalException, 'INT' if self.class.raise_signal_exceptions && self.class.raise_signal_exceptions != :term
+        raise SignalException, 'INT' if self.class.raise_signal_exceptions && self.class.raise_signal_exceptions != :term || sleeping
       end
 
       say 'Starting job worker'
@@ -183,7 +185,15 @@ module Delayed
               say 'No more jobs available. Exiting'
               break
             elsif !stop?
-              sleep(self.class.sleep_delay)
+              sleeping = true
+              # rubocop:disable BlockNesting
+              begin
+                sleep(self.class.sleep_delay)
+              rescue SignalException
+                nil
+              end
+              # rubocop:enable BlockNesting
+              sleeping = false
               reload!
             end
           else
