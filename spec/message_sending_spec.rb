@@ -98,7 +98,33 @@ describe Delayed::MessageSending do
     end
 
     it 'sets job options' do
-      run_at = Time.parse('2010-05-03 12:55 AM')
+      run_at = Time.parse('2010-05-03 12:55')
+      job = FairyTail.delay(:priority => 20, :run_at => run_at).to_s
+      expect(job.run_at).to eq(run_at)
+      expect(job.priority).to eq(20)
+    end
+
+    it 'sets queue priority' do
+      Delayed::Worker.default_queue_name = 'abbazabba'
+      Delayed::Worker.queue_attributes = {'abbazabba' => {:priority => 30}}
+      Delayed::Worker.default_priority = 99
+      job = FairyTail.delay.to_s
+      expect(job.priority).to eq(30)
+    end
+
+    it 'sets queue run_delay' do
+      allow(Time).to receive(:current).and_return(Time.parse('2017-01-01 12:55'))
+      Delayed::Worker.default_queue_name = 'abbazabba'
+      Delayed::Worker.queue_attributes = {'abbazabba' => {:run_delay => 30.minutes}}
+      job = FairyTail.delay.to_s
+      expect(job.run_at).to eq(Time.parse('2017-01-01 13:25'))
+    end
+
+    it 'sets job options override queue and default options' do
+      Delayed::Worker.default_priority = 99
+      Delayed::Worker.default_queue_name = 'abbazabba'
+      Delayed::Worker.queue_attributes = {'abbazabba' => {:priority => 30, :run_delay => 5.minutes}}
+      run_at = Time.parse('2010-05-03 12:55')
       job = FairyTail.delay(:priority => 20, :run_at => run_at).to_s
       expect(job.run_at).to eq(run_at)
       expect(job.priority).to eq(20)
