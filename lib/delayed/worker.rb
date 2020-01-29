@@ -208,8 +208,7 @@ module Delayed
       EdgeCaseAlert.alert(
         canonical_name: "dj_failed - #{job.name}",
         body: "DJ Job #{job.name} (id:#{job.id}) FAILED! #{error.message}",
-        exception: error,
-        job: job
+        exception: error
       )
       reschedule(job)
     end
