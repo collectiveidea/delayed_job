@@ -206,8 +206,9 @@ module Delayed
       say "* [JOB] #{name} failed with #{error.class.name}: #{error.message} - #{job.attempts} failed attempts", Logger::ERROR
 
       EdgeCaseAlert.alert(
-        canonical_name: "dj_failed - #{job.name}",
+        canonical_name: "dj_failed",
         body: "DJ Job #{job.name} (id:#{job.id}) FAILED! #{error.message}",
+        context_name: job.name,
         exception: error
       )
       reschedule(job)
