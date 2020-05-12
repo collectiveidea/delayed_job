@@ -194,8 +194,11 @@ module Delayed
             end
           else
             say format("#{count} jobs processed at %.4f j/s, %d failed", count / @realtime, @result.last)
-            say('-------------tell ruby to release memory that can be released-------------------------')
+            say('-------------before releasing memory-------------------------')
+            say("total_allocated_objects: #{GC.stat(:total_allocated_objects)}")
             GC.start
+            say('-------------after releasing memory-------------------------')
+            say("total_allocated_objects: #{GC.stat(:total_allocated_objects)}")
           end
           break if stop?
         end
