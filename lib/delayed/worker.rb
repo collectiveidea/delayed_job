@@ -128,7 +128,6 @@ module Delayed
     end
 
     def initialize(options = {})
-      @options = options
       @quiet = options.key?(:quiet) ? options[:quiet] : true
       @failed_reserve_count = 0
 
