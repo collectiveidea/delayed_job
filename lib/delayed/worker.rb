@@ -128,6 +128,7 @@ module Delayed
     end
 
     def initialize(options = {})
+      @options = options
       @quiet = options.key?(:quiet) ? options[:quiet] : true
       @failed_reserve_count = 0
 
@@ -187,18 +188,16 @@ module Delayed
               # reload! # original code
               # reload the code here only if reloading is enabled && there are any jobs to run
               # reference: https://github.com/collectiveidea/delayed_job/compare/master...financeit:v.4.0.6_leak_fix
-              say("-----------------------------BEGIN: patch for memory leak - to be tested---------------------------------")
-              say("self.class.reload_app? is #{self.class.reload_app?}")
-              say("Delayed::Job.ready_to_run(self.class, Worker.max_run_time).any? is #{Delayed::Job.ready_to_run(self.class, Worker.max_run_time).any?}")
               if self.class.reload_app? && Delayed::Job.ready_to_run(self.class, Worker.max_run_time).any?
+                say('-------------only reload! if there is a job to run-------------------------')
                 reload!
               end
-              say("-----------------------------END: patch for memory leak - to be tested---------------------------------")
             end
           else
             say format("#{count} jobs processed at %.4f j/s, %d failed", count / @realtime, @result.last)
+            say('-------------tell ruby to release memory that can be released-------------------------')
+            GC.start
           end
-
           break if stop?
         end
       end
@@ -335,7 +334,6 @@ module Delayed
 
     def reload!
       return unless self.class.reload_app?
-      say("Reloading Rails app...")
       if defined?(ActiveSupport::Reloader)
         Rails.application.reloader.reload!
       else
