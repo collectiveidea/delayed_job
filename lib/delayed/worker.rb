@@ -6,6 +6,7 @@ require 'active_support/hash_with_indifferent_access'
 require 'active_support/core_ext/hash/indifferent_access'
 require 'logger'
 require 'benchmark'
+require 'get_process_mem'
 
 module Delayed
   class Worker # rubocop:disable ClassLength
@@ -194,11 +195,13 @@ module Delayed
             end
           else
             say format("#{count} jobs processed at %.4f j/s, %d failed", count / @realtime, @result.last)
-            say('-------------before releasing memory-------------------------')
-            say("total_allocated_objects: #{GC.stat(:total_allocated_objects)}")
+            mem = GetProcessMem.new
+            say("Memory usage before: #{mem.mb} MB.")
+            say('-------------begin to release memory-------------------------')
             GC.start
-            say('-------------after releasing memory-------------------------')
-            say("total_allocated_objects: #{GC.stat(:total_allocated_objects)}")
+            say('-------------end to release memory-------------------------')
+            mem = GetProcessMem.new
+            say("Memory usage after: #{mem.mb} MB.")
           end
           break if stop?
         end
