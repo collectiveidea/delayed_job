@@ -326,9 +326,7 @@ module Delayed
     end
 
     def check_available_job_and_reload
-      if self.class.reload_app? && defined?(Delayed::Job.ready_to_run) && Delayed::Job.ready_to_run(self.class, Worker.max_run_time).any?
-        reload!
-      end
+      reload! if self.class.reload_app? && defined?(Delayed::Job.ready_to_run) && Delayed::Job.ready_to_run(self.class, Worker.max_run_time).any?
     end
 
     def reload!
