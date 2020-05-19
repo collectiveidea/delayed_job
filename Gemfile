@@ -1,7 +1,6 @@
 source 'https://rubygems.org'
 
 gem 'rake'
-gem 'get_process_mem'
 
 platforms :ruby do
   # Rails 5.1 is the first to work with sqlite 1.4

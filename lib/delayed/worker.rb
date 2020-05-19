@@ -6,7 +6,6 @@ require 'active_support/hash_with_indifferent_access'
 require 'active_support/core_ext/hash/indifferent_access'
 require 'logger'
 require 'benchmark'
-require 'get_process_mem'
 
 module Delayed
   class Worker # rubocop:disable ClassLength
@@ -186,22 +185,11 @@ module Delayed
             elsif !stop?
               sleep(self.class.sleep_delay)
               # reload! # original code
-              # reload the code here only if reloading is enabled && there are any jobs to run
-              # reference: https://github.com/collectiveidea/delayed_job/compare/master...financeit:v.4.0.6_leak_fix
-              if self.class.reload_app? && Delayed::Job.ready_to_run(self.class, Worker.max_run_time).any?
-                say('-------------only reload! if there is a job to run-------------------------')
-                reload!
-              end
+              check_available_job_and_reload
             end
           else
             say format("#{count} jobs processed at %.4f j/s, %d failed", count / @realtime, @result.last)
-            mem = GetProcessMem.new
-            say("Memory usage before: #{mem.mb} MB.")
-            say('-------------begin to release memory-------------------------')
-            GC.start
-            say('-------------end to release memory-------------------------')
-            mem = GetProcessMem.new
-            say("Memory usage after: #{mem.mb} MB.")
+            GC.start # attempt to release memory
           end
           break if stop?
         end
@@ -335,6 +323,12 @@ module Delayed
       @failed_reserve_count += 1
       raise FatalBackendError if @failed_reserve_count >= 10
       nil
+    end
+
+    def check_available_job_and_reload
+      if self.class.reload_app? && defined?(Delayed::Job.ready_to_run) && Delayed::Job.ready_to_run(self.class, Worker.max_run_time).any?
+        reload!
+      end
     end
 
     def reload!
