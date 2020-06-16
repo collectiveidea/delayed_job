@@ -269,6 +269,21 @@ Work off queues by setting the `QUEUE` or `QUEUES` environment variable.
 
     QUEUE=tracking rake jobs:work
     QUEUES=mailers,tasks rake jobs:work
+    
+Running on Dokku
+======================
+
+To run automatically on Dokku, you must create two files (last one optional) in the root directory of your project. 
+
+Procfile - *define the container types, with the following lines in it*
+
+    web: bundle exec rails server -p $PORT
+    dj_worker: rake jobs:work start
+
+DOKKU_SCALE - *define how many containers to launch. In this case 2 web workers and one DelayedJob worker. (Alternately, you can manually start and scale delayed job worker with 'dokku ps:scale' command.* 
+
+    web=2
+    dj_worker=1
 
 Restarting delayed_job
 ======================
