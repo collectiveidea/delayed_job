@@ -15,7 +15,7 @@ module Delayed
     end
 
     def display_name
-      if object.is_a?(Class)
+      if object.is_a?(Class) || object.is_a?(Module)
         "#{object}.#{method_name}"
       else
         "#{object.class}##{method_name}"
