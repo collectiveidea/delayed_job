@@ -40,7 +40,6 @@ module Rails
 end
 
 Delayed::Worker.backend = :test
-
 # Add this directory so the ActiveSupport autoloading works
 ActiveSupport::Dependencies.autoload_paths << File.dirname(__FILE__)
 
