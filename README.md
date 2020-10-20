@@ -77,6 +77,21 @@ config.active_job.queue_adapter = :delayed_job
 
 See the [rails guide](http://guides.rubyonrails.org/active_job_basics.html#setting-the-backend) for more details.
 
+
+Json Log Subscriber
+==========
+To switch to Json Log Subscriber, set the logging_format in config/application.rb
+
+```ruby
+config.delayed_job.logging_format = 'json'
+```
+
+Or use DELAYED_JOB_LOG_FORMAT Environment variable
+
+```ruby
+export DELAYED_JOB_LOG_FORMAT = 'json'
+```
+
 Rails 4.x
 =========
 If you are using the protected_attributes gem, it must appear before delayed_job in your gemfile. If your jobs are failing with:
