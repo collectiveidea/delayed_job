@@ -10,6 +10,7 @@ env:
     - RAILS_VERSION="~> 5.1.0"
     - RAILS_VERSION="~> 5.2.0"
     - RAILS_VERSION="~> 6.0.0"
+    - RAILS_VERSION="~> 6.1.0.rc1"
     - RAILS_VERSION="edge"
 rvm:
   - 2.3.8
@@ -29,6 +30,8 @@ matrix:
       env: RAILS_VERSION="~> 5.1.0"
     - rvm: jruby-9.2.7.0
       env: RAILS_VERSION="~> 5.2.0"
+    - rvm: jruby-9.2.7.0
+      env: RAILS_VERSION="~> 6.1.0.rc1"
   fast_finish: true
   # legacy testing
   # things still run and we don't have a good reason to break it
@@ -55,6 +58,10 @@ matrix:
       env: RAILS_VERSION="~> 6.0.0"
     - rvm: 2.4.5
       env: RAILS_VERSION="~> 6.0.0"
+    - rvm: 2.3.8
+      env: RAILS_VERSION="~> 6.1.0.rc1"
+    - rvm: 2.4.5
+      env: RAILS_VERSION="~> 6.1.0.rc1"
     - rvm: 2.3.8
       env: RAILS_VERSION="edge"
     - rvm: 2.4.5
