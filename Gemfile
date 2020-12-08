@@ -41,8 +41,13 @@ group :test do
   end
 
   gem 'rspec', '>= 3'
-  gem 'simplecov', '>= 0.20.0', :require => false
-  gem 'simplecov-lcov', '>= 0.8.0', :require => false
+  gem 'simplecov', :require => false
+  if /\A2.[12]/ =~ RUBY_VERSION
+    # 0.8.0 doesn't work with simplecov < 0.18.0 and older ruby can't run 0.18.0
+    gem 'simplecov-lcov', '< 0.8.0', :require => false
+  else
+    gem 'simplecov-lcov', :require => false
+  end
 end
 
 group :rubocop do
