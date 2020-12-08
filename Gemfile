@@ -40,10 +40,10 @@ group :test do
     gem 'activerecord', (ENV['RAILS_VERSION'] || ['>= 3.0', '< 5.3'])
   end
 
-  gem 'coveralls', :require => false
   gem 'rspec', '>= 3'
   gem 'rubocop', '>= 0.25', '< 0.49'
-  gem 'simplecov', '>= 0.9'
+  gem 'simplecov', '>= 0.20.0', :require => false
+  gem 'simplecov-lcov', '>= 0.8.0', :require => false
 end
 
 gemspec

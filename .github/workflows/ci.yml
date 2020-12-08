@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby: [2.5, 2.6, 2.7, jruby, jruby-head, ruby-head]
+        rails_version:
+          - '~> 5.2.0'
+          - '~> 6.0.0'
+          - 'edge'
+        include:
+          #
+          # The past
+          #
+          # EOL Active Record
+          - ruby: 2.2
+            rails_version: '~> 3.2.0'
+          - ruby: 2.1
+            rails_version: '~> 4.1.0'
+          - ruby: 2.4
+            rails_version: '~> 4.2.0'
+          - ruby: 2.4
+            rails_version: '~> 5.0.0'
+          - ruby: 2.5
+            rails_version: '~> 5.1.0'
+
+    continue-on-error: ${{ matrix.rails_version == 'edge' || endsWith(matrix.ruby, 'head') }}
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: ruby/setup-ruby@v1
+      env:
+        RAILS_VERSION: ${{ matrix.rails_version }}
+      with:
+        ruby-version: ${{ matrix.ruby }}
+        bundler-cache: true # runs 'bundle install' and caches installed gems automatically
+    - name: Run tests
+      env:
+        RAILS_VERSION: ${{ matrix.rails_version }}
+      run: bundle exec rspec
+    - name: Coveralls Parallel
+      uses: coverallsapp/github-action@master
+      with:
+        github-token: ${{ secrets.github_token }}
+        flag-name: run-${{ matrix.ruby }}-${{ matrix.rails_version }}
+        parallel: true
+
+  finish:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+    - name: Coveralls Finished
+      uses: coverallsapp/github-action@master
+      with:
+        github-token: ${{ secrets.github_token }}
+        parallel-finished: true
