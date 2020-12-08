@@ -5,7 +5,7 @@ gem 'rake'
 platforms :ruby do
   # Rails 5.1 is the first to work with sqlite 1.4
   # Rails 6 now requires sqlite 1.4
-  if ENV['RAILS_VERSION'] && ENV['RAILS_VERSION'].split.last < '5.1'
+  if ENV['RAILS_VERSION'] && ENV['RAILS_VERSION'] < '5.1'
     gem 'sqlite3', '< 1.4'
   else
     gem 'sqlite3'
@@ -13,7 +13,7 @@ platforms :ruby do
 end
 
 platforms :jruby do
-  if ENV['RAILS_VERSION'] == '~> 4.2.0'
+  if ENV['RAILS_VERSION'] == '4.2.0'
     gem 'activerecord-jdbcsqlite3-adapter', '< 50.0'
   else
     gem 'activerecord-jdbcsqlite3-adapter'
@@ -22,8 +22,10 @@ platforms :jruby do
   gem 'mime-types', ['~> 2.6', '< 2.99']
   if ENV['RAILS_VERSION'] == 'edge'
     gem 'railties', :github => 'rails/rails'
+  elsif ENV['RAILS_VERSION']
+    gem 'railties', "~> #{ENV['RAILS_VERSION']}"
   else
-    gem 'railties', (ENV['RAILS_VERSION'] || ['>= 3.0', '< 5.3'])
+    gem 'railties', ['>= 3.0', '< 5.3']
   end
 end
 
@@ -35,9 +37,12 @@ group :test do
   if ENV['RAILS_VERSION'] == 'edge'
     gem 'actionmailer', :github => 'rails/rails'
     gem 'activerecord', :github => 'rails/rails'
+  elsif ENV['RAILS_VERSION']
+    gem 'actionmailer', "~> #{ENV['RAILS_VERSION']}"
+    gem 'activerecord', "~> #{ENV['RAILS_VERSION']}"
   else
-    gem 'actionmailer', (ENV['RAILS_VERSION'] || ['>= 3.0', '< 5.3'])
-    gem 'activerecord', (ENV['RAILS_VERSION'] || ['>= 3.0', '< 5.3'])
+    gem 'actionmailer', ['>= 3.0', '< 5.3']
+    gem 'activerecord', ['>= 3.0', '< 5.3']
   end
 
   gem 'rspec', '>= 3'
