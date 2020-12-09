@@ -16,6 +16,7 @@ jobs:
         rails_version:
           - '5.2.0'
           - '6.0.0'
+          - '6.1.0.rc2'
           - 'edge'
         include:
           #

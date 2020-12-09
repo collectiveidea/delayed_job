@@ -1,3 +1,7 @@
+4.1.9 - not yet released
+=================
+* Support for Rails 6.1
+
 4.1.8 - 2019-08-16
 =================
 * Support for Rails 6.0.0
