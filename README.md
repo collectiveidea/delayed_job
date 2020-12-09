@@ -1,7 +1,7 @@
 **If you're viewing this at https://github.com/collectiveidea/delayed_job,
 you're reading the documentation for the master branch.
 [View documentation for the latest release
-(4.1.8).](https://github.com/collectiveidea/delayed_job/tree/v4.1.8)**
+(4.1.9).](https://github.com/collectiveidea/delayed_job/tree/v4.1.9)**
 
 Delayed::Job
 ============
@@ -180,6 +180,10 @@ Notifier.delay.signup(@user)
 
 # with delayed_job running at a specific time
 Notifier.delay(run_at: 5.minutes.from_now).signup(@user)
+=======
+
+# when using parameters, the .with method must be called before the .delay method
+Notifier.with(foo: 1, bar: 2).delay.signup(@user)
 ```
 
 Remove the `.deliver` method to make it work. It's not ideal, but it's the best

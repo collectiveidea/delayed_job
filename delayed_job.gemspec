@@ -13,5 +13,10 @@ Gem::Specification.new do |spec|
   spec.require_paths  = ['lib']
   spec.summary        = 'Database-backed asynchronous priority queue system -- Extracted from Shopify'
   spec.test_files     = Dir.glob('spec/**/*')
-  spec.version        = '4.1.8'
+  spec.version        = '4.1.9'
+  spec.metadata       = {
+    'changelog_uri'   => 'https://github.com/collectiveidea/delayed_job/blob/master/CHANGELOG.md',
+    'bug_tracker_uri' => 'https://github.com/collectiveidea/delayed_job/issues',
+    'source_code_uri' => 'https://github.com/collectiveidea/delayed_job'
+  }
 end
