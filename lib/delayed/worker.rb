@@ -58,8 +58,8 @@ module Delayed
     # false - No exceptions will be raised
     # :term - Will only raise an exception on TERM signals but INT will wait for the current job to finish
     # true - Will raise an exception on TERM and INT
-    cattr_accessor :raise_signal_exceptions
-    self.raise_signal_exceptions = false
+    cattr_accessor :raise_exception_for_signals
+    self.raise_exception_for_signals = []
 
     def self.backend=(backend)
       if backend.is_a? Symbol
@@ -127,6 +127,14 @@ module Delayed
       end
     end
 
+    def self.add_signal_to_stop_worker(sig)
+      signals_to_stop_worker << sig
+    end
+
+    def self.signals_to_stop_worker
+      @signals_to_stop_worker ||= %w[INT TERM]
+    end
+
     def initialize(options = {})
       @quiet = options.key?(:quiet) ? options[:quiet] : true
       @failed_reserve_count = 0
@@ -153,18 +161,8 @@ module Delayed
     # Setting the name to nil will reset the default worker name
     attr_writer :name
 
-    def start # rubocop:disable CyclomaticComplexity, PerceivedComplexity
-      trap('TERM') do
-        Thread.new { say 'Exiting...' }
-        stop
-        raise SignalException, 'TERM' if self.class.raise_signal_exceptions
-      end
-
-      trap('INT') do
-        Thread.new { say 'Exiting...' }
-        stop
-        raise SignalException, 'INT' if self.class.raise_signal_exceptions && self.class.raise_signal_exceptions != :term
-      end
+    def start
+      register_signal_handlers
 
       say 'Starting job worker'
 
@@ -309,7 +307,7 @@ module Delayed
     # If no jobs are left we return nil
     def reserve_and_run_one_job
       job = reserve_job
-      self.class.lifecycle.run_callbacks(:perform, self, job) { run(job) } if job
+      self.class.lifecycle.run_callbacks(:perform, self, job) { run(job) } if job && !stop?
     end
 
     def reserve_job
@@ -331,6 +329,16 @@ module Delayed
       else
         ActionDispatch::Reloader.cleanup!
         ActionDispatch::Reloader.prepare!
+      end
+    end
+
+    def register_signal_handlers
+      self.class.signals_to_stop_worker.each do |sig|
+        Signal.trap(sig) do
+          Thread.new { say 'Exiting...' }
+          stop
+          raise SignalException, 'INT' if self.class.raise_exception_for_signals.include?(sig)
+        end
       end
     end
   end
