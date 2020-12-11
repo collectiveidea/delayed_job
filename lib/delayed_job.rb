@@ -11,6 +11,9 @@ require 'delayed/backend/base'
 require 'delayed/backend/job_preparer'
 require 'delayed/worker'
 require 'delayed/deserialization_error'
+require 'delayed/log_subscriber'
+require 'delayed/json_formatter'
+require 'delayed/json_log_subscriber'
 require 'delayed/railtie' if defined?(Rails::Railtie)
 
 ActiveSupport.on_load(:action_mailer) do
