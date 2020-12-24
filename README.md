@@ -229,42 +229,8 @@ have the processes run that queue.
 
 Running Jobs
 ============
-`script/delayed_job` can be used to manage a background process which will
-start working off jobs.
 
-To do so, add `gem "daemons"` to your `Gemfile` and make sure you've run `rails
-generate delayed_job`.
-
-You can then do the following:
-
-    RAILS_ENV=production script/delayed_job start
-    RAILS_ENV=production script/delayed_job stop
-
-    # Runs two workers in separate processes.
-    RAILS_ENV=production script/delayed_job -n 2 start
-    RAILS_ENV=production script/delayed_job stop
-
-    # Set the --queue or --queues option to work from a particular queue.
-    RAILS_ENV=production script/delayed_job --queue=tracking start
-    RAILS_ENV=production script/delayed_job --queues=mailers,tasks start
-
-    # Use the --pool option to specify a worker pool. You can use this option multiple times to start different numbers of workers for different queues.
-    # The following command will start 1 worker for the tracking queue,
-    # 2 workers for the mailers and tasks queues, and 2 workers for any jobs:
-    RAILS_ENV=production script/delayed_job --pool=tracking --pool=mailers,tasks:2 --pool=*:2 start
-
-    # Runs all available jobs and then exits
-    RAILS_ENV=production script/delayed_job start --exit-on-complete
-    # or to run in the foreground
-    RAILS_ENV=production script/delayed_job run --exit-on-complete
-
-**Rails 4:** *replace script/delayed_job with bin/delayed_job*
-
-Workers can be running on any computer, as long as they have access to the
-database and their clock is in sync. Keep in mind that each worker will check
-the database at least every 5 seconds.
-
-You can also invoke `rake jobs:work` which will start working off jobs. You can
+You can use `rake jobs:work` which will start working off jobs. You can
 cancel the rake task with `CTRL-C`.
 
 If you want to just run all available jobs and exit you can use `rake jobs:workoff`
@@ -273,6 +239,39 @@ Work off queues by setting the `QUEUE` or `QUEUES` environment variable.
 
     QUEUE=tracking rake jobs:work
     QUEUES=mailers,tasks rake jobs:work
+
+You could also use `bin/delayed_job` to manage a background process which will
+start working off jobs.
+
+To do so, add `gem "daemons"` to your `Gemfile` and make sure you've run `rails
+generate delayed_job`.
+
+You can then do the following:
+
+    RAILS_ENV=production bin/delayed_job start
+    RAILS_ENV=production bin/delayed_job stop
+
+    # Runs two workers in separate processes.
+    RAILS_ENV=production bin/delayed_job -n 2 start
+    RAILS_ENV=production bin/delayed_job stop
+
+    # Set the --queue or --queues option to work from a particular queue.
+    RAILS_ENV=production bin/delayed_job --queue=tracking start
+    RAILS_ENV=production bin/delayed_job --queues=mailers,tasks start
+
+    # Use the --pool option to specify a worker pool. You can use this option multiple times to start different numbers of workers for different queues.
+    # The following command will start 1 worker for the tracking queue,
+    # 2 workers for the mailers and tasks queues, and 2 workers for any jobs:
+    RAILS_ENV=production bin/delayed_job --pool=tracking --pool=mailers,tasks:2 --pool=*:2 start
+
+    # Runs all available jobs and then exits
+    RAILS_ENV=production bin/delayed_job start --exit-on-complete
+    # or to run in the foreground
+    RAILS_ENV=production bin/delayed_job run --exit-on-complete
+
+Workers can be running on any computer, as long as they have access to the
+database and their clock is in sync. Keep in mind that each worker will check
+the database at least every 5 seconds.
 
 Restarting delayed_job
 ======================
