@@ -225,12 +225,14 @@ module Delayed
     end
 
     def run(job)
+      job.hook(:init_job_config)
       job_say job, 'RUNNING'
       runtime = Benchmark.realtime do
         Timeout.timeout(max_run_time(job).to_i, WorkerTimeout) { job.invoke_job }
         job.destroy
       end
       job_say job, format('COMPLETED after %.4f', runtime)
+      job.hook(:clean_job_config)
       return true # did work
     rescue DeserializationError => error
       job_say job, "FAILED permanently with #{error.class.name}: #{error.message}", 'error'
@@ -239,6 +241,7 @@ module Delayed
       failed(job)
     rescue Exception => error # rubocop:disable RescueException
       self.class.lifecycle.run_callbacks(:error, self, job) { handle_failed_job(job, error) }
+      job.hook(:clean_job_config)
       return false # work failed
     end
 
@@ -260,6 +263,7 @@ module Delayed
       self.class.lifecycle.run_callbacks(:failure, self, job) do
         begin
           job.hook(:failure)
+          job.hook(:clean_job_config)
         rescue => error
           say "Error when running failure callback: #{error}", 'error'
           say error.backtrace.join("\n"), 'error'

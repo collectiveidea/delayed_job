@@ -392,6 +392,10 @@ class ParanoidNewsletterJob < NewsletterJob
     emails.each { |e| NewsletterMailer.deliver_text_to_email(text, e) }
   end
 
+  def init_job_config
+    record_stat 'newsletter_job/start'
+  end
+
   def before(job)
     record_stat 'newsletter_job/start'
   end
@@ -410,6 +414,10 @@ class ParanoidNewsletterJob < NewsletterJob
 
   def failure(job)
     page_sysadmin_in_the_middle_of_the_night
+  end
+
+  def clean_job_config
+    record_stat 'newsletter_job/start'
   end
 end
 ```
