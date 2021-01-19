@@ -2,9 +2,29 @@ require 'timeout'
 
 module Delayed
   class WorkerTimeout < Timeout::Error
+    attr_reader :job, :seconds
+
+    def initialize(job, seconds)
+      @job = job
+      @seconds = seconds
+    end
+
     def message
-      seconds = Delayed::Worker.max_run_time.to_i
-      "#{super} (Delayed::Worker.max_run_time is only #{seconds} second#{seconds == 1 ? '' : 's'})"
+      "execution expired (#{source_max_run_time} is only #{seconds_to_s}"
+    end
+
+  private
+
+    def source_max_run_time
+      job_timeout? ? "#{job.name}#max_run_time" : 'Delayed::Worker.max_run_time'
+    end
+
+    def job_timeout?
+      job.max_run_time
+    end
+
+    def seconds_to_s
+      "#{@seconds} second#{seconds == 1 ? '' : 's'}"
     end
   end
 

@@ -554,6 +554,18 @@ shared_examples_for 'a delayed_job backend' do
         expect(job.attempts).to eq(1)
       end
 
+      it 'fails after Job#max_run_time' do
+        Delayed::Worker.max_run_time = 3.seconds
+        long_running_job = LongRunningJob.new
+        allow(long_running_job).to receive(:max_run_time) { 1.second }
+        job = Delayed::Job.create :payload_object => long_running_job
+        worker.run(job)
+        expect(job.error).to_not be_nil
+        expect(job.reload.last_error).to match(/expired/)
+        expect(job.reload.last_error).to match(/LongRunningJob#max_run_time is only 1 second/)
+        expect(job.attempts).to eq(1)
+      end
+
       context 'when the job raises a deserialization error' do
         after do
           Delayed::Worker.destroy_failed_jobs = true
