@@ -425,6 +425,65 @@ shared_examples_for 'a delayed_job backend' do
         expect(SimpleJob.runs).to eq(3)
       end
     end
+
+    context "when asked to exclude specified queues" do
+      context 'and worker does not have queue set' do
+        before(:each) do
+          worker.queues = []
+          worker.exclude_specified_queues = true
+        end
+
+        it 'works off all jobs' do
+          expect(SimpleJob.runs).to eq(0)
+
+          create_job(:queue => 'one')
+          create_job(:queue => 'two')
+          create_job
+          worker.work_off
+
+          expect(SimpleJob.runs).to eq(3)
+        end
+      end
+
+      context 'and worker has one queue set' do
+        before(:each) do
+          worker.queues = ['large']
+          worker.exclude_specified_queues = true
+        end
+
+        it 'only works off jobs which are not from selected queues' do
+          expect(SimpleJob.runs).to eq(0)
+
+          create_job(:queue => 'large')
+          create_job(:queue => 'small')
+          create_job(:queue => 'small 2')
+          worker.work_off
+
+          expect(SimpleJob.runs).to eq(2)
+        end
+      end
+
+      context 'and worker has two queue set' do
+        before(:each) do
+          worker.queues = %w[large small]
+          worker.exclude_specified_queues = true
+        end
+
+        it 'only works off jobs which are not from selected queues' do
+          expect(SimpleJob.runs).to eq(0)
+
+          create_job(:queue => 'large')
+          create_job(:queue => 'small')
+          create_job(:queue => 'medium')
+          create_job(:queue => 'medium 2')
+          create_job
+
+          worker.work_off
+
+          expect(SimpleJob.runs).to eq(3)
+        end
+      end
+    end
   end
 
   context 'max_attempts' do
