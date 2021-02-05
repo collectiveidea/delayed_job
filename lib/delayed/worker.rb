@@ -169,14 +169,17 @@ module Delayed
       say 'Starting job worker'
 
       self.class.lifecycle.run_callbacks(:execute, self) do
+        count = nil
         loop do
-          self.class.lifecycle.run_callbacks(:loop, self) do
-            @realtime = Benchmark.realtime do
-              @result = work_off
+          Rails.application.reloader.wrap do
+            self.class.lifecycle.run_callbacks(:loop, self) do
+              @realtime = Benchmark.realtime do
+                @result = work_off
+              end
             end
-          end
 
-          count = @result[0] + @result[1]
+            count = @result[0] + @result[1]
+          end
 
           if count.zero?
             if self.class.exit_on_complete
@@ -184,7 +187,6 @@ module Delayed
               break
             elsif !stop?
               sleep(self.class.sleep_delay)
-              reload!
             end
           else
             say format("#{count} jobs processed at %.4f j/s, %d failed", count / @realtime, @result.last)
