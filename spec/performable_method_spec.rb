@@ -47,7 +47,7 @@ describe Delayed::PerformableMethod do
   end
 
   describe 'hooks' do
-    %w[before after success].each do |hook|
+    %w[before_job_run after_job_run on_job_success].each do |hook|
       it "delegates #{hook} hook to object" do
         story = Story.create
         job = story.delay.tell
@@ -57,23 +57,23 @@ describe Delayed::PerformableMethod do
       end
     end
 
-    it 'delegates enqueue hook to object' do
+    it 'delegates on_job_enqueue hook to object' do
       story = Story.create
-      expect(story).to receive(:enqueue).with(an_instance_of(Delayed::Job))
+      expect(story).to receive(:on_job_enqueue).with(an_instance_of(Delayed::Job))
       story.delay.tell
     end
 
-    it 'delegates error hook to object' do
+    it 'delegates on_job_error hook to object' do
       story = Story.create
-      expect(story).to receive(:error).with(an_instance_of(Delayed::Job), an_instance_of(RuntimeError))
+      expect(story).to receive(:on_job_error).with(an_instance_of(Delayed::Job), an_instance_of(RuntimeError))
       expect(story).to receive(:tell).and_raise(RuntimeError)
       expect { story.delay.tell.invoke_job }.to raise_error(RuntimeError)
     end
 
-    it 'delegates failure hook to object' do
+    it 'delegates on_job_failure hook to object' do
       method = Delayed::PerformableMethod.new('object', :size, [])
-      expect(method.object).to receive(:failure)
-      method.failure
+      expect(method.object).to receive(:on_job_failure)
+      method.on_job_failure
     end
 
     context 'with delay_job == false' do
@@ -85,7 +85,7 @@ describe Delayed::PerformableMethod do
         Delayed::Worker.delay_jobs = true
       end
 
-      %w[before after success].each do |hook|
+      %w[before_job_run after_job_run on_job_success].each do |hook|
         it "delegates #{hook} hook to object" do
           story = Story.create
           expect(story).to receive(hook).with(an_instance_of(Delayed::Job))
@@ -95,7 +95,7 @@ describe Delayed::PerformableMethod do
 
       it 'delegates error hook to object' do
         story = Story.create
-        expect(story).to receive(:error).with(an_instance_of(Delayed::Job), an_instance_of(RuntimeError))
+        expect(story).to receive(:on_job_error).with(an_instance_of(Delayed::Job), an_instance_of(RuntimeError))
         expect(story).to receive(:tell).and_raise(RuntimeError)
         expect { story.delay.tell }.to raise_error(RuntimeError)
       end
