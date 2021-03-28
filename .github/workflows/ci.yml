@@ -12,11 +12,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ruby: [2.5, 2.6, 2.7, jruby, jruby-head, ruby-head]
+        ruby: [2.5, 2.6, 2.7, 3.0, jruby, jruby-head, ruby-head]
         rails_version:
-          - '5.2.0'
+          - '5.2.5'
           - '6.0.0'
-          - '6.1.0.rc2'
+          - '6.1.0'
           - 'edge'
         include:
           #
