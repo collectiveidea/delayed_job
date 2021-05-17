@@ -14,6 +14,7 @@ module Delayed
 
         def enqueue_job(options)
           new(options).tap do |job|
+            Delayed::Worker.logger.info "[DELAYED_JOB]: Enqueuing Job: #{job.id}:#{job.name}."
             Delayed::Worker.lifecycle.run_callbacks(:enqueue, job) do
               job.hook(:enqueue)
               Delayed::Worker.delay_job?(job) ? job.save : job.invoke_job
@@ -77,10 +78,14 @@ module Delayed
       def invoke_job
         Delayed::Worker.lifecycle.run_callbacks(:invoke_job, self) do
           begin
+            Delayed::Worker.logger.info "[DELAYED_JOB]: Running before hooks for DJ: #{id}:#{name}"
             hook :before
+            Delayed::Worker.logger.info "[DELAYED_JOB]: Start Job: #{id}:#{name}"
             payload_object.perform
+            Delayed::Worker.logger.info "[DELAYED_JOB]: Finish Job: #{id}:#{name}, running success hooks"
             hook :success
           rescue Exception => e # rubocop:disable RescueException
+            Delayed::Worker.logger.info "[DELAYED_JOB]: Failed Job: #{id}:#{name}, running error hooks"
             hook :error, e
             raise e
           ensure
