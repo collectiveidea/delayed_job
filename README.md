@@ -250,6 +250,8 @@ You can then do the following:
 
     # Option --exclude-specified-queues will do inverse of queues processing by skipping ones from --queue, --queues.
     # If both --pool=* --exclude-specified-queues given, no exclusions will by applied on "*".
+    # A worker pool's queue list can be prefixed with a ! which has the same effect as setting
+    # --exclude-specified-queues but only applies it to that specific worker pool.
 
     # Use the --pool option to specify a worker pool.
     # You can use this option multiple times to start different numbers of workers for different queues.
