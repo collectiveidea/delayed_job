@@ -8,40 +8,26 @@ module Delayed
       module ClassMethods
         # Add a job to the queue
         def enqueue(*args)
-          options = {
-            :priority => Delayed::Worker.default_priority,
-            :queue => Delayed::Worker.default_queue_name
-          }.merge!(args.extract_options!)
+          job_options = Delayed::Backend::JobPreparer.new(*args).prepare
+          enqueue_job(job_options)
+        end
 
-          options[:payload_object] ||= args.shift
-
-          if args.size > 0
-            warn "[DEPRECATION] Passing multiple arguments to `#enqueue` is deprecated. Pass a hash with :priority and :run_at."
-            options[:priority] = args.first || options[:priority]
-            options[:run_at]   = args[1]
-          end
-
-          unless options[:payload_object].respond_to?(:perform)
-            raise ArgumentError, 'Cannot enqueue items which do not respond to perform'
-          end
-
+        def enqueue_job(options)
           allow_delay = true
           unless Delayed::Worker.allow_delay_from_rake
             is_rake_task = defined?(::Rake) && ::Rake&.application&.top_level_tasks.present?
             allow_delay = !is_rake_task || options[:run_at].present?
           end
 
-          if Delayed::Worker.delay_jobs && allow_delay
-            self.new(options).tap do |job|
-              Delayed::Worker.lifecycle.run_callbacks(:enqueue, job) do
-                job.hook(:enqueue)
-                job.save!
-              end
-            end
-          else
-            Delayed::Job.new(:payload_object => options[:payload_object]).tap do |job|
-              Delayed::Worker.lifecycle.run_callbacks(:synchronous_execution, job) do
-                job.invoke_job
+          new(options).tap do |job|
+            Delayed::Worker.lifecycle.run_callbacks(:enqueue, job) do
+              job.hook(:enqueue)
+              if Delayed::Worker.delay_job?(job) && allow_delay
+                job.save
+              else
+                Delayed::Worker.lifecycle.run_callbacks(:synchronous_execution, job) do
+                  job.invoke_job
+                end
               end
             end
           end
@@ -58,18 +44,25 @@ module Delayed
           end
         end
 
+        # Allow the backend to attempt recovery from reserve errors
+        def recover_from(_error); end
+
         # Hook method that is called before a new worker is forked
-        def before_fork
-        end
+        def before_fork; end
 
         # Hook method that is called after a new worker is forked
-        def after_fork
-        end
+        def after_fork; end
 
         def work_off(num = 100)
-          warn "[DEPRECATION] `Delayed::Job.work_off` is deprecated. Use `Delayed::Worker.new.work_off instead."
+          warn '[DEPRECATION] `Delayed::Job.work_off` is deprecated. Use `Delayed::Worker.new.work_off instead.'
           Delayed::Worker.new.work_off(num)
         end
+      end
+
+      attr_reader :error
+      def error=(error)
+        @error = error
+        self.last_error = "#{error.message}\n#{error.backtrace.join("\n")}" if respond_to?(:last_error=)
       end
 
       def failed?
@@ -77,14 +70,12 @@ module Delayed
       end
       alias_method :failed, :failed?
 
-      ParseObjectFromYaml = /\!ruby\/\w+\:([^\s]+)/
+      ParseObjectFromYaml = %r{\!ruby/\w+\:([^\s]+)} # rubocop:disable ConstantName
 
       def name
-        @name ||= payload_object.respond_to?(:display_name) ?
-                    payload_object.display_name :
-                    payload_object.class.name
+        @name ||= payload_object.respond_to?(:display_name) ? payload_object.display_name : payload_object.class.name
       rescue DeserializationError
-        ParseObjectFromYaml.match(handler)[1]
+        handler.nil? ? 'missing object' : ParseObjectFromYaml.match(handler)[1]
       end
 
       def payload_object=(object)
@@ -93,10 +84,9 @@ module Delayed
       end
 
       def payload_object
-        @payload_object ||= YAML.load(self.handler)
-      rescue TypeError, LoadError, NameError, ArgumentError => e
-        raise DeserializationError,
-          "Job failed to load: #{e.message}. Handler: #{handler.inspect}"
+        @payload_object ||= YAML.load_dj(handler)
+      rescue TypeError, LoadError, NameError, ArgumentError, SyntaxError, Psych::SyntaxError => e
+        raise DeserializationError, "Job failed to load: #{e.message}. Handler: #{handler.inspect}"
       end
 
       def invoke_job
@@ -105,7 +95,7 @@ module Delayed
             hook :before
             payload_object.perform
             hook :success
-          rescue Exception => e
+          rescue Exception => e # rubocop:disable RescueException
             hook :error, e
             raise e
           ensure
@@ -123,20 +113,38 @@ module Delayed
       def hook(name, *args)
         if payload_object.respond_to?(name)
           method = payload_object.method(name)
-          method.arity == 0 ? method.call : method.call(self, *args)
+          method.arity.zero? ? method.call : method.call(self, *args)
         end
-      rescue DeserializationError
-        # do nothing
+      rescue DeserializationError # rubocop:disable HandleExceptions
       end
 
       def reschedule_at
-        payload_object.respond_to?(:reschedule_at) ?
-          payload_object.reschedule_at(self.class.db_time_now, attempts) :
-          self.class.db_time_now + (attempts ** 4) + 5
+        if payload_object.respond_to?(:reschedule_at)
+          payload_object.reschedule_at(self.class.db_time_now, attempts)
+        else
+          self.class.db_time_now + (attempts**4) + 5
+        end
       end
 
       def max_attempts
         payload_object.max_attempts if payload_object.respond_to?(:max_attempts)
+      end
+
+      def max_run_time
+        return unless payload_object.respond_to?(:max_run_time)
+        return unless (run_time = payload_object.max_run_time)
+
+        if run_time > Delayed::Worker.max_run_time
+          Delayed::Worker.max_run_time
+        else
+          run_time
+        end
+      end
+
+      def destroy_failed_jobs?
+        payload_object.respond_to?(:destroy_failed_jobs?) ? payload_object.destroy_failed_jobs? : Delayed::Worker.destroy_failed_jobs
+      rescue DeserializationError
+        Delayed::Worker.destroy_failed_jobs
       end
 
       def fail!

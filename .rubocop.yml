@@ -1,0 +1,146 @@
+AbcSize:
+  Enabled: false
+
+# Enforce outdenting of access modifiers (i.e. public, private, protected)
+AccessModifierIndentation:
+  EnforcedStyle: outdent
+
+Alias:
+  EnforcedStyle: prefer_alias_method
+
+AllCops:
+  Include:
+    - 'Gemfile'
+    - 'Rakefile'
+    - 'delayed_job.gemspec'
+  TargetRubyVersion: 2.1
+
+RedundantBlockCall:
+  Enabled: false
+
+BlockLength:
+  Enabled: false
+
+# Avoid more than `Max` levels of nesting.
+BlockNesting:
+  Max: 2
+
+# Indentation of when/else
+CaseIndentation:
+  EnforcedStyle: end
+  IndentOneStep: false
+
+ClassLength:
+  Max: 100
+
+# Align with the style guide.
+CollectionMethods:
+  PreferredMethods:
+    collect:  'map'
+    collect!: 'map!'
+    reduce:   'inject'
+    find:     'detect'
+    find_all: 'select'
+
+# Disable documentation checking until a class needs to be documented once
+Documentation:
+  Enabled: false
+
+# Allow dots at the end of lines
+DotPosition:
+  EnforcedStyle: trailing
+
+DoubleNegation:
+  Enabled: false
+
+# Detects any duplication as issue including our conditional requires
+DuplicatedGem:
+  Enabled: false
+
+EmptyLinesAroundAccessModifier:
+  Enabled: true
+
+# Don't require magic comment at the top of every file
+Encoding:
+  Enabled: false
+
+# Align ends correctly
+EndAlignment:
+  EnforcedStyleAlignWith: variable
+
+Style/FrozenStringLiteralComment:
+  Enabled: false
+
+# Enforce Ruby 1.8-compatible hash syntax
+HashSyntax:
+  EnforcedStyle: hash_rockets
+
+Lambda:
+  Enabled: false
+
+LineLength:
+  Enabled: false
+
+MethodLength:
+  CountComments: false
+  Max: 53
+
+MultilineOperationIndentation:
+  EnforcedStyle: indented
+
+Style/NumericPredicate:
+  Enabled: false
+
+# Avoid long parameter lists
+ParameterLists:
+  Max: 4
+  CountKeywordArgs: true
+
+PercentLiteralDelimiters:
+  PreferredDelimiters:
+    '%':  ()
+    '%i': ()
+    '%q': ()
+    '%Q': ()
+    '%r': '{}'
+    '%s': ()
+    '%w': '[]'
+    '%W': '[]'
+    '%x': ()
+
+RaiseArgs:
+  EnforcedStyle: exploded
+
+RegexpLiteral:
+  Enabled: false
+
+RescueModifier:
+  Enabled: false
+
+Style/SafeNavigation:
+  Enabled: false
+
+SignalException:
+  EnforcedStyle: only_raise
+
+# No spaces inside hash literals
+SpaceInsideHashLiteralBraces:
+  EnforcedStyle: no_space
+
+Style/SymbolArray:
+  Enabled: false
+
+SymbolProc:
+  Enabled: false
+
+TrailingCommaInLiteral:
+  Enabled: false
+
+TrailingCommaInArguments:
+  Enabled: false
+
+YAMLLoad:
+  Enabled: false
+
+ZeroLengthPredicate:
+  Enabled: false

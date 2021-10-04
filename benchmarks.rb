@@ -1,4 +1,4 @@
-require 'spec/spec_helper'
+require 'spec/helper'
 require 'logger'
 require 'benchmark'
 
@@ -6,8 +6,8 @@ require 'benchmark'
 
 Benchmark.bm(10) do |x|
   Delayed::Job.delete_all
-  n = 10000
-  n.times { "foo".delay.length }
+  n = 10_000
+  n.times { 'foo'.delay.length }
 
   x.report { Delayed::Worker.new(:quiet => true).work_off(n) }
 end

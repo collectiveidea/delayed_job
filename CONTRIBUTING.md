@@ -7,7 +7,16 @@ If you find what looks like a bug:
   if anyone else had the same issue.
 * Check the "GitHub issue tracker":http://github.com/collectiveidea/delayed_job/issues/
   to see if anyone else has reported issue.
-* If you don't see anything, create an issue with information on how to reproduce it.
+* Make sure you are using the latest version of delayed_job
+  ![Gem Version](https://badge.fury.io/rb/delayed_job.png)
+* Make sure you are using the latest backend gem for delayed_job
+  * Active Record ![Gem Version](https://badge.fury.io/rb/delayed_job_active_record.png)
+  * Mongoid ![Gem Version](https://badge.fury.io/rb/delayed_job_mongoid.png)
+* If you are still having an issue, create an issue including:
+  * Ruby version
+  * Gemfile.lock contents or at least major gem versions, such as Rails version
+  * Steps to reproduce the issue
+  * Full backtrace for any errors encountered
 
 If you want to contribute an enhancement or a fix:
 
