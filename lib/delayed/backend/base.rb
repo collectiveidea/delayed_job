@@ -31,7 +31,7 @@ module Delayed
               end
             end
           end
-        rescue ::ActiveRecord::RecordInvalid => exception
+        rescue ::ActiveRecord::RecordNotUnique => exception
           Delayed::Worker.lifecycle.run_callbacks(:duplicate_job, Delayed::Job.new(:payload_object => options[:payload_object])) do
           end
         end
