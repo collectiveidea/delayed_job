@@ -64,11 +64,16 @@ describe Delayed::MessageSending do
 
   context 'delay' do
     class FairyTail
-      attr_accessor :happy_ending
+      attr_accessor :happy_ending, :ogre, :dead
       def self.princesses; end
 
       def tell
         @happy_ending = true
+      end
+
+      def defeat(ogre_params, dead: true)
+        @ogre = ogre_params
+        @dead = dead
       end
     end
 
@@ -142,6 +147,15 @@ describe Delayed::MessageSending do
           fairy_tail.delay.tell
         end.to change(fairy_tail, :happy_ending).from(nil).to(true)
       end.not_to(change { Delayed::Job.count })
+    end
+
+    it 'can handle a mix of params and kwargs' do
+      Delayed::Worker.delay_jobs = false
+      fairy_tail = FairyTail.new
+      expect do
+        fairy_tail.delay.defeat({:name => 'shrek'}, :dead => false)
+      end.to change(fairy_tail, :ogre).from(nil).to(:name => 'shrek').
+        and(change(fairy_tail, :dead).from(nil).to(false))
     end
   end
 end

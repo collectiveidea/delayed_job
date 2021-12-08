@@ -1,4 +1,5 @@
 require 'helper'
+require 'action_controller/metal/strong_parameters' if ActionPack::VERSION::MAJOR >= 5
 
 describe Delayed::PerformableMethod do
   describe 'perform' do
@@ -19,6 +20,117 @@ describe Delayed::PerformableMethod do
     it 'calls the method on the object' do
       expect(@method.object).to receive(:count).with('o')
       @method.perform
+    end
+  end
+
+  describe 'perform with hash object' do
+    before do
+      @method = Delayed::PerformableMethod.new('foo', :count, [{:o => true}])
+    end
+
+    it 'calls the method on the object' do
+      expect(@method.object).to receive(:count).with(:o => true)
+      @method.perform
+    end
+  end
+
+  describe 'perform with hash object and kwargs' do
+    before do
+      @method = Delayed::PerformableMethod.new('foo', :count, [{:o => true}], :o2 => false)
+    end
+
+    it 'calls the method on the object' do
+      expect(@method.object).to receive(:count).with({:o => true}, :o2 => false)
+      @method.perform
+    end
+  end
+
+  describe 'perform with many hash objects' do
+    before do
+      @method = Delayed::PerformableMethod.new('foo', :count, [{:o => true}, {:o2 => true}])
+    end
+
+    it 'calls the method on the object' do
+      expect(@method.object).to receive(:count).with({:o => true}, :o2 => true)
+      @method.perform
+    end
+  end
+
+  if ActionPack::VERSION::MAJOR >= 5
+    describe 'perform with params object' do
+      before do
+        @params = ActionController::Parameters.new(:person => {
+                                                     :name => 'Francesco',
+                                                     :age => 22,
+                                                     :role => 'admin'
+                                                   })
+
+        @method = Delayed::PerformableMethod.new('foo', :count, [@params])
+      end
+
+      it 'calls the method on the object' do
+        expect(@method.object).to receive(:count).with(@params)
+        @method.perform
+      end
+    end
+
+    describe 'perform with sample object and params object' do
+      before do
+        @params = ActionController::Parameters.new(:person => {
+                                                     :name => 'Francesco',
+                                                     :age => 22,
+                                                     :role => 'admin'
+                                                   })
+
+        klass = Class.new do
+          def test_method(_o1, _o2)
+            true
+          end
+        end
+
+        @method = Delayed::PerformableMethod.new(klass.new, :test_method, ['o', @params])
+      end
+
+      it 'calls the method on the object' do
+        expect(@method.object).to receive(:test_method).with('o', @params)
+        @method.perform
+      end
+
+      it 'calls the method on the object (real)' do
+        expect(@method.perform).to be true
+      end
+    end
+  end
+
+  describe 'perform with sample object and hash object' do
+    before do
+      @method = Delayed::PerformableMethod.new('foo', :count, ['o', {:o => true}])
+    end
+
+    it 'calls the method on the object' do
+      expect(@method.object).to receive(:count).with('o', :o => true)
+      @method.perform
+    end
+  end
+
+  describe 'perform with hash to named parameters' do
+    before do
+      klass = Class.new do
+        def test_method(name:, any:)
+          true if name && any
+        end
+      end
+
+      @method = Delayed::PerformableMethod.new(klass.new, :test_method, [], :name => 'name', :any => 'any')
+    end
+
+    it 'calls the method on the object' do
+      expect(@method.object).to receive(:test_method).with(:name => 'name', :any => 'any')
+      @method.perform
+    end
+
+    it 'calls the method on the object (real)' do
+      expect(@method.perform).to be true
     end
   end
 

@@ -5,7 +5,8 @@ module Delayed
       coder.map = {
         'object' => object,
         'method_name' => method_name,
-        'args' => args
+        'args' => args,
+        'kwargs' => kwargs
       }
     end
   end
