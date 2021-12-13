@@ -30,7 +30,7 @@ namespace :jobs do
   task :check, [:max_age, :not_locked] => :environment do |_, args|
     args.with_defaults(:max_age => 300, :not_locked => false)
 
-    unprocessed_jobs = Delayed::Job.where('attempts = 0 AND created_at < ?', Time.now - args[:max_age].to_i)
+    unprocessed_jobs = Delayed::Job.where('attempts = 0 AND run_at < ?', args[:max_age].to_i.seconds.ago)
     unprocessed_jobs = unprocessed_jobs.where('locked_at IS NULL') if args[:not_locked]
     unprocessed_jobs = unprocessed_jobs.count
 
