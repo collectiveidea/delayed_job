@@ -426,6 +426,7 @@ module Delayed
 
         new_child = Child.new(index,
                               parent,
+                              logger,
                               @options,
                               pipes,
                               nil)

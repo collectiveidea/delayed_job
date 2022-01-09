@@ -13,11 +13,13 @@ module Delayed
     # See: `Puma::Cluster::Worker`
     class Child
       attr_reader :index,
-                  :parent
+                  :parent,
+                  :logger
 
-      def initialize(index, parent, options, pipes, worker = nil)
+      def initialize(index, parent, logger, options, pipes, worker = nil)
         @index = index
         @parent = parent
+        @logger = logger
         @options = options
         @check_pipe = pipes[:check_pipe]
         @child_write = pipes[:child_write]
@@ -85,7 +87,7 @@ module Delayed
                 Delayed.purge_interrupt_queue
                 break
               end
-              sleep @options[:child_check_interval]
+              sleep @options[:worker_check_interval]
             end
           end
           worker_thread.join
@@ -98,8 +100,6 @@ module Delayed
         @child_write << "t#{Process.pid}\n" rescue nil
         @child_write.close
       end
-
-      delegate :logger, to: :parent
 
     private
 
@@ -143,6 +143,7 @@ module Delayed
         pid = fork do
           new_child = Child.new(idx,
                                 parent,
+                                logger,
                                 @options,
                                 { check_pipe: @check_pipe,
                                   child_write: @child_write },
