@@ -15,9 +15,7 @@ module Delayed
 
       def run
         set_process_name(get_name(process_identifier))
-        worker_thread = start_worker
-        events.fire(:on_booted)
-        worker_thread
+        start_worker
       end
 
       def stop
@@ -43,7 +41,8 @@ module Delayed
 
       def start_worker
         @worker = Delayed::Worker.new(@options)
-        @worker.start(true)
+        events.fire(:on_booted)
+        @worker.start(false)
       end
 
       def stop_worker
