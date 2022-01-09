@@ -278,10 +278,10 @@ module Delayed
         refork_delay = @options[:worker_refork_delay]
         return unless refork_delay
         events.register(:ping) do |handle|
-          break unless handle.index == 0 && handle.phase == 0
-          time_exceeded = refork_delay && Time.now > @last_phased_restart + refork_delay
-          break unless time_exceeded
-          fork_child_zero!
+          if handle.index == 0 && handle.phase == 0
+            time_exceeded = refork_delay && Time.now > @last_phased_restart + refork_delay
+            fork_child_zero! if time_exceeded
+          end
         end
       end
 
