@@ -11,71 +11,73 @@ describe Delayed::Command do
     command = Delayed::Command.new(%w[-d] + options)
     allow(FileUtils).to receive(:mkdir_p)
     exp.each do |args|
-      expect(command.send(:launcher)).to receive(:run_process).with(*args).once
+      launcher = command.send(:launcher)
+      args.last[:daemonized] = launcher.is_a?(Delayed::Launcher::Daemonized)
+      expect(launcher).to receive(:run_process).with(*args).once
     end
-    command.launch
+    command.run
   end
 
-  describe '#launch' do
+  describe '#run' do
     it 'should use fork mode by default' do
-      expect_any_instance_of(Delayed::Launcher::Daemonized).to_not receive(:launch)
-      expect_any_instance_of(Delayed::Launcher::Forking).to receive(:launch)
-      Delayed::Command.new([]).launch
+      expect_any_instance_of(Delayed::Launcher::Daemonized).to_not receive(:run)
+      expect_any_instance_of(Delayed::Launcher::Forking).to receive(:run)
+      Delayed::Command.new([]).run
     end
 
     it 'should use fork mode if --fork set' do
-      expect_any_instance_of(Delayed::Launcher::Daemonized).to_not receive(:launch)
-      expect_any_instance_of(Delayed::Launcher::Forking).to receive(:launch)
-      Delayed::Command.new(%w[--fork]).launch
+      expect_any_instance_of(Delayed::Launcher::Daemonized).to_not receive(:run)
+      expect_any_instance_of(Delayed::Launcher::Forking).to receive(:run)
+      Delayed::Command.new(%w[--fork]).run
     end
 
     it 'should use daemon mode if -d set' do
-      expect_any_instance_of(Delayed::Launcher::Daemonized).to receive(:launch)
-      expect_any_instance_of(Delayed::Launcher::Forking).to_not receive(:launch)
-      Delayed::Command.new(%w[-d]).launch
+      expect_any_instance_of(Delayed::Launcher::Daemonized).to receive(:run)
+      expect_any_instance_of(Delayed::Launcher::Forking).to_not receive(:run)
+      Delayed::Command.new(%w[-d]).run
     end
 
     it 'should use daemon mode if --daemonize set' do
-      expect_any_instance_of(Delayed::Launcher::Daemonized).to receive(:launch)
-      expect_any_instance_of(Delayed::Launcher::Forking).to_not receive(:launch)
-      Delayed::Command.new(%w[--daemonize]).launch
+      expect_any_instance_of(Delayed::Launcher::Daemonized).to receive(:run)
+      expect_any_instance_of(Delayed::Launcher::Forking).to_not receive(:run)
+      Delayed::Command.new(%w[--daemonize]).run
     end
 
     it 'using multiple switches should use first one' do
-      expect_any_instance_of(Delayed::Launcher::Daemonized).to receive(:launch)
-      expect_any_instance_of(Delayed::Launcher::Forking).to_not receive(:launch)
-      Delayed::Command.new(%w[-d --fork]).launch
+      expect_any_instance_of(Delayed::Launcher::Daemonized).to receive(:run)
+      expect_any_instance_of(Delayed::Launcher::Forking).to_not receive(:run)
+      Delayed::Command.new(%w[-d --fork]).run
     end
   end
 
   describe '#daemonize' do
     it 'should use daemon mode by default' do
-      expect_any_instance_of(Delayed::Launcher::Daemonized).to receive(:launch)
-      expect_any_instance_of(Delayed::Launcher::Forking).to_not receive(:launch)
+      expect_any_instance_of(Delayed::Launcher::Daemonized).to receive(:run)
+      expect_any_instance_of(Delayed::Launcher::Forking).to_not receive(:run)
       Delayed::Command.new([]).daemonize
     end
 
     it 'should use fork mode if --fork set' do
-      expect_any_instance_of(Delayed::Launcher::Daemonized).to_not receive(:launch)
-      expect_any_instance_of(Delayed::Launcher::Forking).to receive(:launch)
+      expect_any_instance_of(Delayed::Launcher::Daemonized).to_not receive(:run)
+      expect_any_instance_of(Delayed::Launcher::Forking).to receive(:run)
       Delayed::Command.new(%w[--fork]).daemonize
     end
 
     it 'should use daemon mode if -d set' do
-      expect_any_instance_of(Delayed::Launcher::Daemonized).to receive(:launch)
-      expect_any_instance_of(Delayed::Launcher::Forking).to_not receive(:launch)
+      expect_any_instance_of(Delayed::Launcher::Daemonized).to receive(:run)
+      expect_any_instance_of(Delayed::Launcher::Forking).to_not receive(:run)
       Delayed::Command.new(%w[-d]).daemonize
     end
 
     it 'should use daemon mode if --daemonize set' do
-      expect_any_instance_of(Delayed::Launcher::Daemonized).to receive(:launch)
-      expect_any_instance_of(Delayed::Launcher::Forking).to_not receive(:launch)
+      expect_any_instance_of(Delayed::Launcher::Daemonized).to receive(:run)
+      expect_any_instance_of(Delayed::Launcher::Forking).to_not receive(:run)
       Delayed::Command.new(%w[--daemonize]).daemonize
     end
 
     it 'using multiple switches should use first one' do
-      expect_any_instance_of(Delayed::Launcher::Daemonized).to_not receive(:launch)
-      expect_any_instance_of(Delayed::Launcher::Forking).to receive(:launch)
+      expect_any_instance_of(Delayed::Launcher::Daemonized).to_not receive(:run)
+      expect_any_instance_of(Delayed::Launcher::Forking).to receive(:run)
       Delayed::Command.new(%w[--fork -d]).daemonize
     end
   end
@@ -445,51 +447,51 @@ describe Delayed::Command do
 
   describe 'validations' do
     it 'should launch normally without validations' do
-      expect_any_instance_of(Delayed::Launcher::Daemonized).to receive(:launch)
+      expect_any_instance_of(Delayed::Launcher::Daemonized).to receive(:run)
       expect(STDERR).to_not receive(:puts)
-      Delayed::Command.new(%w[-d]).launch
+      Delayed::Command.new(%w[-d]).run
     end
 
     it 'raise error num-workers and identifier are present' do
-      expect_any_instance_of(Delayed::Launcher::Daemonized).to_not receive(:launch)
+      expect_any_instance_of(Delayed::Launcher::Daemonized).to_not receive(:run)
       expect(STDERR).to_not receive(:puts)
-      expect { Delayed::Command.new(%w[-d --num-workers=2 --identifier=foobar]).launch }.to raise_error(ArgumentError)
+      expect { Delayed::Command.new(%w[-d --num-workers=2 --identifier=foobar]).run }.to raise_error(ArgumentError)
     end
 
     it 'warn if num-workers is 0' do
-      expect_any_instance_of(Delayed::Launcher::Daemonized).to receive(:launch)
+      expect_any_instance_of(Delayed::Launcher::Daemonized).to receive(:run)
       expect(STDERR).to receive(:puts)
-      Delayed::Command.new(%w[-d --num-workers=0]).launch
+      Delayed::Command.new(%w[-d --num-workers=0]).run
     end
 
     it 'not warn if min-priority is less than max-priority' do
-      expect_any_instance_of(Delayed::Launcher::Daemonized).to receive(:launch)
+      expect_any_instance_of(Delayed::Launcher::Daemonized).to receive(:run)
       expect(STDERR).to_not receive(:puts)
-      Delayed::Command.new(%w[-d --min-priority=-5 --max-priority=0]).launch
+      Delayed::Command.new(%w[-d --min-priority=-5 --max-priority=0]).run
     end
 
     it 'not warn if min-priority equals max-priority' do
-      expect_any_instance_of(Delayed::Launcher::Daemonized).to receive(:launch)
+      expect_any_instance_of(Delayed::Launcher::Daemonized).to receive(:run)
       expect(STDERR).to_not receive(:puts)
-      Delayed::Command.new(%w[-d --min-priority=-5 --max-priority=-5]).launch
+      Delayed::Command.new(%w[-d --min-priority=-5 --max-priority=-5]).run
     end
 
     it 'warn if min-priority is greater than max-priority' do
-      expect_any_instance_of(Delayed::Launcher::Daemonized).to receive(:launch)
+      expect_any_instance_of(Delayed::Launcher::Daemonized).to receive(:run)
       expect(STDERR).to receive(:puts)
-      Delayed::Command.new(%w[-d --min-priority=-4 --max-priority=-5]).launch
+      Delayed::Command.new(%w[-d --min-priority=-4 --max-priority=-5]).run
     end
 
     it 'warn if both queues and pools are present' do
-      expect_any_instance_of(Delayed::Launcher::Daemonized).to receive(:launch)
+      expect_any_instance_of(Delayed::Launcher::Daemonized).to receive(:run)
       expect(STDERR).to receive(:puts)
-      Delayed::Command.new(%w[-d --queues=mailers --pool=mailers:2]).launch
+      Delayed::Command.new(%w[-d --queues=mailers --pool=mailers:2]).run
     end
 
     it 'warn if both num-workers and pools are present' do
-      expect_any_instance_of(Delayed::Launcher::Daemonized).to receive(:launch)
+      expect_any_instance_of(Delayed::Launcher::Daemonized).to receive(:run)
       expect(STDERR).to receive(:puts)
-      Delayed::Command.new(%w[-d --num-workers=2 --pool=mailers:2]).launch
+      Delayed::Command.new(%w[-d --num-workers=2 --pool=mailers:2]).run
     end
   end
 end

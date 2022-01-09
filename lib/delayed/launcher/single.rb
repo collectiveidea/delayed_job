@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'delayed/launcher/runner'
 
 module Delayed
@@ -44,7 +46,7 @@ module Delayed
       end
 
       def stop_worker
-        @worker.stop
+        @worker.stop if @worker
       end
 
       def schedule_halt

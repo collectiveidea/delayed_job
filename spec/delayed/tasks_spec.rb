@@ -21,7 +21,7 @@ describe 'Rake tasks' do
   shared_examples_for 'work task' do
     let(:expect_success) do
       expect(Delayed::Launcher::Forking).to receive(:new).with(default_args.merge(exp_args)).and_call_original
-      expect_any_instance_of(Delayed::Launcher::Forking).to receive(:launch)
+      expect_any_instance_of(Delayed::Launcher::Forking).to receive(:run)
     end
 
     context 'default case' do

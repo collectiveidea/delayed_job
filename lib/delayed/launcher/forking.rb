@@ -1,3 +1,7 @@
+# frozen_string_literal: true
+
+require 'delayed/launcher/loggable'
+require 'delayed/launcher/events'
 require 'delayed/launcher/single'
 require 'delayed/launcher/cluster'
 require 'delayed/launcher/pooled_cluster'
@@ -13,10 +17,10 @@ module Delayed
     class Forking
       include Loggable
 
-      DEFAULT_FORK_WORKER_SECONDS = 3600
       DEFAULT_WORKER_CHECK_INTERVAL = 5
       DEFAULT_WORKER_TIMEOUT = 60
       DEFAULT_WORKER_SHUTDOWN_TIMEOUT = 30
+      DEFAULT_WORKER_REFORK_DELAY = 900
 
       attr_reader :events
 
@@ -35,6 +39,9 @@ module Delayed
         options[:worker_shutdown_timeout] ||= DEFAULT_WORKER_SHUTDOWN_TIMEOUT
         # TODO: need phased restart timeout
         options[:worker_culling_strategy] ||= :youngest
+        options[:worker_refork_delay]     ||= DEFAULT_WORKER_REFORK_DELAY
+        options.delete(:worker_refork_delay) if options[:worker_refork_delay] <= 0
+
         options.delete(:pools) if options[:pools] == []
         options[:pid_dir] ||= "#{Delayed.root}/tmp/pids"
         options[:log_dir] ||= "#{Delayed.root}/log"

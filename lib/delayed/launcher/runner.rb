@@ -1,3 +1,7 @@
+# frozen_string_literal: true
+
+require 'delayed/launcher/loggable'
+
 module Delayed
   module Launcher
 

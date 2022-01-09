@@ -1,4 +1,8 @@
+# frozen_string_literal: true
+
 require 'delayed/launcher/runner'
+require 'delayed/launcher/child_handle'
+require 'delayed/launcher/child'
 
 module Delayed
   module Launcher
@@ -29,11 +33,6 @@ module Delayed
         @phase = 0
         @phased_restart = false
         @last_phased_restart = @started_at
-
-        # @fork_after_jobs = (options.delete(:fork_after_jobs) || DEFAULT_FORK_WORKER_JOBS).to_i
-        # @fork_after_jobs = nil if @fork_after_jobs <= 0
-        @fork_after_seconds = (options.delete(:fork_after_seconds) || DEFAULT_FORK_WORKER_SECONDS).to_i
-        @fork_after_seconds = nil if @fork_after_seconds <= 0
 
         super
       end
@@ -98,13 +97,13 @@ module Delayed
 
             check_childs
 
-            if read.wait_readable([0, @next_check - Time.now].max)
-              req = read.read_nonblock(1)
+            if @parent_read.wait_readable([0, @next_check - Time.now].max)
+              req = @parent_read.read_nonblock(1)
 
               @next_check = Time.now if req == '!'
               next if !req || req == '!'
 
-              result = read.gets
+              result = @parent_read.gets
               pid = result.to_i
 
               if req == 'b' || req == 'f'
@@ -276,12 +275,12 @@ module Delayed
       end
 
       def setup_auto_fork_once
-        return unless @fork_after_seconds # || @fork_after_jobs
+        refork_delay = @options[:worker_refork_delay]
+        return unless refork_delay
         events.register(:ping) do |handle|
           break unless handle.index == 0 && handle.phase == 0
-          time_exceeded = @fork_after_seconds && Time.now.to_i > @last_phased_restart + @fork_after_seconds
-          # jobs_exceeded = @fork_after_jobs && handle.last_status[:jobs_count] >= @fork_after_jobs
-          break unless time_exceeded # || jobs_exceeded
+          time_exceeded = refork_delay && Time.now.to_i > @last_phased_restart + refork_delay
+          break unless time_exceeded
           fork_child_zero!
         end
       end
@@ -425,11 +424,11 @@ module Delayed
                   fork_pipe: @fork_pipe,
                   wakeup: @wakeup }
 
-        new_child = ChildProcess.new(index,
-                                     parent,
-                                     @options,
-                                     pipes,
-                                     nil)
+        new_child = Child.new(index,
+                              parent,
+                              @options,
+                              pipes,
+                              nil)
         new_child.run
       end
 

@@ -2,15 +2,17 @@ source 'https://rubygems.org'
 
 gem 'rake'
 
-platforms :ruby do
-  # Rails 5.1 is the first to work with sqlite 1.4
-  # Rails 6 now requires sqlite 1.4
-  if ENV['RAILS_VERSION'] && ENV['RAILS_VERSION'] < '5.1'
-    gem 'sqlite3', '< 1.4'
-  else
-    gem 'sqlite3'
-  end
-end
+gem 'sqlite3'
+
+# platforms :ruby do
+#   # Rails 5.1 is the first to work with sqlite 1.4
+#   # Rails 6 now requires sqlite 1.4
+#   if ENV['RAILS_VERSION'] && ENV['RAILS_VERSION'] < '5.1'
+#     gem 'sqlite3', '< 1.4'
+#   else
+#     gem 'sqlite3'
+#   end
+# end
 
 platforms :jruby do
   if ENV['RAILS_VERSION'] == '4.2.0'
