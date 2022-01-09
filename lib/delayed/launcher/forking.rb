@@ -28,11 +28,13 @@ module Delayed
         options.delete(:args)
 
         # Set default options
+        options[:worker_count] ||= 1
         options[:worker_check_interval]   ||= DEFAULT_WORKER_CHECK_INTERVAL
         options[:worker_timeout]          ||= DEFAULT_WORKER_TIMEOUT
         options[:worker_boot_timeout]     ||= DEFAULT_WORKER_TIMEOUT
         options[:worker_shutdown_timeout] ||= DEFAULT_WORKER_SHUTDOWN_TIMEOUT
-        options[:worker_count] ||= 1
+        # TODO: need phased restart timeout
+        options[:worker_culling_strategy] ||= :youngest
         options.delete(:pools) if options[:pools] == []
         options[:pid_dir] ||= "#{Delayed.root}/tmp/pids"
         options[:log_dir] ||= "#{Delayed.root}/log"
@@ -49,9 +51,9 @@ module Delayed
       end
 
       # Begin graceful shutdown of the workers
-      def stop(timeout = nil)
+      def stop
         # @status = :stop
-        @runner.stop(timeout)
+        @runner.stop
       end
 
       # Begin forced shutdow nof the workers

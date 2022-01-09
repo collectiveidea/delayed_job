@@ -351,7 +351,13 @@ module Delayed
 
         logger.debug "Culling #{diff.inspect} workers"
 
-        handles_to_cull = @child_handles[-diff, diff]
+        handles_to_cull =
+          case @options[:worker_culling_strategy]
+          when :youngest
+            @child_handles.sort_by(&:started_at)[-diff, diff]
+          when :oldest
+            @child_handles.sort_by(&:started_at)[0, diff]
+          end
         logger.debug "Workers to cull: #{handles_to_cull.inspect}"
 
         handles_to_cull.each do |handle|
@@ -387,10 +393,10 @@ module Delayed
       end
 
       def next_child_index
-        all_positions = 0...@child_count
         occupied_positions = @child_handles.map(&:index)
-        available_positions = all_positions.to_a - occupied_positions
-        available_positions.first
+        idx = 0
+        idx += 1 until !occupied_positions.include?(idx)
+        idx
       end
 
       def spawn_child(idx, parent)
