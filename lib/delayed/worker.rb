@@ -128,6 +128,7 @@ module Delayed
     end
 
     def initialize(options = {})
+      @daemonized = options.delete(:daemonized)
       @quiet = options.key?(:quiet) ? options[:quiet] : true
       @failed_reserve_count = 0
 
@@ -154,17 +155,7 @@ module Delayed
     attr_writer :name
 
     def start # rubocop:disable CyclomaticComplexity, PerceivedComplexity
-      trap('TERM') do
-        Thread.new { say 'Exiting...' }
-        stop
-        raise SignalException, 'TERM' if self.class.raise_signal_exceptions
-      end
-
-      trap('INT') do
-        Thread.new { say 'Exiting...' }
-        stop
-        raise SignalException, 'INT' if self.class.raise_signal_exceptions && self.class.raise_signal_exceptions != :term
-      end
+      setup_signals
 
       say 'Starting job worker'
 
@@ -294,6 +285,22 @@ module Delayed
     end
 
   protected
+
+    def setup_signals
+      return unless @daemonized
+
+      trap('TERM') do
+        Thread.new { say 'Exiting...' }
+        stop
+        raise SignalException, 'TERM' if self.class.raise_signal_exceptions
+      end
+
+      trap('INT') do
+        Thread.new { say 'Exiting...' }
+        stop
+        raise SignalException, 'INT' if self.class.raise_signal_exceptions && self.class.raise_signal_exceptions != :term
+      end
+    end
 
     def say_queue(queue)
       " (queue=#{queue})" if queue

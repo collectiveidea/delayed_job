@@ -1,127 +1,138 @@
+require 'delayed/launcher/single'
+require 'delayed/launcher/cluster'
+require 'delayed/launcher/pooled_cluster'
+
 module Delayed
   module Launcher
-    class Forking < Base
-      KILL_TIMEOUT = 30
 
-      def launch
-        @stopped = !!@options[:exit_on_complete]
-        @killed = false
-        setup_logger
-        trap_signals
-        Delayed::Worker.before_fork if worker_count > 1
-        setup_workers
-        run_loop if worker_count > 1
-        before_graceful_exit
+    # Parent launcher class which spawns Delayed Job child worker
+    # processes in the foreground.
+    #
+    # Code in this class is adapted from Puma (https://puma.io/)
+    # See: `Puma::Launcher`
+    class Forking
+      include Loggable
+
+      DEFAULT_FORK_WORKER_SECONDS = 3600
+      DEFAULT_WORKER_CHECK_INTERVAL = 5
+      DEFAULT_WORKER_TIMEOUT = 60
+      DEFAULT_WORKER_SHUTDOWN_TIMEOUT = 30
+
+      attr_reader :events
+
+      def initialize(options)
+
+        # Remove options used only for Launcher::Daemonized
+        options[:daemonized] = false
+        options.delete(:monitor)
+        options.delete(:args)
+
+        # Set default options
+        options[:worker_check_interval]   ||= DEFAULT_WORKER_CHECK_INTERVAL
+        options[:worker_timeout]          ||= DEFAULT_WORKER_TIMEOUT
+        options[:worker_boot_timeout]     ||= DEFAULT_WORKER_TIMEOUT
+        options[:worker_shutdown_timeout] ||= DEFAULT_WORKER_SHUTDOWN_TIMEOUT
+        options[:worker_count] ||= 1
+        options.delete(:pools) if options[:pools] == []
+        options[:pid_dir] ||= "#{Delayed.root}/tmp/pids"
+        options[:log_dir] ||= "#{Delayed.root}/log"
+
+        @options = options
+        @events = Events.new
+        # @status = :run
       end
 
-      def shutdown(timeout = nil)
-        @stopped = true
-        message = " with #{timeout} second grace period" if timeout
-        logger.info "Shutdown invoked#{message}"
-        signal_workers('TERM')
-        schedule_kill(timeout) if timeout
+      def run
+        @runner = build_runner
+        setup_signals
+        @runner.run
       end
 
-      def kill(exit_status = 0, message = nil)
-        @stopped = true
-        @killed = true
-        message = " #{message}" if message
-        logger.warn "Kill invoked#{message}"
-        signal_workers('KILL')
-        logger.warn "#{parent_name} exited forcefully#{message} - pid #{$$}"
-        exit(exit_status)
+      # Begin graceful shutdown of the workers
+      def stop(timeout = nil)
+        # @status = :stop
+        @runner.stop(timeout)
+      end
+
+      # Begin forced shutdow nof the workers
+      def halt
+        # @status = :halt
+        @runner.halt
+      end
+
+      # Begin restart of the workers
+      # def restart
+      #   @status = :restart
+      #   @runner.restart
+      # end
+      #
+      # # Begin phased restart of the workers
+      def phased_restart
+        if @runner.respond_to?(:phased_restart)
+          @runner.phased_restart
+        else
+          logger.warn 'phased_restart called but not available.'
+          # logger.warn 'phased_restart called but not available, restarting normally.'
+          # restart
+        end
       end
 
     private
 
-      def trap_signals
-        trap_shutdown_signal('INT')
-        trap_shutdown_signal('TERM')
-      end
-
-      # Trapped signals are forwarded worker processes.
-      # Hence it is not necessary to explicitly shutdown workers;
-      # we only need to stop the run loop.
-      def trap_shutdown_signal(signal)
-        Signal.trap(signal) do
-          Thread.new { logger.info("Received SIG#{signal}. Waiting for workers to finish current job...") }
-          @stopped = true
+      def build_runner
+        if @options[:pools]
+          PooledCluster.new(self, @options)
+        elsif @options[:worker_count] > 1
+          Cluster.new(self, @options)
+        else
+          Single.new(self, @options)
         end
       end
 
-      def workers
-        @workers ||= {}
+      def setup_signals
+        # setup_signal_restart
+        setup_signal_phased_restart
+        setup_signal_term
+        setup_signal_int
       end
 
-      def setup_single_worker
-        set_process_name(get_name(process_identifier))
-        Delayed::Worker.new(@options).start
+      # def setup_signal_restart
+      #   Signal.trap('SIGUSR2') { restart }
+      # rescue Exception # rubocop:disable Lint/RescueException
+      #   logger.info '*** SIGUSR2 not implemented, signal based restart unavailable!'
+      # end
+
+      def setup_signal_phased_restart
+        return if Delayed.jruby?
+        Signal.trap('SIGUSR1') { phased_restart }
+      rescue Exception # rubocop:disable Lint/RescueException
+        logger.info '*** SIGUSR1 not implemented, signal based restart unavailable!'
       end
 
-      def add_worker(options)
-        worker_name = get_name(@worker_index)
-        worker_pid = fork_worker(worker_name, options)
-
-        queues = options[:queues]
-        queue_msg = " queues=#{queues.empty? ? '*' : queues.join(',')}" if queues
-        logger.info "Worker #{worker_name} started - pid #{worker_pid}#{queue_msg}"
-
-        workers[worker_pid] = [worker_name, queues]
-        @worker_index += 1
-      end
-
-      def fork_worker(worker_name, options)
-        fork { run_worker(worker_name, options) }
-      end
-
-      def run_loop # rubocop:disable CyclomaticComplexity, PerceivedComplexity
-        loop do
-          worker_pid = Process.wait
-          next unless workers.key?(worker_pid)
-          worker_name, queues = workers.delete(worker_pid)
-          child_status = $?
-          logger.info "Worker #{worker_name} exited - #{child_status}"
-
-          # If any child was SIGKILL'ed, we must shutdown all children.
-          # This first will attempt a graceful SIGTERM of the children,
-          # followed by a SIGKILL after a timeout period.
-          if child_status.termsig == 9 && !@killed
-            @killed = true
-            logger.warn "Worker #{worker_name} SIGKILL detected. #{parent_name} shutting down..."
-            shutdown(KILL_TIMEOUT)
-            next
-          end
-
-          break if @stopped && workers.empty?
-          next if @stopped
-          options = @options
-          options = options.merge(:queues => queues) if queues
-          add_worker(options)
+      def setup_signal_term
+        Signal.trap('SIGTERM') do
+          stop
+          raise(SignalException, 'SIGTERM') if raise_sigterm
         end
-      rescue Errno::ECHILD
-        logger.warn 'No worker processes found'
+      rescue Exception # rubocop:disable Lint/RescueException
+        logger.info '*** SIGTERM not implemented, signal based gracefully stopping unavailable!'
       end
 
-      def schedule_kill(timeout)
-        Thread.new do
-          sleep(timeout)
-          kill(1, "after #{timeout} second timeout")
+      def setup_signal_int
+        Signal.trap('SIGINT') do
+          stop
+          raise(SignalException, 'SIGINT') if raise_sigint
         end
+      rescue Exception # rubocop:disable Lint/RescueException
+        logger.info '*** SIGINT not implemented, signal based gracefully stopping unavailable!'
       end
 
-      def signal_workers(signal)
-        workers.each do |pid, (worker_name, _)|
-          logger.info "Sent SIG#{signal} to worker #{worker_name}"
-          Process.kill(signal, pid)
-        end
+      def raise_sigterm
+        Delayed::Worker.raise_signal_exceptions
       end
 
-      def before_graceful_exit
-        logger.info "#{parent_name} exited gracefully - pid #{$$}"
-      end
-
-      def parent_name
-        "#{get_name(process_identifier)}#{' (parent)' if worker_count > 1}"
+      def raise_sigint
+        Delayed::Worker.raise_signal_exceptions && Delayed::Worker.raise_signal_exceptions != :term
       end
     end
   end

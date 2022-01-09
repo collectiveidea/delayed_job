@@ -17,13 +17,14 @@ module Delayed
       validate_options!
     end
 
-    def launch
-      launcher.launch
+    def run
+      launcher.run
     end
+    alias_method :launch, :run
 
     def daemonize
       @launch_strategy ||= :daemon
-      launch
+      run
     end
 
   private

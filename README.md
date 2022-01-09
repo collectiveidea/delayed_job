@@ -25,8 +25,6 @@ longer tasks in the background. Examples of such tasks include:
 * Batch imports
 * Spam checks
 
-Delayed Job was extracted from Shopify.
-
 ## Installation
 
 ### Version Support
@@ -68,7 +66,7 @@ To use Delayed Job with Active Job (Rails 4.2+), set the `queue_adapter` in `con
 config.active_job.queue_adapter = :delayed_job
 ```
 
-See the [Rails Guide](http://guides.rubyonrails.org/active_job_basics.html#setting-the-backend) for more details.
+See the [Rails Guide](https://guides.rubyonrails.org/active_job_basics.html#setting-the-backend) for more details.
 
 ### Protected Attributes
 
@@ -298,7 +296,18 @@ RAILS_ENV=production script/delayed_job --fork -n4 start
 RAILS_ENV=production script/delayed_job --fork --pool=mailers,tasks:2 --pool=*:2 start
 ```
 
+When spawning two or more workers (`-n2` or more), Delayed Job runs in "clustered" mode,
+which borrows its code and logic from the [Puma webserver version 5+](https://puma.io/) ❤️.
+In summary:
+
+* The parent process spawns a foreground child worker process ("worker 0").
+* Subsequent workers are forked from worker 0, using
+[copy-on-write](https://en.wikipedia.org/wiki/Copy-on-write) forking.
+* After a configurable timeout (default 1 hour), workers other than worker 0 are 
+terminated and re-forked from worker 0, one-by-one. This "compacts"
+
 Forking mode does not yet support the `restart`, `stop`, etc. script commands.
+This is planned to be introduced in the future.
 Use `SIGTERM` or `SIGINT` to allow workers to finish their current job then gracefully shutdown.
 
 ### Running via Rake
@@ -324,7 +333,7 @@ NUM_WORKERS=4 QUEUES=mailers,tasks rake jobs:workoff
 POOLS=mailers,tasks:2|tweets:1|*:2 rake jobs:workoff
 ```
 
-Rake uses Forking Mode (see above) under-the-hood.
+Rake uses Forking Mode (see above).
 
 ### Development
 
@@ -539,5 +548,14 @@ You can invoke `rake jobs:clear` to delete all jobs in the queue.
 ### Having problems?
 
 Good places to get help are:
-* [Google Groups](http://groups.google.com/group/delayed_job) where you can join our mailing list.
-* [StackOverflow](http://stackoverflow.com/questions/tagged/delayed-job)
+
+* [Google Groups](https://groups.google.com/group/delayed_job) where you can join our mailing list.
+* [StackOverflow](https://stackoverflow.com/questions/tagged/delayed-job)
+
+### License & Attribution
+
+Delayed Job is licensed under the [MIT License](LICENSE.txt).
+
+Delayed Job was originally extracted from [Shopify](https://www.shopify.com/).
+
+Code related to worker clustering is lovingly ❤️ borrowed from the [Puma webserver](https://puma.io/)

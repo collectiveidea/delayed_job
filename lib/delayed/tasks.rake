@@ -6,12 +6,12 @@ namespace :jobs do
 
   desc 'Start a delayed_job worker.'
   task :work => :environment_options do
-    Delayed::Launcher::Forking.new(@options).launch
+    Delayed::Launcher::Forking.new(@options).run
   end
 
   desc 'Start a delayed_job worker and exit when all available jobs are complete.'
   task :workoff => :environment_options do
-    Delayed::Launcher::Forking.new(@options.merge(:exit_on_complete => true)).launch
+    Delayed::Launcher::Forking.new(@options.merge(:exit_on_complete => true)).run
   end
 
   task :environment_options => :environment do
