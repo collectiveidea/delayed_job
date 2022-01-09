@@ -6,38 +6,26 @@ require 'logger'
 module Delayed
   module Launcher
 
-    # Runs logger on its own thead to allow logging even during signal traps.
-    # See: https://bugs.ruby-lang.org/issues/14222
-    class LogQueue
+    # Runs logger which can log even during signal traps.
+    class SafeLogger
       LEVELS = %i[debug info warn error fatal].freeze
 
       def initialize(log_dir, logger = nil)
         @log_dir = log_dir
-        @queue = Queue.new
         setup_logger(logger)
-        setup_loop
       end
 
       LEVELS.each do |level|
         define_method level do |message|
-          @queue << [level, message]
+          begin
+            logger.send(level, message)
+          rescue StandardError
+            STDERR.puts(message) if message
+          end
         end
       end
 
       private
-
-      def setup_loop
-        Thread.start do
-          nil while pop_queue
-        end
-      end
-
-      def pop_queue
-        level, message = @queue.pop
-        logger.send(level, message)
-      rescue StandardError
-        STDERR.puts(message) if message
-      end
 
       def setup_logger(logger)
         Delayed::Worker.logger ||= logger || file_logger
