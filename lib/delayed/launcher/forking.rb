@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'delayed/launcher/safe_logger'
+require 'delayed/launcher/logger_delegator'
 require 'delayed/launcher/events'
 require 'delayed/launcher/single'
 require 'delayed/launcher/cluster'
@@ -46,7 +46,7 @@ module Delayed
         options[:log_dir] ||= "#{Delayed.root}/log"
 
         @options = options
-        @logger = SafeLogger.new(options[:log_dir])
+        @logger = LoggerDelegator.new(options[:log_dir])
         @events = Events.new
         # @status = :run
       end
