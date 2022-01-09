@@ -167,6 +167,11 @@ module Delayed
       end
     end
 
+    def begin_restart(sync = false)
+      stop # notify_safely(RESTART_COMMAND)
+      @thread.join if @thread && sync
+    end
+
     def stop
       @exit = true
     end
