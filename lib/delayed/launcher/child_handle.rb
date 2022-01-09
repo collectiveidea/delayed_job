@@ -7,7 +7,7 @@ module Delayed
     # Delayed Job parent process. It contains information about the process and
     # its health, and it exposes methods to control the process via IPC. It does not
     # include the actual logic executed by the child worker process itself.
-    # For that, see `Delayed::Launcher::ChildProcess`.
+    # For that, see `Delayed::Launcher::Child`.
     #
     # Code in this class is adapted from Puma (https://puma.io/)
     # See: `Puma::Cluster::WorkerHandle`

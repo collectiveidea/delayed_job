@@ -141,12 +141,12 @@ module Delayed
         Delayed::Worker.before_fork
 
         pid = fork do
-          new_child = ChildProcess.new(idx,
-                                       parent,
-                                       @options,
-                                       { check_pipe: @check_pipe,
-                                         child_write: @child_write },
-                                       @worker)
+          new_child = Child.new(idx,
+                                parent,
+                                @options,
+                                { check_pipe: @check_pipe,
+                                  child_write: @child_write },
+                                @worker)
           new_child.run
         end
 
