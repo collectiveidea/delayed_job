@@ -126,7 +126,7 @@ module Delayed
                   handle.term unless handle.term?
                 when 'p'
                   handle.ping!
-                  events.fire(:ping, w)
+                  events.fire(:ping, handle)
                   if !booted && @child_handles.all? { |h| h.last_status == :ok }
                     events.fire(:on_booted)
                     booted = true
