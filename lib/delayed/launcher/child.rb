@@ -82,7 +82,7 @@ module Delayed
             Delayed.set_thread_name 'stat pld'
             while true
               begin
-                io << "p#{Process.pid}"
+                io << "p#{Process.pid}\n"
               rescue IOError
                 Delayed.purge_interrupt_queue
                 break
