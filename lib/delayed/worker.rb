@@ -273,7 +273,7 @@ module Delayed
       unless level.is_a?(String)
         level = Logger::Severity.constants.detect { |i| Logger::Severity.const_get(i) == level }.to_s.downcase
       end
-      logger.send(level, "#{Time.now.strftime('%FT%T%z')}: #{text}")
+      logger.send(level, text)
     end
 
     def max_attempts(job)
