@@ -279,7 +279,7 @@ module Delayed
         return unless refork_delay
         events.register(:ping) do |handle|
           break unless handle.index == 0 && handle.phase == 0
-          time_exceeded = refork_delay && Time.now.to_i > @last_phased_restart + refork_delay
+          time_exceeded = refork_delay && Time.now > @last_phased_restart + refork_delay
           break unless time_exceeded
           fork_child_zero!
         end
