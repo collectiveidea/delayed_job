@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'delayed/launcher/loggable'
+require 'delayed/launcher/log_queue'
 require 'delayed/launcher/events'
 require 'delayed/launcher/single'
 require 'delayed/launcher/cluster'
@@ -15,14 +15,13 @@ module Delayed
     # Code in this class is adapted from Puma (https://puma.io/)
     # See: `Puma::Launcher`
     class Forking
-      include Loggable
-
       DEFAULT_WORKER_CHECK_INTERVAL = 5
       DEFAULT_WORKER_TIMEOUT = 60
       DEFAULT_WORKER_SHUTDOWN_TIMEOUT = 30
       DEFAULT_WORKER_REFORK_DELAY = 900
 
-      attr_reader :events
+      attr_reader :logger,
+                  :events
 
       def initialize(options)
 
@@ -47,6 +46,7 @@ module Delayed
         options[:log_dir] ||= "#{Delayed.root}/log"
 
         @options = options
+        @logger = LogQueue.new(options[:log_dir])
         @events = Events.new
         # @status = :run
       end

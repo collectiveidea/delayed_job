@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require 'delayed/launcher/loggable'
-
 module Delayed
   module Launcher
 
@@ -14,8 +12,6 @@ module Delayed
     # Code in this class is adapted from Puma (https://puma.io/)
     # See: `Puma::Cluster::Worker`
     class Child
-      include Loggable
-
       attr_reader :index,
                   :parent
 
@@ -103,7 +99,9 @@ module Delayed
         @child_write.close
       end
 
-      private
+      delegate :logger, to: :parent
+
+    private
 
       def start_worker
         Delayed::Worker.new(@options).start

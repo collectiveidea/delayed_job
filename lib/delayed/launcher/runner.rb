@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require 'delayed/launcher/loggable'
-
 module Delayed
   module Launcher
 
@@ -11,8 +9,6 @@ module Delayed
     # Code in this class is adapted from Puma (https://puma.io/)
     # See: `Puma::Runner`
     class Runner
-      include Loggable
-
       attr_reader :launcher,
                   :process_prefix,
                   :process_identifier
@@ -24,9 +20,11 @@ module Delayed
         @options = options
       end
 
-    private
+      delegate :events,
+               :logger,
+               to: :launcher
 
-      delegate :events, to: :launcher
+    private
 
       def check_fork_supported!
         return if Delayed.forkable?
