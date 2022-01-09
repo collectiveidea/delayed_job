@@ -87,7 +87,7 @@ module Delayed
         setup_logger
         worker = Delayed::Worker.new(options)
         worker.name_prefix = "#{worker_name} "
-        worker.start
+        worker.start(false)
       rescue => e
         STDERR.puts e.message
         STDERR.puts e.backtrace

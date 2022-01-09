@@ -139,6 +139,8 @@ module Delayed
       # Reset lifecycle on the offhand chance that something lazily
       # triggered its creation before all plugins had been registered.
       self.class.setup_lifecycle
+
+      setup_signals
     end
 
     # Every worker has a unique name which by default is the pid of the process. There are some
@@ -154,35 +156,14 @@ module Delayed
     # Setting the name to nil will reset the default worker name
     attr_writer :name
 
-    def start # rubocop:disable CyclomaticComplexity, PerceivedComplexity
-      setup_signals
-
-      say 'Starting job worker'
-
-      self.class.lifecycle.run_callbacks(:execute, self) do
-        loop do
-          self.class.lifecycle.run_callbacks(:loop, self) do
-            @realtime = Benchmark.realtime do
-              @result = work_off
-            end
-          end
-
-          count = @result[0] + @result[1]
-
-          if count.zero?
-            if self.class.exit_on_complete
-              say 'No more jobs available. Exiting'
-              break
-            elsif !stop?
-              sleep(self.class.sleep_delay)
-              reload!
-            end
-          else
-            say format("#{count} jobs processed at %.4f j/s, %d failed", count / @realtime, @result.last)
-          end
-
-          break if stop?
+    def start(background = false)
+      if background
+        @thread = Thread.new do
+          Delayed.set_thread_name 'worker'
+          run_loop
         end
+      else
+        run_loop
       end
     end
 
@@ -285,6 +266,36 @@ module Delayed
     end
 
   protected
+
+    def run_loop # rubocop:disable CyclomaticComplexity, PerceivedComplexity
+      say 'Starting job worker'
+
+      self.class.lifecycle.run_callbacks(:execute, self) do
+        loop do
+          self.class.lifecycle.run_callbacks(:loop, self) do
+            @realtime = Benchmark.realtime do
+              @result = work_off
+            end
+          end
+
+          count = @result[0] + @result[1]
+
+          if count.zero?
+            if self.class.exit_on_complete
+              say 'No more jobs available. Exiting'
+              break
+            elsif !stop?
+              sleep(self.class.sleep_delay)
+              reload!
+            end
+          else
+            say format("#{count} jobs processed at %.4f j/s, %d failed", count / @realtime, @result.last)
+          end
+
+          break if stop?
+        end
+      end
+    end
 
     def setup_signals
       return unless @daemonized

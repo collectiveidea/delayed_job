@@ -48,7 +48,7 @@ module Delayed
         # @launcher.config.run_hooks :before_child_boot, index, @launcher.events
 
         begin
-          worker = @worker ||= start_worker
+          worker = @worker ||= create_worker
         rescue Exception => e
           logger.warn '! Unable to start worker'
           logger.warn e.backtrace[0]
@@ -75,7 +75,7 @@ module Delayed
         end
 
         while restart_worker.pop
-          worker_thread = worker.run
+          worker_thread = worker.start(true)
           stat_thread ||= Thread.new(@child_write) do |io|
             Delayed.set_thread_name 'stat pld'
             while true
@@ -103,8 +103,8 @@ module Delayed
 
     private
 
-      def start_worker
-        Delayed::Worker.new(@options).start
+      def create_worker
+        Delayed::Worker.new(@options)
       end
 
       def setup_child_zero(worker, restart_worker)
