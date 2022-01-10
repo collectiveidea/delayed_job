@@ -128,6 +128,7 @@ module Delayed
     end
 
     def initialize(options = {})
+      @daemonized = options.delete(:daemonized)
       @quiet = options.key?(:quiet) ? options[:quiet] : true
       @failed_reserve_count = 0
 
@@ -138,6 +139,8 @@ module Delayed
       # Reset lifecycle on the offhand chance that something lazily
       # triggered its creation before all plugins had been registered.
       self.class.setup_lifecycle
+
+      setup_signals
     end
 
     # Every worker has a unique name which by default is the pid of the process. There are some
@@ -153,50 +156,25 @@ module Delayed
     # Setting the name to nil will reset the default worker name
     attr_writer :name
 
-    def start # rubocop:disable CyclomaticComplexity, PerceivedComplexity
-      trap('TERM') do
-        Thread.new { say 'Exiting...' }
-        stop
-        raise SignalException, 'TERM' if self.class.raise_signal_exceptions
-      end
-
-      trap('INT') do
-        Thread.new { say 'Exiting...' }
-        stop
-        raise SignalException, 'INT' if self.class.raise_signal_exceptions && self.class.raise_signal_exceptions != :term
-      end
-
-      say 'Starting job worker'
-
-      self.class.lifecycle.run_callbacks(:execute, self) do
-        loop do
-          self.class.lifecycle.run_callbacks(:loop, self) do
-            @realtime = Benchmark.realtime do
-              @result = work_off
-            end
-          end
-
-          count = @result[0] + @result[1]
-
-          if count.zero?
-            if self.class.exit_on_complete
-              say 'No more jobs available. Exiting'
-              break
-            elsif !stop?
-              sleep(self.class.sleep_delay)
-              reload!
-            end
-          else
-            say format("#{count} jobs processed at %.4f j/s, %d failed", count / @realtime, @result.last)
-          end
-
-          break if stop?
+    def start(background = false)
+      if background
+        @thread = Thread.new do
+          Delayed.set_thread_name 'worker'
+          run_loop
         end
+      else
+        run_loop
       end
     end
 
-    def stop
+    def begin_restart(sync = false)
+      stop # notify_safely(RESTART_COMMAND)
+      @thread.join if @thread && sync
+    end
+
+    def stop(sync = false)
       @exit = true
+      @thread.join if @thread && sync
     end
 
     def stop?
@@ -282,7 +260,7 @@ module Delayed
       unless level.is_a?(String)
         level = Logger::Severity.constants.detect { |i| Logger::Severity.const_get(i) == level }.to_s.downcase
       end
-      logger.send(level, "#{Time.now.strftime('%FT%T%z')}: #{text}")
+      logger.send(level, text)
     end
 
     def max_attempts(job)
@@ -294,6 +272,52 @@ module Delayed
     end
 
   protected
+
+    def run_loop # rubocop:disable CyclomaticComplexity, PerceivedComplexity
+      say 'Starting job worker'
+
+      self.class.lifecycle.run_callbacks(:execute, self) do
+        loop do
+          self.class.lifecycle.run_callbacks(:loop, self) do
+            @realtime = Benchmark.realtime do
+              @result = work_off
+            end
+          end
+
+          count = @result[0] + @result[1]
+
+          if count.zero?
+            if self.class.exit_on_complete
+              say 'No more jobs available. Exiting'
+              break
+            elsif !stop?
+              sleep(self.class.sleep_delay)
+              reload!
+            end
+          else
+            say format("#{count} jobs processed at %.4f j/s, %d failed", count / @realtime, @result.last)
+          end
+
+          break if stop?
+        end
+      end
+    end
+
+    def setup_signals
+      return unless @daemonized
+
+      trap('TERM') do
+        Thread.new { say 'Exiting...' }
+        stop
+        raise SignalException, 'TERM' if self.class.raise_signal_exceptions
+      end
+
+      trap('INT') do
+        Thread.new { say 'Exiting...' }
+        stop
+        raise SignalException, 'INT' if self.class.raise_signal_exceptions && self.class.raise_signal_exceptions != :term
+      end
+    end
 
     def say_queue(queue)
       " (queue=#{queue})" if queue
