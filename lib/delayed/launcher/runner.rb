@@ -65,14 +65,6 @@ module Delayed
       def get_name(label)
         "delayed_job#{".#{label}" if label}"
       end
-
-      def raise_sigterm
-        Delayed::Worker.raise_signal_exceptions
-      end
-
-      def raise_sigint
-        Delayed::Worker.raise_signal_exceptions && Delayed::Worker.raise_signal_exceptions != :term
-      end
     end
   end
 end

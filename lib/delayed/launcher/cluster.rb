@@ -270,7 +270,7 @@ module Delayed
             stop_childs
             stop
             events.fire(:on_stopped)
-            raise(SignalException, 'SIGTERM') if raise_sigterm
+            raise(SignalException, 'SIGTERM') if Delayed::Worker.raise_signal_exceptions
             exit 0 # Clean exit, workers were stopped
           end
         end

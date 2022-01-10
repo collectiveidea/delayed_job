@@ -150,8 +150,8 @@ module Delayed
 
       def setup_signal_term
         Signal.trap('SIGTERM') do
-          stop
-          raise(SignalException, 'SIGTERM') if raise_sigterm
+          do_graceful_stop
+          raise(SignalException, 'SIGTERM') if Delayed::Worker.raise_signal_exceptions
         end
       rescue Exception # rubocop:disable Lint/RescueException
         logger.info '*** SIGTERM not implemented, signal based gracefully stopping unavailable!'
@@ -160,18 +160,9 @@ module Delayed
       def setup_signal_int
         Signal.trap('SIGINT') do
           stop
-          raise(SignalException, 'SIGINT') if raise_sigint
         end
       rescue Exception # rubocop:disable Lint/RescueException
         logger.info '*** SIGINT not implemented, signal based gracefully stopping unavailable!'
-      end
-
-      def raise_sigterm
-        Delayed::Worker.raise_signal_exceptions
-      end
-
-      def raise_sigint
-        Delayed::Worker.raise_signal_exceptions && Delayed::Worker.raise_signal_exceptions != :term
       end
     end
   end

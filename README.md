@@ -524,7 +524,13 @@ Delayed::Worker.delay_jobs = ->(job) {
 }
 ```
 
-You may need to raise exceptions on SIGTERM signals, `Delayed::Worker.raise_signal_exceptions = :term` will cause the worker to raise a `SignalException` causing the running job to abort and be unlocked, which makes the job available to other workers. The default for this option is false.
+In Daemonized mode, `Delayed::Worker.raise_signal_exceptions = :term`
+will cause the worker to raise a `SignalException` causing the running job to abort and be unlocked,
+which makes the job available to other workers.
+The default for this option is false.
+
+In Forking mode, `Delayed::Worker.raise_signal_exceptions` set to any truthy
+value will raise an exception only on `SIGTERM`. Exceptions are not raised on `SIGINT`.
 
 Here is an example of changing job parameters in Rails:
 
