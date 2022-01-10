@@ -37,7 +37,7 @@ module Delayed
       end
 
       def stop
-        @worker.stop if @worker
+        @worker.stop(false) if @worker
       end
 
       def stop_blocked
