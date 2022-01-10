@@ -172,8 +172,9 @@ module Delayed
       @thread.join if @thread && sync
     end
 
-    def stop
+    def stop(sync = false)
       @exit = true
+      @thread.join if @thread && sync
     end
 
     def stop?

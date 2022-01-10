@@ -48,45 +48,74 @@ module Delayed
         @options = options
         @logger = LoggerDelegator.new(options[:log_dir])
         @events = Events.new
-        # @status = :run
+        @status = :run
       end
 
       def run
+        previous_env = nil
         @runner = build_runner
         setup_signals
         @runner.run
+        do_run_finished(previous_env)
       end
 
       # Begin graceful shutdown of the workers
       def stop
-        # @status = :stop
+        @status = :stop
         @runner.stop
       end
 
-      # Begin forced shutdow nof the workers
+      # Begin forced shutdown of the workers
       def halt
-        # @status = :halt
+        @status = :halt
         @runner.halt
       end
 
       # Begin restart of the workers
-      # def restart
-      #   @status = :restart
-      #   @runner.restart
-      # end
-      #
+      def restart
+        @status = :restart
+        @runner.restart
+      end
+
       # # Begin phased restart of the workers
       def phased_restart
         if @runner.respond_to?(:phased_restart)
           @runner.phased_restart
         else
-          logger.warn 'phased_restart called but not available.'
-          # logger.warn 'phased_restart called but not available, restarting normally.'
-          # restart
+          logger.warn 'phased_restart called but not available, restarting normally.'
+          restart
         end
       end
 
     private
+
+      def do_run_finished(previous_env)
+        case @status
+        when :halt
+          do_forceful_stop
+        when :run, :stop
+          do_graceful_stop
+        when :restart
+          do_restart(previous_env)
+        end
+      end
+
+      def do_forceful_stop
+        logger.info '* Stopping immediately!'
+      end
+
+      def do_graceful_stop
+        @events.fire(:on_stopped)
+        @runner.stop_blocked
+      end
+
+      def do_restart(previous_env)
+        logger.info '* Restarting...'
+        logger.info '--- RESTART NOT YET SUPPORTED, EXITING ---'
+        # ENV.replace(previous_env)
+        # @runner.stop_control
+        # restart!
+      end
 
       def build_runner
         if @options[:pools]
@@ -94,22 +123,23 @@ module Delayed
         elsif @options[:worker_count] > 1
           Cluster.new(self, @options)
         else
+          # TODO: consider clustered mode with one worker for scaling
           Single.new(self, @options)
         end
       end
 
       def setup_signals
-        # setup_signal_restart
+        setup_signal_restart
         setup_signal_phased_restart
         setup_signal_term
         setup_signal_int
       end
 
-      # def setup_signal_restart
-      #   Signal.trap('SIGUSR2') { restart }
-      # rescue Exception # rubocop:disable Lint/RescueException
-      #   logger.info '*** SIGUSR2 not implemented, signal based restart unavailable!'
-      # end
+      def setup_signal_restart
+        Signal.trap('SIGUSR2') { restart }
+      rescue Exception # rubocop:disable Lint/RescueException
+        logger.info '*** SIGUSR2 not implemented, signal based restart unavailable!'
+      end
 
       def setup_signal_phased_restart
         return if Delayed.jruby?

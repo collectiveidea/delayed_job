@@ -54,6 +54,12 @@ module Delayed
         wakeup!
       end
 
+      def stop_blocked
+        @status = :stop if @status == :run
+        wakeup!
+        Process.waitall
+      end
+
       def halt
         @status = :halt
         wakeup!
@@ -212,8 +218,8 @@ module Delayed
       end
 
       def setup_signals
-        setup_signal_shutdown('SIGINT')
-        setup_signal_shutdown('SIGTERM')
+        setup_signal_int
+        setup_signal_term
         setup_signal_wakeup
         setup_signal_increment
         setup_signal_decrement
@@ -243,15 +249,19 @@ module Delayed
         Signal.trap('SIGURG') { fork_child_zero! }
       end
 
+      def setup_signal_int
+        Signal.trap('SIGINT') { stop }
+      end
+
       # Trapped signals are forwarded child processes.
       # Hence it is not necessary to explicitly shutdown childs;
       # we only need to stop the run loop.
-      def setup_signal_shutdown(signal)
+      def setup_signal_term
         parent_pid = Process.pid
 
-        Signal.trap(signal) do
-          # The child installs their own SIGTERM when booted.
-          # Until then, this is run by the child and the child
+        Signal.trap 'SIGTERM' do
+          # The worker installs their own SIGTERM when booted.
+          # Until then, this is run by the worker and the worker
           # should just exit if they get it.
           if Process.pid != parent_pid
             logger.info 'Early termination of worker'
@@ -260,8 +270,8 @@ module Delayed
             stop_childs
             stop
             events.fire(:on_stopped)
-            raise(SignalException, signal) if (signal == 'SIGTERM' ? raise_sigterm : raise_sigint)
-            exit 0 # Clean exit, childs were stopped
+            raise(SignalException, 'SIGTERM') if raise_sigterm
+            exit 0 # Clean exit, workers were stopped
           end
         end
       end
