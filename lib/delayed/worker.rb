@@ -22,7 +22,7 @@ module Delayed
     cattr_accessor :min_priority, :max_priority, :max_attempts, :max_run_time,
                    :default_priority, :sleep_delay, :logger, :delay_jobs, :queues,
                    :read_ahead, :plugins, :destroy_failed_jobs, :exit_on_complete,
-                   :default_log_level
+                   :default_log_level, :exit_after
 
     # Named queue into which jobs are enqueued by default
     cattr_accessor :default_queue_name
@@ -131,7 +131,7 @@ module Delayed
       @quiet = options.key?(:quiet) ? options[:quiet] : true
       @failed_reserve_count = 0
 
-      [:min_priority, :max_priority, :sleep_delay, :read_ahead, :queues, :exit_on_complete].each do |option|
+      [:min_priority, :max_priority, :sleep_delay, :read_ahead, :queues, :exit_on_complete, :exit_after].each do |option|
         self.class.send("#{option}=", options[option]) if options.key?(option)
       end
 
@@ -190,6 +190,7 @@ module Delayed
             say format("#{count} jobs processed at %.4f j/s, %d failed", count / @realtime, @result.last)
           end
 
+          break if self.class.exit_after and @total_jobs_run >= self.class.exit_after
           break if stop?
         end
       end
@@ -208,6 +209,7 @@ module Delayed
     def work_off(num = 100)
       success = 0
       failure = 0
+      @total_jobs_run ||= 0
 
       num.times do
         case reserve_and_run_one_job
@@ -218,6 +220,8 @@ module Delayed
         else
           break # leave if no work could be done
         end
+        @total_jobs_run += 1
+        break if self.class.exit_after and @total_jobs_run >= self.class.exit_after
         break if stop? # leave if we're exiting
       end
 

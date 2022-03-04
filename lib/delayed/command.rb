@@ -80,6 +80,9 @@ module Delayed
         opt.on('--daemon-options a, b, c', Array, 'options to be passed through to daemons gem') do |daemon_options|
           @daemon_options = daemon_options
         end
+        opt.on('--exit-after N', 'Exit after executing N jobs.') do |n|
+          @options[:exit_after] = n.to_i
+        end
       end
       @args = opts.parse!(args) + (@daemon_options || [])
     end

@@ -258,6 +258,10 @@ You can then do the following:
     # or to run in the foreground
     RAILS_ENV=production script/delayed_job run --exit-on-complete
 
+	# Exit after a specific number of jobs, irrespective of success or failure.
+	script/delayed_job start --exit-after=1
+	env EXIT_AFTER=4 rake jobs:work
+
 **Rails 4:** *replace script/delayed_job with bin/delayed_job*
 
 Workers can be running on any computer, as long as they have access to the
