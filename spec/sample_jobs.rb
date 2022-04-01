@@ -7,7 +7,7 @@ end
 
 class SimpleJob
   cattr_accessor :runs
-  @runs = 0
+  @@runs = 0
   def perform
     self.class.runs += 1
   end
@@ -21,7 +21,7 @@ end
 
 class ErrorJob
   cattr_accessor :runs
-  @runs = 0
+  @@runs = 0
   def perform
     # Deliberately a non-StandardError to exercise the worker's Exception handling
     raise Exception, 'did not work' # rubocop:disable Lint/RaiseException
@@ -31,7 +31,7 @@ end
 CustomRescheduleJob = Struct.new(:offset)
 class CustomRescheduleJob
   cattr_accessor :runs
-  @runs = 0
+  @@runs = 0
   def perform
     raise 'did not work'
   end
@@ -67,7 +67,7 @@ end
 module M
   class ModuleJob
     cattr_accessor :runs
-    @runs = 0
+    @@runs = 0
     def perform
       self.class.runs += 1
     end
