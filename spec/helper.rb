@@ -47,8 +47,21 @@ end
 
 Delayed::Worker.backend = :test
 
-# Add this directory so the ActiveSupport autoloading works
-ActiveSupport::Dependencies.autoload_paths << File.dirname(__FILE__)
+if ActiveSupport::VERSION::MAJOR < 7
+  require 'active_support/dependencies'
+
+  # Add this directory so the ActiveSupport autoloading works
+  ActiveSupport::Dependencies.autoload_paths << File.dirname(__FILE__)
+else
+  # Rails 7 dropped classic dependency auto-loading. This does a basic
+  # zeitwerk setup to test against zeitwerk directly as the Rails zeitwerk
+  # setup is intertwined in the application boot process.
+  require 'zeitwerk'
+
+  loader = Zeitwerk::Loader.new
+  loader.push_dir File.dirname(__FILE__)
+  loader.setup
+end
 
 # Used to test interactions between DJ and an ORM
 ActiveRecord::Base.establish_connection :adapter => 'sqlite3', :database => ':memory:'
