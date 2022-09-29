@@ -1,3 +1,7 @@
+4.1.11 - 2022-09-28
+===================
+* Fix missing require for Rails 7.0.3+
+
 4.1.10 - 2022-01-17
 ===================
 * Support for Rails 7.0. NOTE: If you are using Delayed Job independent of Rails, Active Support 7 has dropped classic dependency autoloading. You will need to add and setup zeitwerk for autoloading to continue working in ActiveSupport 7.
