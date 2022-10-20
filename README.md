@@ -1,17 +1,16 @@
 **If you're viewing this at https://github.com/collectiveidea/delayed_job,
 you're reading the documentation for the master branch.
 [View documentation for the latest release
-(4.1.8).](https://github.com/collectiveidea/delayed_job/tree/v4.1.8)**
+(4.1.11).](https://github.com/collectiveidea/delayed_job/tree/v4.1.11)**
 
 Delayed::Job
 ============
 [![Gem Version](https://badge.fury.io/rb/delayed_job.svg)][gem]
-[![Build Status](https://travis-ci.org/collectiveidea/delayed_job.svg?branch=master)][travis]
+![CI](https://github.com/collectiveidea/delayed_job/workflows/CI/badge.svg)
 [![Code Climate](https://codeclimate.com/github/collectiveidea/delayed_job.svg)][codeclimate]
 [![Coverage Status](https://coveralls.io/repos/collectiveidea/delayed_job/badge.svg?branch=master)][coveralls]
 
 [gem]: https://rubygems.org/gems/delayed_job
-[travis]: https://travis-ci.org/collectiveidea/delayed_job
 [codeclimate]: https://codeclimate.com/github/collectiveidea/delayed_job
 [coveralls]: https://coveralls.io/r/collectiveidea/delayed_job
 
@@ -168,9 +167,10 @@ end
 
 If you ever want to call a `handle_asynchronously`'d method without Delayed Job, for instance while debugging something at the console, just add `_without_delay` to the method name. For instance, if your original method was `foo`, then call `foo_without_delay`.
 
-Rails 3 Mailers
-===============
-Due to how mailers are implemented in Rails 3, we had to do a little work around to get delayed_job to work.
+Rails Mailers
+=============
+Delayed Job uses special syntax for Rails Mailers.
+Do not call the `.deliver` method when using `.delay`.
 
 ```ruby
 # without delayed_job
@@ -179,12 +179,16 @@ Notifier.signup(@user).deliver
 # with delayed_job
 Notifier.delay.signup(@user)
 
-# with delayed_job running at a specific time
+# delayed_job running at a specific time
 Notifier.delay(run_at: 5.minutes.from_now).signup(@user)
+
+# when using parameters, the .with method must be called before the .delay method
+Notifier.with(foo: 1, bar: 2).delay.signup(@user)
 ```
 
-Remove the `.deliver` method to make it work. It's not ideal, but it's the best
-we could do for now.
+You may also wish to consider using
+[Active Job with Action Mailer](https://edgeguides.rubyonrails.org/active_job_basics.html#action-mailer)
+which provides convenient `.deliver_later` syntax that forwards to Delayed Job under-the-hood.
 
 Named Queues
 ============

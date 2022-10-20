@@ -1,5 +1,6 @@
 require 'timeout'
 require 'active_support/dependencies'
+require 'active_support/core_ext/kernel/reporting'
 require 'active_support/core_ext/numeric/time'
 require 'active_support/core_ext/class/attribute_accessors'
 require 'active_support/hash_with_indifferent_access'

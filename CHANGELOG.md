@@ -1,29 +1,42 @@
+4.1.11 - 2022-09-28
+===================
+* Fix missing require for Rails 7.0.3+
+
+4.1.10 - 2022-01-17
+===================
+* Support for Rails 7.0. NOTE: If you are using Delayed Job independent of Rails, Active Support 7 has dropped classic dependency autoloading. You will need to add and setup zeitwerk for autoloading to continue working in ActiveSupport 7.
+
+4.1.9 - 2020-12-09
+==================
+* Support for Rails 6.1
+* Add support for parameterized mailers via delay call (#1121)
+
 4.1.8 - 2019-08-16
-=================
+==================
 * Support for Rails 6.0.0
 
 4.1.7 - 2019-06-20
-=================
+==================
 * Fix loading Delayed::PerformableMailer when ActionMailer isn't loaded yet
 
 4.1.6 - 2019-06-19
-=================
+==================
 * Properly initialize ActionMailer outside railties (#1077)
 * Fix Psych load_tags support (#1093)
 * Replace REMOVED with FAILED in log message (#1048)
 * Misc doc updates (#1052, #1074, #1064, #1063)
 
 4.1.5 - 2018-04-13
-=================
+==================
 * Allow Rails 5.2
 
 4.1.4 - 2017-12-29
-=================
+==================
 * Use `yaml_tag` instead of deprecated `yaml_as` (#996)
 * Support ruby 2.5.0
 
 4.1.3 - 2017-05-26
-=================
+==================
 * Don't mutate the options hash (#877)
 * Log an error message when a deserialization error occurs (#894)
 * Adding the queue name to the log output (#917)

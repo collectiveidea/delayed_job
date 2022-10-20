@@ -1,13 +1,19 @@
 require 'simplecov'
-require 'coveralls'
+require 'simplecov-lcov'
 
-SimpleCov.formatters = [SimpleCov::Formatter::HTMLFormatter, Coveralls::SimpleCov::Formatter]
+SimpleCov::Formatter::LcovFormatter.config do |c|
+  c.report_with_single_file = true
+  c.single_report_path = 'coverage/lcov.info'
+end
+SimpleCov.formatters = SimpleCov::Formatter::MultiFormatter.new(
+  [
+    SimpleCov::Formatter::HTMLFormatter,
+    SimpleCov::Formatter::LcovFormatter
+  ]
+)
 
 SimpleCov.start do
   add_filter '/spec/'
-  # Each version of ruby and version of rails test different things
-  # This should probably just be removed.
-  minimum_coverage(85.0)
 end
 
 require 'logger'
@@ -41,8 +47,21 @@ end
 
 Delayed::Worker.backend = :test
 
-# Add this directory so the ActiveSupport autoloading works
-ActiveSupport::Dependencies.autoload_paths << File.dirname(__FILE__)
+if ActiveSupport::VERSION::MAJOR < 7
+  require 'active_support/dependencies'
+
+  # Add this directory so the ActiveSupport autoloading works
+  ActiveSupport::Dependencies.autoload_paths << File.dirname(__FILE__)
+else
+  # Rails 7 dropped classic dependency auto-loading. This does a basic
+  # zeitwerk setup to test against zeitwerk directly as the Rails zeitwerk
+  # setup is intertwined in the application boot process.
+  require 'zeitwerk'
+
+  loader = Zeitwerk::Loader.new
+  loader.push_dir File.dirname(__FILE__)
+  loader.setup
+end
 
 # Used to test interactions between DJ and an ORM
 ActiveRecord::Base.establish_connection :adapter => 'sqlite3', :database => ':memory:'
