@@ -88,6 +88,40 @@ describe Delayed::Worker do
     end
   end
 
+  context 'worker job timeout' do
+    it 'fails the job' do
+      TimeoutJob = Struct.new(:max_run_time) do
+        def perform
+          sleep(10)
+        end
+      end
+
+      job = Delayed::Job.create(:payload_object => TimeoutJob.new(1))
+
+      Delayed::Worker.new.run(job)
+
+      expect(job.error).to be_instance_of(Delayed::WorkerTimeout)
+    end
+
+    context 'when the job catches errors' do
+      it 'fails the job' do
+        TimeoutJobWithRescue = Struct.new(:max_run_time) do
+          def perform
+            sleep(10)
+          rescue StandardError => e
+            puts "Caught error #{e.class}: #{e.message}"
+          end
+        end
+
+        job = Delayed::Job.create(:payload_object => TimeoutJobWithRescue.new(1))
+
+        Delayed::Worker.new.run(job)
+
+        expect(job.error).to be_instance_of(Delayed::WorkerTimeout)
+      end
+    end
+  end
+
   context 'worker job reservation' do
     before do
       Delayed::Worker.exit_on_complete = true

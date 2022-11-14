@@ -228,7 +228,7 @@ module Delayed
     def run(job)
       job_say job, 'RUNNING'
       runtime = Benchmark.realtime do
-        Timeout.timeout(max_run_time(job).to_i, WorkerTimeout) { job.invoke_job }
+        with_timeout(job) { job.invoke_job }
         job.destroy
       end
       job_say job, format('COMPLETED after %.4f', runtime)
@@ -241,6 +241,12 @@ module Delayed
     rescue Exception => error # rubocop:disable RescueException
       self.class.lifecycle.run_callbacks(:error, self, job) { handle_failed_job(job, error) }
       return false # work failed
+    end
+
+    def with_timeout(job, &block)
+      Timeout.timeout(max_run_time(job).to_i, &block)
+    rescue Timeout::Error => timeout_error
+      raise Delayed::WorkerTimeout.new(job, timeout_error)
     end
 
     # Reschedule the job in the future (when a job fails).
