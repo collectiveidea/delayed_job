@@ -12,13 +12,39 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ruby: [2.5, 2.6, 2.7, jruby, jruby-head, ruby-head]
+        ruby: ['2.7', '3.0', '3.1', '3.2', jruby-head, ruby-head]
         rails_version:
-          - '5.2.0'
           - '6.0.0'
-          - '6.1.0.rc2'
+          - '6.1.0'
+          - '7.0.0'
           - 'edge'
         include:
+          # Rails 5.2
+          - ruby: 2.6
+            rails_version: '5.2.0'
+          - ruby: 2.7
+            rails_version: '5.2.0'
+          - ruby: jruby-9.2
+            rails_version: '5.2.0'
+
+          # Ruby 2.6
+          - ruby: 2.6
+            rails_version: '6.0.0'
+          - ruby: 2.6
+            rails_version: '6.1.0'
+
+          # jruby-9.2
+          - ruby: jruby-9.2
+            rails_version: '6.0.0'
+          - ruby: jruby-9.2
+            rails_version: '6.1.0'
+
+          # jruby-9.4
+          - ruby: jruby-9.4
+            rails_version: '7.0.0'
+          - ruby: jruby-9.4
+            rails_version: 'edge'
+
           #
           # The past
           #

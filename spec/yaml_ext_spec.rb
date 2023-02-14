@@ -25,7 +25,7 @@ describe 'YAML' do
   it 'autoloads the class of an anonymous struct' do
     expect do
       yaml = "--- !ruby/struct\nn: 1\n"
-      object = YAML.load(yaml)
+      object = load_with_delayed_visitor(yaml)
       expect(object).to be_kind_of(Struct)
       expect(object.n).to eq(1)
     end.not_to raise_error
