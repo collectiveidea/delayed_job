@@ -84,7 +84,7 @@ module Delayed
       @args = opts.parse!(args) + (@daemon_options || [])
     end
 
-    def daemonize # rubocop:disable PerceivedComplexity
+    def daemonize
       dir = @options[:pid_dir]
       FileUtils.mkdir_p(dir) unless File.exist?(dir)
 
