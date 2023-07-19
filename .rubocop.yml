@@ -13,7 +13,7 @@ AllCops:
     - 'Gemfile'
     - 'Rakefile'
     - 'delayed_job.gemspec'
-  TargetRubyVersion: 2.1
+  TargetRubyVersion: 2.3
 
 RedundantBlockCall:
   Enabled: false
@@ -144,3 +144,4 @@ YAMLLoad:
 
 ZeroLengthPredicate:
   Enabled: false
+
