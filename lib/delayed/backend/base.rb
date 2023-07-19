@@ -152,6 +152,10 @@ module Delayed
         save!
       end
 
+      def foo
+
+      end
+
     protected
 
       def set_default_run_at
