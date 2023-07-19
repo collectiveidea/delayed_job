@@ -70,7 +70,7 @@ module Delayed
       end
       alias_method :failed, :failed?
 
-      ParseObjectFromYaml = %r{\!ruby/\w+\:([^\s]+)} # rubocop:disable ConstantName
+      ParseObjectFromYaml = %r{\!ruby/\w+\:([^\s]+)}
 
       def name
         @name ||= payload_object.respond_to?(:display_name) ? payload_object.display_name : payload_object.class.name
@@ -95,7 +95,7 @@ module Delayed
             hook :before
             payload_object.perform
             hook :success
-          rescue Exception => e # rubocop:disable RescueException
+          rescue Exception => e
             hook :error, e
             raise e
           ensure
@@ -115,7 +115,7 @@ module Delayed
           method = payload_object.method(name)
           method.arity.zero? ? method.call : method.call(self, *args)
         end
-      rescue DeserializationError # rubocop:disable HandleExceptions
+      rescue DeserializationError
       end
 
       def reschedule_at

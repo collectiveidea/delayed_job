@@ -9,9 +9,9 @@ namespace :jobs do
     Delayed::Worker.new(@worker_options).start
   end
 
-  desc "Start a delayed_job worker."
+  desc 'Start a delayed_job worker.'
   task :ht_delayed_worker => :environment_options do
-    Delayed::Worker.new(@worker_options.merge(use_ht_mode: true)).start
+    Delayed::Worker.new(@worker_options.merge(:use_ht_mode => true)).start
   end
 
   desc 'Start a delayed_job worker and exit when all available jobs are complete.'

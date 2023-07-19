@@ -46,7 +46,7 @@ module Delayed
       self.read_ahead        = DEFAULT_READ_AHEAD
       self.archive_failed_jobs   = DEFAULT_ARCHIVE_FAILED_JOBS
       self.allow_delay_from_rake = DEFAULT_ALLOW_DELAY_FROM_RAKE
-      @lifecycle             = nil
+      @lifecycle = nil
     end
 
     # Add or remove plugins in this list before the worker is instantiated
@@ -146,7 +146,7 @@ module Delayed
     end
 
     def self.initialize_plugins
-      self.plugins.each { |klass| klass.new }
+      plugins.each { |klass| klass.new }
     end
 
     # Every worker has a unique name which by default is the pid of the process. There are some
