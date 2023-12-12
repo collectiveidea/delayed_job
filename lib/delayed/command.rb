@@ -71,6 +71,9 @@ module Delayed
         opt.on('--queue=queue', 'Specify which queue DJ must look up for jobs') do |queue|
           @options[:queues] = queue.split(',')
         end
+        opt.on('--exclude-specified-queues', 'Exclude looking up of queues specified by --queue[s]=') do
+          @options[:exclude_specified_queues] = true
+        end
         opt.on('--pool=queue1[,queue2][:worker_count]', 'Specify queues and number of workers for a worker pool') do |pool|
           parse_worker_pool(pool)
         end
@@ -119,6 +122,7 @@ module Delayed
     end
 
     def run_process(process_name, options = {})
+      options = normalize_worker_options(options)
       Delayed::Worker.before_fork
       Daemons.run_proc(process_name, :dir => options[:pid_dir], :dir_mode => :normal, :monitor => @monitor, :ARGV => @args) do |*_args|
         $0 = File.join(options[:prefix], process_name) if @options[:prefix]
@@ -151,6 +155,20 @@ module Delayed
       queues = ['*', '', nil].include?(queues) ? [] : queues.split(',')
       worker_count = (worker_count || 1).to_i rescue 1
       @worker_pools << [queues, worker_count]
+    end
+
+    def normalize_worker_options(options)
+      options = options.dup
+
+      # If we haven't explictly said that we do or don't want to exclude specified queues, treat a leading '!' as a negation indicator for that list of queues
+      # Otherwise, the ! is treated as part of the queue name itself
+      if options[:exclude_specified_queues].nil? && options[:queues].present?
+        queues = options[:queues].map {|queue| queue.sub(/^!/, '') } # remove leading ! from all queues even though we only expect the first to have one, this makes it easier to look for changes after
+        options[:exclude_specified_queues] = queues != options[:queues]
+        options[:queues] = queues
+      end
+
+      options
     end
 
     def root
