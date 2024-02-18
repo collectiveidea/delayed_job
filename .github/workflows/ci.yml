@@ -16,6 +16,7 @@ jobs:
         rails_version:
           - '6.1.0'
           - '7.0.0'
+          - '7.1.0'
           - 'edge'
         include:
           # Ruby 2.6
