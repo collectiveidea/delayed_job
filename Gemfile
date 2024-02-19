@@ -68,6 +68,14 @@ group :test do
     gem 'zeitwerk', :require => false
   end
   gem 'loofah', '< 2.21.0', :require => false if RUBY_VERSION < '2.6'
+
+  # TODO: remove these requires once activesupport has such dependencies
+  # in all versions of Rails we test against on Ruby >=3.4 (and head).
+  if RUBY_VERSION >= '3.4'
+    gem 'base64', :require => false
+    gem 'bigdecimal', :require => false
+    gem 'mutex_m', :require => false
+  end
 end
 
 group :rubocop do
