@@ -8,7 +8,8 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    name: Test (Ruby ${{ matrix.ruby }}, Rails ${{ matrix.rails_version }})
+    runs-on: ubuntu-${{ matrix.ubuntu }}
     strategy:
       fail-fast: false
       matrix:
@@ -18,32 +19,41 @@ jobs:
           - '7.0.0'
           - '7.1.0'
           - 'edge'
+        ubuntu: [latest]
         include:
           # Ruby 2.6
           - ruby: 2.6
             rails_version: '6.1.0'
+            ubuntu: '20.04'
 
           # Ruby 2.7
           - ruby: 2.7
             rails_version: '6.1.0'
+            ubuntu: '20.04'
           - ruby: 2.7
             rails_version: '7.0.0'
+            ubuntu: '20.04'
 
           # Ruby 3.0
           - ruby: '3.0'
             rails_version: '6.1.0'
+            ubuntu: '22.04'
           - ruby: '3.0'
             rails_version: '7.0.0'
+            ubuntu: '22.04'
 
           # jruby-9.2
           - ruby: jruby-9.2
             rails_version: '6.0.0'
+            ubuntu: '20.04'
           - ruby: jruby-9.2
             rails_version: '6.1.0'
+            ubuntu: '20.04'
 
           # jruby-9.4
           - ruby: jruby-9.4
             rails_version: '7.0.0'
+            ubuntu: '22.04'
 
           #
           # The past
@@ -51,18 +61,25 @@ jobs:
           # EOL Active Record
           - ruby: 2.2
             rails_version: '3.2.0'
+            ubuntu: '20.04'
           - ruby: 2.1
             rails_version: '4.1.0'
+            ubuntu: '20.04'
           - ruby: 2.4
             rails_version: '4.2.0'
+            ubuntu: '20.04'
           - ruby: 2.4
             rails_version: '5.0.0'
+            ubuntu: '20.04'
           - ruby: 2.5
             rails_version: '5.1.0'
+            ubuntu: '20.04'
           - ruby: 2.6
             rails_version: '5.2.0'
+            ubuntu: '20.04'
           - ruby: 2.7
             rails_version: '6.0.0'
+            ubuntu: '20.04'
 
     continue-on-error: ${{ matrix.rails_version == 'edge' || endsWith(matrix.ruby, 'head') }}
 
