@@ -19,11 +19,12 @@ module Delayed
     DEFAULT_QUEUES           = [].freeze
     DEFAULT_QUEUE_ATTRIBUTES = HashWithIndifferentAccess.new.freeze
     DEFAULT_READ_AHEAD       = 5
+    DEFAULT_FAIL_IF_PAYLOAD_NOT_FOUND = true
 
     cattr_accessor :min_priority, :max_priority, :max_attempts, :max_run_time,
                    :default_priority, :sleep_delay, :logger, :delay_jobs, :queues,
                    :read_ahead, :plugins, :destroy_failed_jobs, :exit_on_complete,
-                   :default_log_level
+                   :default_log_level, :fail_if_payload_not_found
 
     # Named queue into which jobs are enqueued by default
     cattr_accessor :default_queue_name
@@ -43,7 +44,8 @@ module Delayed
       self.queues            = DEFAULT_QUEUES
       self.queue_attributes  = DEFAULT_QUEUE_ATTRIBUTES
       self.read_ahead        = DEFAULT_READ_AHEAD
-      @lifecycle             = nil
+      self.fail_if_payload_not_found = DEFAULT_FAIL_IF_PAYLOAD_NOT_FOUND
+      @lifecycle = nil
     end
 
     # Add or remove plugins in this list before the worker is instantiated
@@ -233,14 +235,16 @@ module Delayed
       end
       job_say job, format('COMPLETED after %.4f', runtime)
       return true # did work
+    rescue PayloadNotFoundError => error
+      if self.class.fail_if_payload_not_found
+        handle_error_with_permanent_failure(job, error)
+      else
+        handle_error_with_reschedule(job, error)
+      end
     rescue DeserializationError => error
-      job_say job, "FAILED permanently with #{error.class.name}: #{error.message}", 'error'
-
-      job.error = error
-      failed(job)
+      handle_error_with_permanent_failure(job, error)
     rescue Exception => error # rubocop:disable RescueException
-      self.class.lifecycle.run_callbacks(:error, self, job) { handle_failed_job(job, error) }
-      return false # work failed
+      handle_error_with_reschedule(job, error)
     end
 
     # Reschedule the job in the future (when a job fails).
@@ -300,10 +304,20 @@ module Delayed
       " (queue=#{queue})" if queue
     end
 
-    def handle_failed_job(job, error)
+    def handle_error_with_permanent_failure(job, error)
       job.error = error
-      job_say job, "FAILED (#{job.attempts} prior attempts) with #{error.class.name}: #{error.message}", 'error'
-      reschedule(job)
+      job_say job, "FAILED permanently with #{error.class.name}: #{error.message}", 'error'
+      failed(job)
+      false
+    end
+
+    def handle_error_with_reschedule(job, error)
+      self.class.lifecycle.run_callbacks(:error, self, job) do
+        job.error = error
+        job_say job, "FAILED (#{job.attempts} prior attempts) with #{error.class.name}: #{error.message}", 'error'
+        reschedule(job)
+      end
+      false
     end
 
     # Run the next job we can get an exclusive lock on.
