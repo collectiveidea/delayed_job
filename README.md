@@ -221,6 +221,14 @@ Configured queue priorities can be overriden by passing priority to the delay me
 object.delay(:queue => 'high_priority', priority: 0).method
 ```
 
+You can also set a default `run_delay` which will affect the `run_at` of jobs within that queue:
+
+```ruby
+Delayed::Worker.queue_attributes = {
+  mailers: { run_delay: 10.seconds }
+}
+```
+
 You can start processes to only work certain queues with the `queue` and `queues`
 options defined below. Processes started without specifying a queue will run jobs
 from **any** queue. To effectively have a process that runs jobs where a queue is not
