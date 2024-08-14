@@ -127,6 +127,9 @@ SignalException:
 SpaceInsideHashLiteralBraces:
   EnforcedStyle: no_space
 
+Style/SpecialGlobalVars:
+  Enabled: false
+
 Style/SymbolArray:
   Enabled: false
 
