@@ -175,5 +175,20 @@ describe Delayed::Command do
 
       command.daemonize
     end
+
+    it 'should run with respect of exclude queues' do
+      command = Delayed::Command.new(['--pool=*:1', '--pool=lage,slow,buggy:2', '--exclude-specified-queues'])
+      expect(FileUtils).to receive(:mkdir_p).with('./tmp/pids').once
+
+      [
+        ['delayed_job.0', {:quiet => true, :pid_dir => './tmp/pids', :log_dir => './log', :queues => [], :exclude_specified_queues => true}],
+        ['delayed_job.1', {:quiet => true, :pid_dir => './tmp/pids', :log_dir => './log', :queues => %w[lage slow buggy], :exclude_specified_queues => true}],
+        ['delayed_job.2', {:quiet => true, :pid_dir => './tmp/pids', :log_dir => './log', :queues => %w[lage slow buggy], :exclude_specified_queues => true}]
+      ].each do |args|
+        expect(command).to receive(:run_process).with(*args).once
+      end
+
+      command.daemonize
+    end
   end
 end
