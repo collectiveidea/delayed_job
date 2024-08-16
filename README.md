@@ -56,10 +56,20 @@ Run `bundle install` to install the backend and delayed_job gems.
 The Active Record backend requires a jobs table. You can create that table by
 running the following command:
 
-    rails generate delayed_job:active_record
-    rake db:migrate
+```bash
+rails generate delayed_job:active_record
+rake db:migrate
+```
+
 
 For Rails 4.2+, see [below](#active-job)
+
+MongoDB users should run the following command to set up the `delayed_backend_mongoid` collection MongoDB, and generate the `delayed_job` executable. See the [delayed_job_mongoid](https://github.com/collectiveidea/delayed_job_mongoid) for more.
+
+```bash
+rails runner 'Delayed::Backend::Mongoid::Job.create_indexes'
+rails generate delayed_job
+```
 
 Development
 ===========
