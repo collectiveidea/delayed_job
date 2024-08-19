@@ -4,6 +4,11 @@ namespace :jobs do
     Delayed::Job.delete_all
   end
 
+  desc 'Clear jobs from a named queue.'
+  task :clear_queue, [:queue_name] => :environment do |_,args|  
+    Delayed::Job.where(queue: args[:queue_name]).destroy_all
+  end   
+
   desc 'Start a delayed_job worker.'
   task :work => :environment_options do
     Delayed::Worker.new(@worker_options).start
