@@ -483,6 +483,19 @@ Cleaning up
 ===========
 You can invoke `rake jobs:clear` to delete all jobs in the queue.
 
+Plugins
+=======
+
+`Delayed::Plugin::Pidfile` creates a pidfile at location
+`#{Rails.root}/tmp/delayed_job.pid` when starting a worker (e.g. with `rails
+jobs:work`). If the file already exists, `Errno::EEXIST` error is raised.
+
+To use, add to `config/initializers/delayed_job_config.rb`:
+
+```rb
+Delayed::Worker.plugins << Delayed::Plugin::Pidfile
+```
+
 Having problems?
 ================
 Good places to get help are:
