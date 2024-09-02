@@ -21,32 +21,31 @@ describe Delayed::Worker do
     end
   end
 
-  describe 'job_say' do
+  describe 'job_notify' do
     before do
       @worker = Delayed::Worker.new
       @job = double('job', :id => 123, :name => 'ExampleJob', :queue => nil)
+      @dj = {:dj_id => 123, :dj_name => 'ExampleJob', :dj_queue => nil}
     end
 
-    it 'logs with job name and id' do
+    it 'call job.queue and worker.notify' do
       expect(@job).to receive(:queue)
-      expect(@worker).to receive(:say).
-        with('Job ExampleJob (id=123) message', Delayed::Worker.default_log_level)
-      @worker.job_say(@job, 'message')
+      expect(@worker).to receive(:notify).
+        with('starting', @dj)
+      @worker.job_notify(@job, 'starting')
     end
 
-    it 'logs with job name, queue and id' do
+    it 'notify log subscribers' do
+      expect(ActiveSupport::Notifications).to receive(:instrument).
+        with('starting.delayed_job', hash_including(@dj))
+      @worker.job_notify(@job, 'starting')
+    end
+
+    it 'notify with job name, queue and id' do
       expect(@job).to receive(:queue).and_return('test')
-      expect(@worker).to receive(:say).
-        with('Job ExampleJob (id=123) (queue=test) message', Delayed::Worker.default_log_level)
-      @worker.job_say(@job, 'message')
-    end
-
-    it 'has a configurable default log level' do
-      Delayed::Worker.default_log_level = 'error'
-
-      expect(@worker).to receive(:say).
-        with('Job ExampleJob (id=123) message', 'error')
-      @worker.job_say(@job, 'message')
+      expect(@worker).to receive(:notify).
+        with('starting', @dj.merge(:dj_queue => 'test'))
+      @worker.job_notify(@job, 'starting')
     end
   end
 
@@ -116,50 +115,25 @@ describe Delayed::Worker do
     end
   end
 
-  context '#say' do
+  context '#notify' do
     before(:each) do
       @worker = Delayed::Worker.new
       @worker.name = 'ExampleJob'
-      @worker.logger = double('job')
       time = Time.now
       allow(Time).to receive(:now).and_return(time)
-      @text = 'Job executed'
-      @worker_name = '[Worker(ExampleJob)]'
-      @expected_time = time.strftime('%FT%T%z')
+      @dj = {:dj_time => time.strftime('%FT%T%z'), :dj_worker => @worker.name, :quiet => true}
+      @payload = {}
     end
 
-    after(:each) do
-      @worker.logger = nil
+    it 'attach dj attributes' do
+      @worker.notify 'starting', @payload
+      expect(@payload).to eq(@dj)
     end
 
-    shared_examples_for 'a worker which logs on the correct severity' do |severity|
-      it "logs a message on the #{severity[:level].upcase} level given a string" do
-        expect(@worker.logger).to receive(:send).
-          with(severity[:level], "#{@expected_time}: #{@worker_name} #{@text}")
-        @worker.say(@text, severity[:level])
-      end
-
-      it "logs a message on the #{severity[:level].upcase} level given a fixnum" do
-        expect(@worker.logger).to receive(:send).
-          with(severity[:level], "#{@expected_time}: #{@worker_name} #{@text}")
-        @worker.say(@text, severity[:index])
-      end
-    end
-
-    severities = [{:index => 0, :level => 'debug'},
-                  {:index => 1, :level => 'info'},
-                  {:index => 2, :level => 'warn'},
-                  {:index => 3, :level => 'error'},
-                  {:index => 4, :level => 'fatal'},
-                  {:index => 5, :level => 'unknown'}]
-    severities.each do |severity|
-      it_behaves_like 'a worker which logs on the correct severity', severity
-    end
-
-    it 'logs a message on the default log\'s level' do
-      expect(@worker.logger).to receive(:send).
-        with('info', "#{@expected_time}: #{@worker_name} #{@text}")
-      @worker.say(@text, Delayed::Worker.default_log_level)
+    it 'notify the subscribers' do
+      expect(ActiveSupport::Notifications).to receive(:instrument).
+        with('starting.delayed_job', hash_including(@dj))
+      @worker.notify 'starting'
     end
   end
 

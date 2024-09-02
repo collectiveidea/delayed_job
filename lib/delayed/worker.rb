@@ -156,18 +156,18 @@ module Delayed
 
     def start # rubocop:disable CyclomaticComplexity, PerceivedComplexity
       trap('TERM') do
-        Thread.new { say 'Exiting...' }
+        Thread.new { notify 'exiting' }
         stop
         raise SignalException, 'TERM' if self.class.raise_signal_exceptions
       end
 
       trap('INT') do
-        Thread.new { say 'Exiting...' }
+        Thread.new { notify 'exiting' }
         stop
         raise SignalException, 'INT' if self.class.raise_signal_exceptions && self.class.raise_signal_exceptions != :term
       end
 
-      say 'Starting job worker'
+      notify 'starting'
 
       self.class.lifecycle.run_callbacks(:execute, self) do
         loop do
@@ -181,14 +181,14 @@ module Delayed
 
           if count.zero?
             if self.class.exit_on_complete
-              say 'No more jobs available. Exiting'
+              notify 'no_jobs_available'
               break
             elsif !stop?
               sleep(self.class.sleep_delay)
               reload!
             end
           else
-            say format("#{count} jobs processed at %.4f j/s, %d failed", count / @realtime, @result.last)
+            notify 'no_jobs_available', :count => count, :realtime => @realtime, :faild => @result.last
           end
 
           break if stop?
@@ -226,16 +226,15 @@ module Delayed
     end
 
     def run(job)
-      job_say job, 'RUNNING'
+      job_notify job, 'running'
       runtime = Benchmark.realtime do
         Timeout.timeout(max_run_time(job).to_i, WorkerTimeout) { job.invoke_job }
         job.destroy
       end
-      job_say job, format('COMPLETED after %.4f', runtime)
+      job_notify job, 'completed', :runtime => runtime
       return true # did work
     rescue DeserializationError => error
-      job_say job, "FAILED permanently with #{error.class.name}: #{error.message}", 'error'
-
+      job_notify job, 'failed_permanently', :error_name => error.class.name, :error_message => error.message
       job.error = error
       failed(job)
     rescue Exception => error # rubocop:disable RescueException
@@ -252,7 +251,7 @@ module Delayed
         job.unlock
         job.save!
       else
-        job_say job, "FAILED permanently because of #{job.attempts} consecutive failures", 'error'
+        job_notify job, 'consecutive_failures', :consecutive_attempts => job.attempts
         failed(job)
       end
     end
@@ -262,28 +261,26 @@ module Delayed
         begin
           job.hook(:failure)
         rescue => error
-          say "Error when running failure callback: #{error}", 'error'
-          say error.backtrace.join("\n"), 'error'
+          notify 'failure_callback_error', :error => error
+          notify 'error_backtrace', :error_backtrace => error.backtrace.join("\n")
         ensure
           job.destroy_failed_jobs? ? job.destroy : job.fail!
         end
       end
     end
 
-    def job_say(job, text, level = default_log_level)
-      text = "Job #{job.name} (id=#{job.id})#{say_queue(job.queue)} #{text}"
-      say text, level
+    def job_notify(job, event, payload = {})
+      payload[:dj_name]  = job.name
+      payload[:dj_id]    = job.id
+      payload[:dj_queue] = job.queue
+      notify event, payload
     end
 
-    def say(text, level = default_log_level)
-      text = "[Worker(#{name})] #{text}"
-      puts text unless @quiet
-      return unless logger
-      # TODO: Deprecate use of Fixnum log levels
-      unless level.is_a?(String)
-        level = Logger::Severity.constants.detect { |i| Logger::Severity.const_get(i) == level }.to_s.downcase
-      end
-      logger.send(level, "#{Time.now.strftime('%FT%T%z')}: #{text}")
+    def notify(event, payload = {})
+      payload[:quiet] = @quiet
+      payload[:dj_worker] = name
+      payload[:dj_time]   = Time.now.strftime('%FT%T%z')
+      ActiveSupport::Notifications.instrument("#{event}.delayed_job", payload)
     end
 
     def max_attempts(job)
@@ -296,13 +293,9 @@ module Delayed
 
   protected
 
-    def say_queue(queue)
-      " (queue=#{queue})" if queue
-    end
-
     def handle_failed_job(job, error)
       job.error = error
-      job_say job, "FAILED (#{job.attempts} prior attempts) with #{error.class.name}: #{error.message}", 'error'
+      job_notify job, 'failed', :attempts => job.attempts, :error_name => error.class.name, :error_message => error.message
       reschedule(job)
     end
 
@@ -318,7 +311,7 @@ module Delayed
       @failed_reserve_count = 0
       job
     rescue ::Exception => error # rubocop:disable RescueException
-      say "Error while reserving job: #{error}"
+      notify'reserving_error', :error => error
       Delayed::Job.recover_from(error)
       @failed_reserve_count += 1
       raise FatalBackendError if @failed_reserve_count >= 10
