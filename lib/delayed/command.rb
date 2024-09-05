@@ -99,6 +99,7 @@ module Delayed
         end
         # rubocop:enable GuardClause
       else
+        stop_start_if_restart
         worker_count.times do |worker_index|
           process_name = worker_count == 1 ? 'delayed_job' : "delayed_job.#{worker_index}"
           run_process(process_name, @options)
@@ -144,6 +145,18 @@ module Delayed
 
   private
 
+    def args_command
+      @args.find { |arg| args_command_options.include?(arg) }
+    end
+
+    def args_command_index
+      @args.index(args_command)
+    end
+
+    def args_command_options
+      %w[start stop restart run]
+    end
+
     def parse_worker_pool(pool)
       @worker_pools ||= []
 
@@ -163,6 +176,22 @@ module Delayed
 
     def rails_logger_defined?
       defined?(::Rails.logger)
+    end
+
+    def stop_all_workers
+      original_command = args_command
+      @args[args_command_index] = 'stop'
+      Dir.glob("#{@options[:pid_dir]}/delayed_job*").each do |file_path|
+        process_name = File.basename(file_path, '.*')
+        run_process(process_name, @options)
+      end
+      @args[args_command_index] = original_command
+    end
+
+    def stop_start_if_restart
+      return unless args_command == 'restart'
+      stop_all_workers
+      @args[args_command_index] = 'start'
     end
 
     def exit_with_error_status
