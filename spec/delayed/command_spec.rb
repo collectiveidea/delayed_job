@@ -127,46 +127,53 @@ describe Delayed::Command do
 
   describe 'parsing --pool argument' do
     it 'should parse --pool correctly' do
-      command = Delayed::Command.new(['--pool=*:1', '--pool=test_queue:4', '--pool=mailers,misc:2'])
+      command = Delayed::Command.new(['--pool=*:1:default_pool', '--pool=test_queue:4:test_pool', '--pool=mailers,misc:2'])
 
       expect(command.worker_pools).to eq [
-        [[], 1],
-        [['test_queue'], 4],
-        [%w[mailers misc], 2]
+        [[], 1,"default_pool"],
+        [['test_queue'], 4,"test_pool"],
+        [%w[mailers misc], 2, nil]
       ]
     end
 
-    it 'should allow * or blank to specify any pools' do
+    it 'should allow * or blank to specify any queue' do
       command = Delayed::Command.new(['--pool=*:4'])
       expect(command.worker_pools).to eq [
-        [[], 4],
+        [[], 4, nil],
       ]
 
       command = Delayed::Command.new(['--pool=:4'])
       expect(command.worker_pools).to eq [
-        [[], 4],
+        [[], 4, nil],
       ]
     end
 
     it 'should default to one worker if not specified' do
       command = Delayed::Command.new(['--pool=mailers'])
       expect(command.worker_pools).to eq [
-        [['mailers'], 1],
+        [['mailers'], 1, nil],
+      ]
+    end
+
+    it 'pool name should default to nil if not specified' do
+      command = Delayed::Command.new(['--pool=mailers'])
+      expect(command.worker_pools).to eq [
+        [['mailers'], 1, nil],
       ]
     end
   end
 
   describe 'running worker pools defined by multiple --pool arguments' do
     it 'should run the correct worker processes' do
-      command = Delayed::Command.new(['--pool=*:1', '--pool=test_queue:4', '--pool=mailers,misc:2'])
+      command = Delayed::Command.new(['--pool=*:1:default_pool', '--pool=test_queue:4:test_pool', '--pool=mailers,misc:2'])
       expect(FileUtils).to receive(:mkdir_p).with('./tmp/pids').once
 
       [
-        ['delayed_job.0', {:quiet => true, :pid_dir => './tmp/pids', :log_dir => './log', :queues => []}],
-        ['delayed_job.1', {:quiet => true, :pid_dir => './tmp/pids', :log_dir => './log', :queues => ['test_queue']}],
-        ['delayed_job.2', {:quiet => true, :pid_dir => './tmp/pids', :log_dir => './log', :queues => ['test_queue']}],
-        ['delayed_job.3', {:quiet => true, :pid_dir => './tmp/pids', :log_dir => './log', :queues => ['test_queue']}],
-        ['delayed_job.4', {:quiet => true, :pid_dir => './tmp/pids', :log_dir => './log', :queues => ['test_queue']}],
+        ['delayed_job.default_pool.0', {:quiet => true, :pid_dir => './tmp/pids', :log_dir => './log', :queues => []}],
+        ['delayed_job.test_pool.1', {:quiet => true, :pid_dir => './tmp/pids', :log_dir => './log', :queues => ['test_queue']}],
+        ['delayed_job.test_pool.2', {:quiet => true, :pid_dir => './tmp/pids', :log_dir => './log', :queues => ['test_queue']}],
+        ['delayed_job.test_pool.3', {:quiet => true, :pid_dir => './tmp/pids', :log_dir => './log', :queues => ['test_queue']}],
+        ['delayed_job.test_pool.4', {:quiet => true, :pid_dir => './tmp/pids', :log_dir => './log', :queues => ['test_queue']}],
         ['delayed_job.5', {:quiet => true, :pid_dir => './tmp/pids', :log_dir => './log', :queues => %w[mailers misc]}],
         ['delayed_job.6', {:quiet => true, :pid_dir => './tmp/pids', :log_dir => './log', :queues => %w[mailers misc]}]
       ].each do |args|
