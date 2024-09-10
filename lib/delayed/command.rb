@@ -84,23 +84,17 @@ module Delayed
       @args = opts.parse!(args) + (@daemon_options || [])
     end
 
-    def daemonize # rubocop:disable PerceivedComplexity
+    def daemonize
       dir = @options[:pid_dir]
       FileUtils.mkdir_p(dir) unless File.exist?(dir)
 
       if worker_pools
         setup_pools
-      elsif @options[:identifier]
-        # rubocop:disable GuardClause
-        if worker_count > 1
-          raise ArgumentError, 'Cannot specify both --number-of-workers and --identifier'
-        else
-          run_process("delayed_job.#{@options[:identifier]}", @options)
-        end
-        # rubocop:enable GuardClause
       else
         worker_count.times do |worker_index|
-          process_name = worker_count == 1 ? 'delayed_job' : "delayed_job.#{worker_index}"
+          process_name = 'delayed_job'
+          process_name += ".#{@options[:identifier]}" if @options[:identifier]
+          process_name += ".#{worker_index}" if worker_count > 1
           run_process(process_name, @options)
         end
       end
