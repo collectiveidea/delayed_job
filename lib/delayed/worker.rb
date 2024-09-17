@@ -131,6 +131,9 @@ module Delayed
     def initialize(options = {})
       @quiet = options.key?(:quiet) ? options[:quiet] : true
       @failed_reserve_count = 0
+      @name = nil
+      @name_prefix = nil
+      @exit = nil
 
       [:min_priority, :max_priority, :sleep_delay, :read_ahead, :queues, :exit_on_complete].each do |option|
         self.class.send("#{option}=", options[option]) if options.key?(option)
@@ -228,7 +231,7 @@ module Delayed
     def run(job)
       job_say job, 'RUNNING'
       runtime = Benchmark.realtime do
-        Timeout.timeout(max_run_time(job).to_i, WorkerTimeout) { job.invoke_job }
+        Timeout.timeout(max_run_time_of(job).to_i, WorkerTimeout) { job.invoke_job }
         job.destroy
       end
       job_say job, format('COMPLETED after %.4f', runtime)
@@ -246,7 +249,7 @@ module Delayed
     # Reschedule the job in the future (when a job fails).
     # Uses an exponential scale depending on the number of failed attempts.
     def reschedule(job, time = nil)
-      if (job.attempts += 1) < max_attempts(job)
+      if (job.attempts += 1) < max_attempts_of(job)
         time ||= job.reschedule_at
         job.run_at = time
         job.unlock
@@ -286,11 +289,11 @@ module Delayed
       logger.send(level, "#{Time.now.strftime('%FT%T%z')}: #{text}")
     end
 
-    def max_attempts(job)
+    def max_attempts_of(job)
       job.max_attempts || self.class.max_attempts
     end
 
-    def max_run_time(job)
+    def max_run_time_of(job)
       job.max_run_time || self.class.max_run_time
     end
 
