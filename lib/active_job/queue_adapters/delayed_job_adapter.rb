@@ -1,5 +1,3 @@
-require "byebug"
-
 module ActiveJob
   module QueueAdapters
     # Explicitly remove the implementation existing in older rails'.
