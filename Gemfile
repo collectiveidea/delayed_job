@@ -86,6 +86,7 @@ group :test do
   if ENV['RAILS_VERSION'].nil? || ENV['RAILS_VERSION'] >= '6.0.0'
     gem 'zeitwerk', :require => false
   end
+  gem 'concurrent-ruby'
 end
 
 group :rubocop do
