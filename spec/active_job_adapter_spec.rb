@@ -29,30 +29,36 @@ describe 'a Rails active job backend' do
 
   let(:worker) { Delayed::Worker.new(sleep_delay: 0.5, queues: %w(integration_tests)) }
 
-  it 'enqueus and executes the job' do
-    thread = Thread.new { worker.start }
-
+  before do
     ActiveJob::Base.queue_adapter = :delayed_job
-    job = TestJob.perform_later('hello')
-    sleep 2
+  end
 
-    expect(JobBuffer.values).to eq(['hello'])
-  ensure
-    worker.stop
-    thread.join
+  after do
+    JobBuffer.clear
+  end
+
+  it 'enqueus and executes the job' do
+    start_worker do
+      job = TestJob.perform_later('hello')
+      sleep 2
+      expect(JobBuffer.values).to eq(['hello'])
+    end
   end
 
   it 'runs multiple queued jobs' do
-    JobBuffer.clear
-    thread = Thread.new { worker.start }
-
-    ActiveJob::Base.queue_adapter = :delayed_job
-    ActiveJob.perform_all_later(TestJob.new('Rails'), TestJob.new('World'))
-    sleep 2
-
-    expect(JobBuffer.values).to eq(['Rails', 'World'])
-  ensure
-    worker.stop
-    thread.join
+    start_worker do
+      ActiveJob.perform_all_later(TestJob.new('Rails'), TestJob.new('World'))
+      sleep 2
+      expect(JobBuffer.values).to eq(['Rails', 'World'])
+    end
   end
+
+  private
+    def start_worker(&)
+      thread = Thread.new { worker.start }
+      yield
+    ensure
+      worker.stop
+      thread.join
+    end
 end
