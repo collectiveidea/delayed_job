@@ -55,9 +55,7 @@ group :test do
     gem 'actionmailer', "~> #{ENV['RAILS_VERSION']}"
     gem 'activerecord', "~> #{ENV['RAILS_VERSION']}"
 
-    if ENV['RAILS_VERSION'] >= '8.0'
-      gem 'activejob', "~> #{ENV['RAILS_VERSION']}" 
-    elsif ENV['RAILS_VERSION'] < '5.1'
+    if ENV['RAILS_VERSION'] < '5.1'
       gem 'loofah', '2.3.1'
       gem 'nokogiri', '< 1.11.0'
       gem 'rails-html-sanitizer', '< 1.4.0'
