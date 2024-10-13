@@ -39,7 +39,7 @@ describe 'a Rails active job backend' do
 
   it 'enqueus and executes the job' do
     start_worker do
-      job = TestJob.perform_later('hello')
+      TestJob.perform_later('hello')
       sleep 2
       expect(JobBuffer.values).to eq(['hello'])
     end
@@ -50,6 +50,22 @@ describe 'a Rails active job backend' do
       ActiveJob.perform_all_later(TestJob.new('Rails'), TestJob.new('World'))
       sleep 2
       expect(JobBuffer.values).to eq(['Rails', 'World'])
+    end
+  end
+
+  it 'should not run job enqueued in the future' do
+    start_worker do
+      TestJob.set(wait: 5.seconds).perform_later('hello')
+      sleep 2
+      expect(JobBuffer.values.empty?).to eq true
+    end
+  end
+
+  it 'should run job enqueued in the future at the specified time' do
+    start_worker do
+      TestJob.set(wait: 5.seconds).perform_later('hello')
+      sleep 10
+      expect(JobBuffer.values).to eq(['hello'])
     end
   end
 
