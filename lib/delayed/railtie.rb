@@ -1,5 +1,6 @@
 require 'delayed_job'
 require 'rails'
+require 'active_job/queue_adapters/delayed_job_adapter'
 
 module Delayed
   class Railtie < Rails::Railtie
