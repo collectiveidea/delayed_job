@@ -1,7 +1,7 @@
 module ActiveJob
   module QueueAdapters
     # Explicitly remove the implementation existing in older rails'.
-    remove_const(:DelayedJobAdapter) if defined?(:DelayedJobAdapter)
+    remove_const(:DelayedJobAdapter) if const_defined?(:DelayedJobAdapter)
 
     # = Delayed Job adapter for Active Job
     #
