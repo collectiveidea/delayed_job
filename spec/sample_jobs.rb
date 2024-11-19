@@ -7,7 +7,7 @@ end
 
 class SimpleJob
   cattr_accessor :runs
-  @runs = 0
+  @@runs = 0
   def perform
     self.class.runs += 1
   end
@@ -21,7 +21,7 @@ end
 
 class ErrorJob
   cattr_accessor :runs
-  @runs = 0
+  @@runs = 0
   def perform
     raise Exception, 'did not work'
   end
@@ -30,7 +30,7 @@ end
 CustomRescheduleJob = Struct.new(:offset)
 class CustomRescheduleJob
   cattr_accessor :runs
-  @runs = 0
+  @@runs = 0
   def perform
     raise 'did not work'
   end
@@ -65,7 +65,7 @@ end
 module M
   class ModuleJob
     cattr_accessor :runs
-    @runs = 0
+    @@runs = 0
     def perform
       self.class.runs += 1
     end
