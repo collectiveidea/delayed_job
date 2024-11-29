@@ -72,6 +72,7 @@ module Delayed
           @options[:queues] = queue.split(',')
         end
         opt.on('--pool=queue1[,queue2][:worker_count]', 'Specify queues and number of workers for a worker pool') do |pool|
+          warn '--identifier is ignored because --pool is specified and used.' if @options[:identifier]
           parse_worker_pool(pool)
         end
         opt.on('--exit-on-complete', 'Exit when no more jobs are available to run. This will exit if all jobs are scheduled to run in the future.') do
