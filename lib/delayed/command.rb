@@ -78,7 +78,7 @@ module Delayed
           @options[:exit_on_complete] = true
         end
         opt.on('--daemon-options a, b, c', Array, 'options to be passed through to daemons gem') do |daemon_options|
-          @daemon_options = daemon_options
+          @daemon_options = daemon_options.map { |o| o.split(' ') }.flatten
         end
       end
       @args = opts.parse!(args) + (@daemon_options || [])
