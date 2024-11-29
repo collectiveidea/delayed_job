@@ -53,7 +53,7 @@ class OnPermanentFailureJob < SimpleJob
     @raise_error = false
   end
 
-  def failure
+  def on_job_failure
     raise 'did not work' if @raise_error
   end
 
@@ -75,37 +75,37 @@ end
 class CallbackJob
   cattr_accessor :messages
 
-  def enqueue(_job)
-    self.class.messages << 'enqueue'
+  def on_job_enqueue(_job)
+    self.class.messages << 'on_job_enqueue'
   end
 
-  def before(_job)
-    self.class.messages << 'before'
+  def before_job_run(_job)
+    self.class.messages << 'before_job_run'
   end
 
   def perform
     self.class.messages << 'perform'
   end
 
-  def after(_job)
-    self.class.messages << 'after'
+  def after_job_run(_job)
+    self.class.messages << 'after_job_run'
   end
 
-  def success(_job)
-    self.class.messages << 'success'
+  def on_job_success(_job)
+    self.class.messages << 'on_job_success'
   end
 
-  def error(_job, error)
-    self.class.messages << "error: #{error.class}"
+  def on_job_error(_job, error)
+    self.class.messages << "on_job_error: #{error.class}"
   end
 
-  def failure(_job)
-    self.class.messages << 'failure'
+  def on_job_failure(_job)
+    self.class.messages << 'on_job_failure'
   end
 end
 
 class EnqueueJobMod < SimpleJob
-  def enqueue(job)
+  def on_job_enqueue(job)
     job.run_at = 20.minutes.from_now
   end
 end
