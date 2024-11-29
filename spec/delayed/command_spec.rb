@@ -156,10 +156,23 @@ describe Delayed::Command do
     end
   end
 
+  describe 'parsing --kill-waittime argument' do
+    it 'should parse it correctly' do
+      command = Delayed::Command.new(['--kill-waittime=200'])
+
+      stub_make_pids_directory
+
+      expect(command).to receive(:run_process).with('delayed_job', :quiet => true, :pid_dir => './tmp/pids', :log_dir => './log', :force_kill_waittime => 200).once
+
+      command.daemonize
+    end
+  end
+
   describe 'running worker pools defined by multiple --pool arguments' do
     it 'should run the correct worker processes' do
       command = Delayed::Command.new(['--pool=*:1', '--pool=test_queue:4', '--pool=mailers,misc:2'])
-      expect(FileUtils).to receive(:mkdir_p).with('./tmp/pids').once
+
+      stub_make_pids_directory
 
       [
         ['delayed_job.0', {:quiet => true, :pid_dir => './tmp/pids', :log_dir => './log', :queues => []}],
@@ -175,5 +188,9 @@ describe Delayed::Command do
 
       command.daemonize
     end
+  end
+
+  def stub_make_pids_directory
+    expect(FileUtils).to receive(:mkdir_p).with('./tmp/pids').once
   end
 end
