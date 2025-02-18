@@ -59,7 +59,7 @@ module Delayed
 
       def name
         @name ||= payload_object.respond_to?(:display_name) ? payload_object.display_name : payload_object.class.name
-      rescue DeserializationError
+      rescue Delayed::DeserializationError
         ParseObjectFromYaml.match(handler)[1]
       end
 
@@ -71,7 +71,7 @@ module Delayed
       def payload_object
         @payload_object ||= YAML.load_dj(handler)
       rescue TypeError, LoadError, NameError, ArgumentError, SyntaxError, Psych::SyntaxError => e
-        raise DeserializationError, "Job failed to load: #{e.message}. Handler: #{handler.inspect}"
+        raise Delayed::DeserializationError, "Job failed to load: #{e.message}. Handler: #{handler.inspect}"
       end
 
       def invoke_job
@@ -100,7 +100,7 @@ module Delayed
           method = payload_object.method(name)
           method.arity.zero? ? method.call : method.call(self, *args)
         end
-      rescue DeserializationError # rubocop:disable HandleExceptions
+      rescue Delayed::DeserializationError # rubocop:disable HandleExceptions
       end
 
       def reschedule_at
@@ -128,7 +128,7 @@ module Delayed
 
       def destroy_failed_jobs?
         payload_object.respond_to?(:destroy_failed_jobs?) ? payload_object.destroy_failed_jobs? : Delayed::Worker.destroy_failed_jobs
-      rescue DeserializationError
+      rescue Delayed::DeserializationError
         Delayed::Worker.destroy_failed_jobs
       end
 
