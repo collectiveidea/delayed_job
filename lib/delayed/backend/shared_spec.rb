@@ -429,21 +429,46 @@ shared_examples_for 'a delayed_job backend' do
 
   context 'max_attempts' do
     before(:each) do
-      @job = described_class.enqueue SimpleJob.new
+      @job = described_class.enqueue NamedQueueJob.new
+    end
+
+    after(:each) do
+      Delayed::Worker.queue_attributes = {}
     end
 
     it 'is not defined' do
       expect(@job.max_attempts).to be_nil
     end
 
+    it 'uses the default value when not defined' do
+      expect(worker.max_attempts(@job)).to eq(Delayed::Worker::DEFAULT_MAX_ATTEMPTS)
+    end
+
     it 'uses the max_attempts value on the payload when defined' do
       expect(@job.payload_object).to receive(:max_attempts).and_return(99)
       expect(@job.max_attempts).to eq(99)
     end
+
+    it 'uses the job max_attempts before queue_attributes' do
+      Delayed::Worker.queue_attributes = { job_tracking: { max_attempts: 1 } }
+      expect(@job.payload_object).to receive(:max_attempts).and_return(99)
+      expect(worker.max_attempts(@job)).to eq(99)
+    end
+
+    it 'uses the max_attempts value on the worker queue_attributes when defined' do
+      Delayed::Worker.queue_attributes = { job_tracking: { max_attempts: 1 } }
+      expect(worker.max_attempts(@job)).to eq(1)
+    end
   end
 
   describe '#max_run_time' do
-    before(:each) { @job = described_class.enqueue SimpleJob.new }
+    before(:each) do
+      @job = described_class.enqueue NamedQueueJob.new
+    end
+
+    after(:each) do
+      Delayed::Worker.queue_attributes = {}
+    end
 
     it 'is not defined' do
       expect(@job.max_run_time).to be_nil
@@ -466,6 +491,17 @@ shared_examples_for 'a delayed_job backend' do
     it 'job set max_run_time can not exceed default max run time' do
       expect(@job.payload_object).to receive(:max_run_time).and_return(Delayed::Worker::DEFAULT_MAX_RUN_TIME + 60)
       expect(worker.max_run_time(@job)).to eq(Delayed::Worker::DEFAULT_MAX_RUN_TIME)
+    end
+
+    it 'uses the job max_run_time before queue_attributes' do
+      Delayed::Worker.queue_attributes = { job_tracking: { max_run_time: 1.second } }
+      expect(@job.payload_object).to receive(:max_run_time).and_return(30.minutes)
+      expect(worker.max_run_time(@job)).to eq(30.minutes)
+    end
+
+    it 'uses the max_run_time value on the worker queue_attributes when defined' do
+      Delayed::Worker.queue_attributes = { job_tracking: { max_run_time: 1.second } }
+      expect(worker.max_run_time(@job)).to eq(1.second)
     end
   end
 

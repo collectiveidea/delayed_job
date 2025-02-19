@@ -287,11 +287,11 @@ module Delayed
     end
 
     def max_attempts(job)
-      job.max_attempts || self.class.max_attempts
+      job.max_attempts || self.class.queue_attributes&.dig(job.queue, :max_attempts) || self.class.max_attempts
     end
 
     def max_run_time(job)
-      job.max_run_time || self.class.max_run_time
+      job.max_run_time || self.class.queue_attributes&.dig(job.queue, :max_run_time) || self.class.max_run_time
     end
 
   protected
