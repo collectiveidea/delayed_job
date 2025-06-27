@@ -1,5 +1,15 @@
 module Delayed
-  class DelayProxy < Delayed::Compatibility.proxy_object_class
+  class DelayProxy < BasicObject
+    # What additional methods exist on BasicObject has changed over time
+    (::BasicObject.instance_methods - [:__id__, :__send__, :instance_eval, :instance_exec]).each do |method|
+      undef_method method
+    end
+
+    # Let DelayProxy raise exceptions.
+    def raise(*args)
+      ::Object.send(:raise, *args)
+    end
+
     def initialize(payload_class, target, options)
       @payload_class = payload_class
       @target = target

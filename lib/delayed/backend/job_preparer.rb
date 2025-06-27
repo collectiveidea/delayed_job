@@ -1,3 +1,5 @@
+require 'active_support/core_ext/array/extract_options'
+
 module Delayed
   module Backend
     class JobPreparer

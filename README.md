@@ -1,17 +1,16 @@
 **If you're viewing this at https://github.com/collectiveidea/delayed_job,
 you're reading the documentation for the master branch.
 [View documentation for the latest release
-(4.1.5).](https://github.com/collectiveidea/delayed_job/tree/v4.1.5)**
+(4.1.13).](https://github.com/collectiveidea/delayed_job/tree/v4.1.13)**
 
 Delayed::Job
 ============
-[![Gem Version](https://badge.fury.io/rb/delayed_job.png)][gem]
-[![Build Status](https://travis-ci.org/collectiveidea/delayed_job.png?branch=master)][travis]
-[![Code Climate](https://codeclimate.com/github/collectiveidea/delayed_job.png)][codeclimate]
-[![Coverage Status](https://coveralls.io/repos/collectiveidea/delayed_job/badge.png?branch=master)][coveralls]
+[![Gem Version](https://badge.fury.io/rb/delayed_job.svg)][gem]
+![CI](https://github.com/collectiveidea/delayed_job/workflows/CI/badge.svg)
+[![Code Climate](https://codeclimate.com/github/collectiveidea/delayed_job.svg)][codeclimate]
+[![Coverage Status](https://coveralls.io/repos/collectiveidea/delayed_job/badge.svg?branch=master)][coveralls]
 
 [gem]: https://rubygems.org/gems/delayed_job
-[travis]: https://travis-ci.org/collectiveidea/delayed_job
 [codeclimate]: https://codeclimate.com/github/collectiveidea/delayed_job
 [coveralls]: https://coveralls.io/r/collectiveidea/delayed_job
 
@@ -60,16 +59,16 @@ running the following command:
     rails generate delayed_job:active_record
     rake db:migrate
 
-For Rails 4.2, see [below](#rails-42)
+For Rails 4.2+, see [below](#active-job)
 
 Development
 ===========
 In development mode, if you are using Rails 3.1+, your application code will automatically reload every 100 jobs or when the queue finishes.
 You no longer need to restart Delayed Job every time you update your code in development.
 
-Rails 4.2
-=========
-Set the queue_adapter in config/application.rb
+Active Job
+==========
+In Rails 4.2+, set the queue_adapter in config/application.rb
 
 ```ruby
 config.active_job.queue_adapter = :delayed_job
@@ -168,9 +167,10 @@ end
 
 If you ever want to call a `handle_asynchronously`'d method without Delayed Job, for instance while debugging something at the console, just add `_without_delay` to the method name. For instance, if your original method was `foo`, then call `foo_without_delay`.
 
-Rails 3 Mailers
-===============
-Due to how mailers are implemented in Rails 3, we had to do a little work around to get delayed_job to work.
+Rails Mailers
+=============
+Delayed Job uses special syntax for Rails Mailers.
+Do not call the `.deliver` method when using `.delay`.
 
 ```ruby
 # without delayed_job
@@ -179,12 +179,16 @@ Notifier.signup(@user).deliver
 # with delayed_job
 Notifier.delay.signup(@user)
 
-# with delayed_job running at a specific time
+# delayed_job running at a specific time
 Notifier.delay(run_at: 5.minutes.from_now).signup(@user)
+
+# when using parameters, the .with method must be called before the .delay method
+Notifier.with(foo: 1, bar: 2).delay.signup(@user)
 ```
 
-Remove the `.deliver` method to make it work. It's not ideal, but it's the best
-we could do for now.
+You may also wish to consider using
+[Active Job with Action Mailer](https://edgeguides.rubyonrails.org/active_job_basics.html#action-mailer)
+which provides convenient `.deliver_later` syntax that forwards to Delayed Job under-the-hood.
 
 Named Queues
 ============
@@ -375,6 +379,9 @@ Hooks
 =====
 You can define hooks on your job that will be called at different stages in the process:
 
+
+**NOTE:** If you are using ActiveJob these hooks are **not** available to your jobs. You will need to use ActiveJob's callbacks. You can find details here https://guides.rubyonrails.org/active_job_basics.html#callbacks
+
 ```ruby
 class ParanoidNewsletterJob < NewsletterJob
   def enqueue(job)
@@ -428,7 +435,7 @@ end
 
 On error, the job is scheduled again in 5 seconds + N ** 4, where N is the number of attempts or using the job's defined `reschedule_at` method.
 
-The default `Worker.max_attempts` is 25. After this, the job either deleted (default), or left in the database with "failed_at" set.
+The default `Worker.max_attempts` is 25. After this, the job is either deleted (default), or left in the database with "failed_at" set.
 With the default of 25 attempts, the last retry will be 20 days later, with the last interval being almost 100 hours.
 
 The default `Worker.max_run_time` is 4.hours. If your job takes longer than that, another computer could pick it up. It's up to you to

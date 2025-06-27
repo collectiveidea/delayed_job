@@ -230,7 +230,7 @@ shared_examples_for 'a delayed_job backend' do
     end
 
     it 'reserves jobs scheduled for the past when time zones are involved' do
-      Time.zone = 'US/Eastern'
+      Time.zone = 'America/New_York'
       job = create_job :run_at => described_class.db_time_now - 1.minute
       expect(described_class.reserve(worker)).to eq(job)
     end
@@ -523,7 +523,8 @@ shared_examples_for 'a delayed_job backend' do
       it 'reloads changed attributes' do
         story = Story.create(:text => 'hello')
         job = story.delay.tell
-        story.update_attributes :text => 'goodbye'
+        story.text = 'goodbye'
+        story.save!
         expect(job.reload.payload_object.object.text).to eq('goodbye')
       end
 
@@ -594,7 +595,12 @@ shared_examples_for 'a delayed_job backend' do
         worker.work_off
         @job.reload
         expect(@job.last_error).to match(/did not work/)
-        expect(@job.last_error).to match(/sample_jobs.rb:\d+:in `perform'/)
+        if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('3.4.0')
+          # Ruby 3.4 produces a more verbose message
+          expect(@job.last_error).to match(/sample_jobs.rb:\d+:in 'ErrorJob#perform'/)
+        else
+          expect(@job.last_error).to match(/sample_jobs.rb:\d+:in `perform'/)
+        end
         expect(@job.attempts).to eq(1)
         expect(@job.run_at).to be > Delayed::Job.db_time_now - 10.minutes
         expect(@job.run_at).to be < Delayed::Job.db_time_now + 10.minutes

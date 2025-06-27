@@ -1,5 +1,6 @@
 require 'timeout'
 require 'active_support/dependencies'
+require 'active_support/core_ext/kernel/reporting'
 require 'active_support/core_ext/numeric/time'
 require 'active_support/core_ext/class/attribute_accessors'
 require 'active_support/hash_with_indifferent_access'
@@ -251,7 +252,7 @@ module Delayed
         job.unlock
         job.save!
       else
-        job_say job, "REMOVED permanently because of #{job.attempts} consecutive failures", 'error'
+        job_say job, "FAILED permanently because of #{job.attempts} consecutive failures", 'error'
         failed(job)
       end
     end

@@ -87,11 +87,6 @@ module Delayed
           Time.current
         end
 
-        def update_attributes(attrs = {})
-          attrs.each { |k, v| send(:"#{k}=", v) }
-          save
-        end
-
         def destroy
           self.class.all.delete(self)
         end

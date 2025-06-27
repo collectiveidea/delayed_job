@@ -1,6 +1,5 @@
 require 'helper'
 
-require 'action_mailer'
 class MyMailer < ActionMailer::Base
   def signup(email)
     mail :to => email, :subject => 'Delaying Emails', :from => 'delayedjob@example.com', :body => 'Delaying Emails Body'
@@ -37,6 +36,32 @@ describe ActionMailer::Base do
         expect(mailer_class).to receive(:signup).with('john@example.com')
         expect(email).to receive(:deliver)
         mailer.perform
+      end
+    end
+  end
+end
+
+if defined?(ActionMailer::Parameterized::Mailer)
+  describe ActionMailer::Parameterized::Mailer do
+    describe 'delay' do
+      it 'enqueues a PerformableEmail job' do
+        expect do
+          job = MyMailer.with(:foo => 1, :bar => 2).delay.signup('john@example.com')
+          expect(job.payload_object.class).to eq(Delayed::PerformableMailer)
+          expect(job.payload_object.object.class).to eq(ActionMailer::Parameterized::Mailer)
+          expect(job.payload_object.object.instance_variable_get('@mailer')).to eq(MyMailer)
+          expect(job.payload_object.object.instance_variable_get('@params')).to eq(:foo => 1, :bar => 2)
+          expect(job.payload_object.method_name).to eq(:signup)
+          expect(job.payload_object.args).to eq(['john@example.com'])
+        end.to change { Delayed::Job.count }.by(1)
+      end
+    end
+
+    describe 'delay on a mail object' do
+      it 'raises an exception' do
+        expect do
+          MyMailer.with(:foo => 1, :bar => 2).signup('john@example.com').delay
+        end.to raise_error(RuntimeError)
       end
     end
   end
