@@ -1,3 +1,5 @@
+require "active_support/core_ext/string/inflections"
+
 module ActiveJob
   module QueueAdapters
     # = Delayed Job adapter for Active Job
@@ -47,4 +49,3 @@ module ActiveJob
     end
   end
 end
-
