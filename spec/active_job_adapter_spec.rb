@@ -1,34 +1,42 @@
 require 'helper'
-puts ActiveSupport.gem_version
-return if ActiveSupport.gem_version < Gem::Version.new('8.1.0.alpha')
 
-require 'active_job'
-require 'concurrent'
+if ActiveSupport.gem_version >= Gem::Version.new('8.1.0.alpha')
+  require 'active_job'
+  require 'concurrent'
+end
 
 describe 'a Rails active job backend' do
-  module JobBuffer
-    @values = Concurrent::Array.new
-
-    class << self
-      def clear
-        @values.clear
-      end
-
-      def add(value)
-        @values << value
-      end
-
-      def values
-        @values.dup
-      end
+  before do
+    if ActiveSupport.gem_version < Gem::Version.new('8.1.0.alpha')
+      skip("Bundled adapter used in #{ActiveSupport.gem_version}")
     end
   end
 
-  class TestJob < ActiveJob::Base
-    queue_as :integration_tests
+  if ActiveSupport.gem_version >= Gem::Version.new('8.1.0.alpha')
+    module JobBuffer
+      @values = Concurrent::Array.new
 
-    def perform(message)
-      JobBuffer.add(message)
+      class << self
+        def clear
+          @values.clear
+        end
+
+        def add(value)
+          @values << value
+        end
+
+        def values
+          @values.dup
+        end
+      end
+    end
+
+    class TestJob < ActiveJob::Base
+      queue_as :integration_tests
+
+      def perform(message)
+        JobBuffer.add(message)
+      end
     end
   end
 
