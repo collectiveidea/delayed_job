@@ -1,4 +1,7 @@
 require 'helper'
+puts ActiveSupport.gem_version
+return if ActiveSupport.gem_version < Gem::Version.new('8.1.0.alpha')
+
 require 'active_job'
 require 'concurrent'
 
