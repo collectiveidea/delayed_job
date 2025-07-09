@@ -49,8 +49,8 @@ end
 group :test do
   if ENV['RAILS_VERSION'] == 'edge'
     gem 'actionmailer', :github => 'rails/rails'
-    gem 'activerecord', :github => 'rails/rails'
     gem 'activejob',    :github => 'rails/rails'
+    gem 'activerecord', :github => 'rails/rails'
   elsif ENV['RAILS_VERSION']
     gem 'actionmailer', "~> #{ENV['RAILS_VERSION']}"
     gem 'activerecord', "~> #{ENV['RAILS_VERSION']}"
