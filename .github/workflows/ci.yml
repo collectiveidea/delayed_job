@@ -53,9 +53,12 @@ jobs:
           # The past
           #
           # EOL Active Record
-          - ruby: 2.2
-            rails_version: '3.2.0'
-            ubuntu: '22.04'
+          #
+          # Ruby 2.2 is known to seg fault on 22.04 and 20.04 has been dropped.
+          # Maybe revisit local runner possibilities.
+          # - ruby: 2.2
+          #   rails_version: '3.2.0'
+          #   ubuntu: '22.04'
           - ruby: 2.1
             rails_version: '4.1.0'
             ubuntu: '22.04'
