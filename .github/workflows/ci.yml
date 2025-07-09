@@ -25,10 +25,10 @@ jobs:
           # Ruby 2.6
           - ruby: 2.6
             rails_version: '6.0.0'
-            ubuntu: '20.04'
+            ubuntu: '22.04'
           - ruby: 2.6
             rails_version: '6.1.0'
-            ubuntu: '20.04'
+            ubuntu: '22.04'
 
           # ruby 3.1 (Dropped by Rails 8)
           - ruby: 3.1
@@ -44,10 +44,10 @@ jobs:
           # jruby-9.2
           - ruby: jruby-9.2
             rails_version: '6.0.0'
-            ubuntu: '20.04'
+            ubuntu: '22.04'
           - ruby: jruby-9.2
             rails_version: '6.1.0'
-            ubuntu: '20.04'
+            ubuntu: '22.04'
 
           #
           # The past
@@ -55,22 +55,22 @@ jobs:
           # EOL Active Record
           - ruby: 2.2
             rails_version: '3.2.0'
-            ubuntu: '20.04'
+            ubuntu: '22.04'
           - ruby: 2.1
             rails_version: '4.1.0'
-            ubuntu: '20.04'
+            ubuntu: '22.04'
           - ruby: 2.4
             rails_version: '4.2.0'
-            ubuntu: '20.04'
+            ubuntu: '22.04'
           - ruby: 2.4
             rails_version: '5.0.0'
-            ubuntu: '20.04'
+            ubuntu: '22.04'
           - ruby: 2.5
             rails_version: '5.1.0'
-            ubuntu: '20.04'
+            ubuntu: '22.04'
           - ruby: 2.6
             rails_version: '5.2.0'
-            ubuntu: '20.04'
+            ubuntu: '22.04'
           - ruby: 2.7
             rails_version: '5.2.0'
             ubuntu: '22.04'
