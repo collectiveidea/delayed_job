@@ -549,6 +549,7 @@ shared_examples_for 'a delayed_job backend' do
         job = Delayed::Job.create :payload_object => LongRunningJob.new
         worker.run(job)
         expect(job.error).to_not be_nil
+        expect(job.reload.last_error).to match(/\ADelayed::WorkerTimeout: /)
         expect(job.reload.last_error).to match(/expired/)
         expect(job.reload.last_error).to match(/Delayed::Worker\.max_run_time is only 1 second/)
         expect(job.attempts).to eq(1)
@@ -586,6 +587,7 @@ shared_examples_for 'a delayed_job backend' do
         worker.run(@job)
         @job.reload
         expect(@job.error).to_not be_nil
+        expect(@job.last_error).to match(/\AException: /)
         expect(@job.last_error).to match(/did not work/)
         expect(@job.attempts).to eq(1)
         expect(@job).to be_failed
