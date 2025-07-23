@@ -18,10 +18,10 @@ namespace :jobs do
     @worker_options = {
       :min_priority => ENV['MIN_PRIORITY'],
       :max_priority => ENV['MAX_PRIORITY'],
-      :queues => (ENV['QUEUES'] || ENV['QUEUE'] || '').split(','),
-      :quiet => ENV['QUIET']
+      :queues => (ENV['QUEUES'] || ENV['QUEUE'] || '').split(',')
     }
 
+    @worker_options[:quiet] = ENV['QUIET'] if ENV['QUIET']
     @worker_options[:sleep_delay] = ENV['SLEEP_DELAY'].to_i if ENV['SLEEP_DELAY']
     @worker_options[:read_ahead] = ENV['READ_AHEAD'].to_i if ENV['READ_AHEAD']
   end
