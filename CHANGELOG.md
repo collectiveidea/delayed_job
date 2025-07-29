@@ -1,3 +1,7 @@
+4.2.0 - UMNRELEASED
+=================
+* Addition of `Delayed::UnprocessedJobError` for rake task (#1044)
+
 4.1.13 - 2024-11-08
 =======================
 * Enable Rails 8
