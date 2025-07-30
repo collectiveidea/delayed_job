@@ -3,8 +3,8 @@ you're reading the documentation for the master branch.
 [View documentation for the latest release
 (4.1.13).](https://github.com/collectiveidea/delayed_job/tree/v4.1.13)**
 
-Delayed::Job
-============
+# Delayed Job
+
 [![Gem Version](https://badge.fury.io/rb/delayed_job.svg)][gem]
 ![CI](https://github.com/collectiveidea/delayed_job/workflows/CI/badge.svg)
 [![Code Climate](https://codeclimate.com/github/collectiveidea/delayed_job.svg)][codeclimate]
@@ -14,87 +14,74 @@ Delayed::Job
 [codeclimate]: https://codeclimate.com/github/collectiveidea/delayed_job
 [coveralls]: https://coveralls.io/r/collectiveidea/delayed_job
 
-Delayed::Job (or DJ) encapsulates the common pattern of asynchronously executing
-longer tasks in the background.
+Delayed Job encapsulates the common pattern of asynchronously executing
+longer tasks in the background. Examples of such tasks include:
 
-It is a direct extraction from Shopify where the job table is responsible for a
-multitude of core tasks. Amongst those tasks are:
+* Sending emails
+* Image resizing
+* HTTP downloads
+* Updating smart collections
+* Updating Solr, our search server, after product changes
+* Batch imports
+* Spam checks
 
-* sending massive newsletters
-* image resizing
-* http downloads
-* updating smart collections
-* updating solr, our search server, after product changes
-* batch imports
-* spam checks
+Delayed Job was extracted from Shopify.
 
-[Follow us on Twitter][twitter] to get updates and notices about new releases.
+## Installation
 
-[twitter]: https://twitter.com/delayedjob
+### Version Support
 
-Installation
-============
-delayed_job 3.0.0 only supports Rails 3.0+.
+Delayed Job 4.x only supports Rails 3.0+.
 
-delayed_job supports multiple backends for storing the job queue. [See the wiki
+### Configuring your Database
+
+Delayed Job supports multiple backends for storing the job queue. [See the wiki
 for other backends](https://github.com/collectiveidea/delayed_job/wiki/Backends).
 
-If you plan to use delayed_job with Active Record, add `delayed_job_active_record` to your `Gemfile`.
+To use with Active Record, add `delayed_job_active_record` to your `Gemfile`.
 
 ```ruby
 gem 'delayed_job_active_record'
 ```
 
-If you plan to use delayed_job with Mongoid, add `delayed_job_mongoid` to your `Gemfile`.
+To use with Mongoid, add `delayed_job_mongoid` to your `Gemfile`.
 
 ```ruby
 gem 'delayed_job_mongoid'
 ```
 
-Run `bundle install` to install the backend and delayed_job gems.
+Run `bundle install` to install the backend and `delayed_job` gems.
 
 The Active Record backend requires a jobs table. You can create that table by
 running the following command:
 
-    rails generate delayed_job:active_record
-    rake db:migrate
+```
+rails generate delayed_job:active_record
+rake db:migrate
+```
 
-For Rails 4.2+, see [below](#active-job)
+### Active Job
 
-Development
-===========
-In development mode, if you are using Rails 3.1+, your application code will automatically reload every 100 jobs or when the queue finishes.
-You no longer need to restart Delayed Job every time you update your code in development.
-
-Active Job
-==========
-In Rails 4.2+, set the queue_adapter in config/application.rb
+To use Delayed Job with Active Job (Rails 4.2+), set the `queue_adapter` in `config/application.rb`:
 
 ```ruby
 config.active_job.queue_adapter = :delayed_job
 ```
 
-See the [rails guide](http://guides.rubyonrails.org/active_job_basics.html#setting-the-backend) for more details.
+See the [Rails Guide](http://guides.rubyonrails.org/active_job_basics.html#setting-the-backend) for more details.
 
-Rails 4.x
-=========
-If you are using the protected_attributes gem, it must appear before delayed_job in your gemfile. If your jobs are failing with:
+### Protected Attributes
 
-     ActiveRecord::StatementInvalid: PG::NotNullViolation: ERROR:  null value in column "handler" violates not-null constraint
+When using the `protected_attributes` gem, it must appear before `delayed_job` in your `Gemfile`. Otherwise you will see this error:
 
-then this is the fix you're looking for.
+```
+ActiveRecord::StatementInvalid: PG::NotNullViolation: ERROR:  null value in column "handler" violates not-null constraint
+```
 
-Upgrading from 2.x to 3.0.0 on Active Record
-============================================
-Delayed Job 3.0.0 introduces a new column to the delayed_jobs table.
+## Using Delayed Job in your Application
 
-If you're upgrading from Delayed Job 2.x, run the upgrade generator to create a migration to add the column.
+### Queuing Jobs
 
-    rails generate delayed_job:upgrade
-    rake db:migrate
-
-Queuing Jobs
-============
 Call `.delay.method(params)` on any object and it will be processed in the background.
 
 ```ruby
@@ -120,7 +107,7 @@ device = Device.new
 device.deliver
 ```
 
-## Parameters
+### Parameters
 
 `#handle_asynchronously` and `#delay` take these parameters:
 
@@ -165,10 +152,11 @@ class LongTasks
 end
 ```
 
-If you ever want to call a `handle_asynchronously`'d method without Delayed Job, for instance while debugging something at the console, just add `_without_delay` to the method name. For instance, if your original method was `foo`, then call `foo_without_delay`.
+To call a `handle_asynchronously`'d method without Delayed Job, add `_without_delay` to the method name.
+For instance, if your original method was `foo`, then call `foo_without_delay`.
 
-Rails Mailers
-=============
+### Rails Mailers
+
 Delayed Job uses special syntax for Rails Mailers.
 Do not call the `.deliver` method when using `.delay`.
 
@@ -190,108 +178,167 @@ You may also wish to consider using
 [Active Job with Action Mailer](https://edgeguides.rubyonrails.org/active_job_basics.html#action-mailer)
 which provides convenient `.deliver_later` syntax that forwards to Delayed Job under-the-hood.
 
-Named Queues
-============
-DJ 3 introduces Resque-style named queues while still retaining DJ-style
-priority. The goal is to provide a system for grouping tasks to be worked by
-separate pools of workers, which may be scaled and controlled individually.
+### Queues
 
-Jobs can be assigned to a queue by setting the `queue` option:
+Delayed Job supports assigning jobs to named queues. Each queue may be worked by a
+separate pool of workers, which may then be scaled and controlled individually.
+
+Jobs can be assigned to a queue by setting the `:queue` option:
 
 ```ruby
-object.delay(:queue => 'tracking').method
+object.delay(queue: 'tracking').method
 
-Delayed::Job.enqueue job, :queue => 'tracking'
+Delayed::Job.enqueue job, queue: 'tracking'
 
-handle_asynchronously :tweet_later, :queue => 'tweets'
+handle_asynchronously :tweet_later, queue: 'tweets'
 ```
 
-You can configure default priorities for named queues:
+You may configure a default priority for each queue (lower number = higher priority):
 
 ```ruby
 Delayed::Worker.queue_attributes = {
-  high_priority: { priority: -10 },
-  low_priority: { priority: 10 }
+  high_priority_queue: { priority: -10 },
+  low_priority_queue: { priority: 10 }
 }
 ```
 
-Configured queue priorities can be overriden by passing priority to the delay method
+To override the queue's default priority, pass `:priority` to the delay method:
 
 ```ruby
-object.delay(:queue => 'high_priority', priority: 0).method
+object.delay(queue: 'high_priority_queue', priority: 0).method
 ```
 
 You can start processes to only work certain queues with the `queue` and `queues`
-options defined below. Processes started without specifying a queue will run jobs
-from **any** queue. To effectively have a process that runs jobs where a queue is not
-specified, set a default queue name with `Delayed::Worker.default_queue_name` and
-have the processes run that queue.
+options (refer to "Running Jobs" section below.) Processes started without specifying
+a queue will run jobs from **any** queue. To effectively have a process that runs
+jobs where a queue is not specified, set a default queue name with
+`Delayed::Worker.default_queue_name` and have the processes run that queue.
 
-Running Jobs
-============
-`script/delayed_job` can be used to manage a background process which will
-start working off jobs.
+## Running Jobs
 
-To do so, add `gem "daemons"` to your `Gemfile` and make sure you've run `rails
-generate delayed_job`.
+### Running as a Daemon Process
 
-You can then do the following:
+`script/delayed_job` starts a background daemon process which will continually work jobs.
 
-    RAILS_ENV=production script/delayed_job start
-    RAILS_ENV=production script/delayed_job stop
+To install this script, add `gem "daemons"` to your `Gemfile` then run `rails generate delayed_job`.
 
-    # Runs two workers in separate processes.
-    RAILS_ENV=production script/delayed_job -n 2 start
-    RAILS_ENV=production script/delayed_job stop
+Then run the `start` command:
 
-    # Set the --queue or --queues option to work from a particular queue.
-    RAILS_ENV=production script/delayed_job --queue=tracking start
-    RAILS_ENV=production script/delayed_job --queues=mailers,tasks start
+```
+# Run a single worker as a background process
+RAILS_ENV=production script/delayed_job start
 
-    # Use the --pool option to specify a worker pool. You can use this option multiple times to start different numbers of workers for different queues.
-    # The following command will start 1 worker for the tracking queue,
-    # 2 workers for the mailers and tasks queues, and 2 workers for any jobs:
-    RAILS_ENV=production script/delayed_job --pool=tracking --pool=mailers,tasks:2 --pool=*:2 start
+# Run 4 workers in separate background child processes
+RAILS_ENV=production script/delayed_job -n4 start
+```
 
-    # Runs all available jobs and then exits
-    RAILS_ENV=production script/delayed_job start --exit-on-complete
-    # or to run in the foreground
-    RAILS_ENV=production script/delayed_job run --exit-on-complete
+Each worker will check the database at least every 5 seconds.
 
-**Rails 4:** *replace script/delayed_job with bin/delayed_job*
+### Stopping and Restarting
 
-Workers can be running on any computer, as long as they have access to the
-database and their clock is in sync. Keep in mind that each worker will check
-the database at least every 5 seconds.
+You may use `stop` and `restart` commands. These commands wait for each worker
+to finish its current job before proceeding. 
 
-You can also invoke `rake jobs:work` which will start working off jobs. You can
-cancel the rake task with `CTRL-C`.
+```
+# Shutdown all workers and exit
+RAILS_ENV=production script/delayed_job stop
 
-If you want to just run all available jobs and exit you can use `rake jobs:workoff`
+# Shutdown all workers and start a single new worker process
+RAILS_ENV=production script/delayed_job restart
 
-Work off queues by setting the `QUEUE` or `QUEUES` environment variable.
+# Shutdown all workers and start 4 new worker processes
+RAILS_ENV=production script/delayed_job -n4 restart
+```
 
-    QUEUE=tracking rake jobs:work
-    QUEUES=mailers,tasks rake jobs:work
+You must pass the same arguments to `restart` that you used when calling `start`.
 
-Restarting delayed_job
-======================
+You may also send `SIGTERM` to stop Delayed Job.
 
-The following syntax will restart delayed jobs:
+### Worker Queues and Pools
 
-    RAILS_ENV=production script/delayed_job restart
+```
+# Set the --queues option to work from a particular queue
+RAILS_ENV=production script/delayed_job --queues=mailers,tasks start
 
-To restart multiple delayed_job workers:
+# Use the --pool option to specify a worker pool. You can use this option multiple
+# times to start different numbers of workers for different queues.
+# The following command will start 1 worker for the tracking queue,
+# 2 workers for the mailers and tasks queues, and 2 workers for any jobs:
+RAILS_ENV=production script/delayed_job --pool=tracking --pool=mailers,tasks:2 --pool=*:2 start
+```
 
-    RAILS_ENV=production script/delayed_job -n2 restart
+### Exit On Complete Mode
 
-**Rails 4:** *replace script/delayed_job with bin/delayed_job*
+```
+# Run as a daemon and exit after working all available jobs
+RAILS_ENV=production script/delayed_job start --exit-on-complete
 
+# or to run in the foreground
+RAILS_ENV=production script/delayed_job run --exit-on-complete
+```
 
+### Experimental: Forking Mode
 
-Custom Jobs
-===========
-Jobs are simple ruby objects with a method called perform. Any object which responds to perform can be stuffed into the jobs table. Job objects are serialized to yaml so that they can later be resurrected by the job runner.
+The `script/delayed_job` process (described above) uses the
+[Daemons](https://github.com/thuehlinger/daemons) gem which has several
+undesirable behaviors when running inside a container (Docker, etc.):
+
+* The parent process spawns a background child process then exits immediately,
+which causes the container to shutdown.
+* The worker processes are detached from the parent, which prevents logging to `STDOUT`.
+
+The `--fork` option solves this by running workers in a foreground process tree.
+When using `--fork` the `daemons` gem is not required.
+
+```
+# Run as a foreground process with 4 worker child processes.
+RAILS_ENV=production script/delayed_job --fork -n4 start
+
+# Forking mode supports queues and pools.
+RAILS_ENV=production script/delayed_job --fork --pool=mailers,tasks:2 --pool=*:2 start
+```
+
+Forking mode does not yet support the `restart`, `stop`, etc. script commands.
+Use `SIGTERM` or `SIGINT` to allow workers to finish their current job then gracefully shutdown.
+
+### Running via Rake
+
+You may start a worker process using `rake jobs:work`.
+You can exit the rake task with `CTRL-C`.
+
+To run all available jobs and exit, use `rake jobs:workoff`.
+
+Set the `QUEUES` or `POOLS` environment variable to work specific queues.
+
+```
+# Start a worker listening to all jobs
+rake jobs:work
+
+# Run 4 worker processes and exit when all jobs are finished
+NUM_WORKERS=4 rake jobs:workoff
+
+# Work all jobs from the "mailers" and "tasks" queues, then exit
+NUM_WORKERS=4 QUEUES=mailers,tasks rake jobs:workoff
+
+# You may also specify POOLS pipe-delimited
+POOLS=mailers,tasks:2|tweets:1|*:2 rake jobs:workoff
+```
+
+Rake uses Forking Mode (see above) under-the-hood.
+
+### Development
+
+In `development` environment, Delayed Job will automatically reload
+your application code after each 100 jobs or when the queue finishes.
+You should not need to restart Delayed Job each time you update your code.
+
+## Advanced Topics
+
+### Custom Jobs
+
+Jobs are simple ruby objects with a method called `perform`.
+Any object which responds to `perform` can be enqueued into the jobs table.
+Job objects are serialized to YAML so that they can later be marshalled by the job runner.
 
 ```ruby
 NewsletterJob = Struct.new(:text, :emails) do
@@ -303,7 +350,7 @@ end
 Delayed::Job.enqueue NewsletterJob.new('lorem ipsum...', Customers.pluck(:email))
 ```
 
-To set a per-job max attempts that overrides the Delayed::Worker.max_attempts you can define a max_attempts method on the job
+To override `Delayed::Worker.max_attempts` per-job, you can define a `max_attempts` instance method in the job class.
 
 ```ruby
 NewsletterJob = Struct.new(:text, :emails) do
@@ -317,9 +364,11 @@ NewsletterJob = Struct.new(:text, :emails) do
 end
 ```
 
-To set a per-job max run time that overrides the Delayed::Worker.max_run_time you can define a max_run_time method on the job
+To override `Delayed::Worker.max_run_time` per-job, you may define a `max_run_time`
+instance method in the job class.
 
-NOTE: this can ONLY be used to set a max_run_time that is lower than Delayed::Worker.max_run_time. Otherwise the lock on the job would expire and another worker would start the working on the in progress job.
+**NOTE:** You may only set a `max_run_time` that is lower than `Delayed::Worker.max_run_time`.
+Otherwise the lock on the job would expire and a second worker would start working the same in-progress job.
 
 ```ruby
 NewsletterJob = Struct.new(:text, :emails) do
@@ -333,7 +382,8 @@ NewsletterJob = Struct.new(:text, :emails) do
 end
 ```
 
-To set a per-job default for destroying failed jobs that overrides the Delayed::Worker.destroy_failed_jobs you can define a destroy_failed_jobs? method on the job
+To override `Delayed::Worker.destroy_failed_jobs` per-job, you may define a `destroy_failed_jobs?`
+instance method in the job class.
 
 ```ruby
 NewsletterJob = Struct.new(:text, :emails) do
@@ -347,7 +397,8 @@ NewsletterJob = Struct.new(:text, :emails) do
 end
 ```
 
-To set a default queue name for a custom job that overrides Delayed::Worker.default_queue_name, you can define a queue_name method on the job
+To override `Delayed::Worker.default_queue_name` per-job, you may define a `queue_name`
+instance method in the job class.
 
 ```ruby
 NewsletterJob = Struct.new(:text, :emails) do
@@ -361,7 +412,8 @@ NewsletterJob = Struct.new(:text, :emails) do
 end
 ```
 
-On error, the job is scheduled again in 5 seconds + N ** 4, where N is the number of attempts. You can define your own `reschedule_at` method to override this default behavior.
+On error, the job is scheduled again in 5 seconds + N ** 4, where N is the number of attempts.
+You may define a `reschedule_at` instance method to override this default behavior.
 
 ```ruby
 NewsletterJob = Struct.new(:text, :emails) do
@@ -370,17 +422,18 @@ NewsletterJob = Struct.new(:text, :emails) do
   end
 
   def reschedule_at(current_time, attempts)
-    current_time + 5.seconds
+    current_time + (attempts * 60).seconds
   end
 end
 ```
 
-Hooks
-=====
+### Hooks
+
 You can define hooks on your job that will be called at different stages in the process:
 
-
-**NOTE:** If you are using ActiveJob these hooks are **not** available to your jobs. You will need to use ActiveJob's callbacks. You can find details here https://guides.rubyonrails.org/active_job_basics.html#callbacks
+**NOTE:** If you are using Active Job these hooks are **not** available to your jobs.
+You will need to use Active Job's callbacks.
+See the [Rails Guides](https://guides.rubyonrails.org/active_job_basics.html#callbacks) for details.
 
 ```ruby
 class ParanoidNewsletterJob < NewsletterJob
@@ -414,9 +467,9 @@ class ParanoidNewsletterJob < NewsletterJob
 end
 ```
 
-Gory Details
-============
-The library revolves around a delayed_jobs table which looks as follows:
+### Gory Details
+
+The library revolves around a `delayed_jobs` table which looks as follows:
 
 ```ruby
 create_table :delayed_jobs, :force => true do |table|
@@ -433,12 +486,12 @@ create_table :delayed_jobs, :force => true do |table|
 end
 ```
 
-On error, the job is scheduled again in 5 seconds + N ** 4, where N is the number of attempts or using the job's defined `reschedule_at` method.
+On error, the job is scheduled again in 5 seconds + N ** 4, where N is the number of attempts or using the job's defined `reschedule_at` instance method.
 
-The default `Worker.max_attempts` is 25. After this, the job is either deleted (default), or left in the database with "failed_at" set.
+The default `Delayed::Worker.max_attempts` is 25. After this, the job is either deleted (default), or left in the database with "failed_at" set.
 With the default of 25 attempts, the last retry will be 20 days later, with the last interval being almost 100 hours.
 
-The default `Worker.max_run_time` is 4.hours. If your job takes longer than that, another computer could pick it up. It's up to you to
+The default `Delayed::Worker.max_run_time` is 4.hours. If your job takes longer than that, another computer could pick it up. It's up to you to
 make sure your job doesn't exceed this time. You should set this to the longest time you think the job could take.
 
 By default, it will delete failed jobs (and it always deletes successful jobs). If you want to keep failed jobs, set
@@ -454,7 +507,7 @@ If no jobs are found, the worker sleeps for the amount of time specified by the 
 
 It is possible to disable delayed jobs for testing purposes. Set `Delayed::Worker.delay_jobs = false` to execute all jobs realtime.
 
-Or `Delayed::Worker.delay_jobs` can be a Proc that decides whether to execute jobs inline on a per-job basis:
+`Delayed::Worker.delay_jobs` may also be a `Proc` that decides whether to execute jobs inline on a per-job basis:
 
 ```ruby
 Delayed::Worker.delay_jobs = ->(job) {
@@ -479,12 +532,12 @@ Delayed::Worker.raise_signal_exceptions = :term
 Delayed::Worker.logger = Logger.new(File.join(Rails.root, 'log', 'delayed_job.log'))
 ```
 
-Cleaning up
-===========
+### Cleaning up
+
 You can invoke `rake jobs:clear` to delete all jobs in the queue.
 
-Having problems?
-================
+### Having problems?
+
 Good places to get help are:
 * [Google Groups](http://groups.google.com/group/delayed_job) where you can join our mailing list.
 * [StackOverflow](http://stackoverflow.com/questions/tagged/delayed-job)

@@ -12,7 +12,7 @@ module Delayed
     end
 
     rake_tasks do
-      load 'delayed/tasks.rb'
+      load 'delayed/tasks.rake'
     end
   end
 end
