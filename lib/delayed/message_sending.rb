@@ -1,5 +1,5 @@
 module Delayed
-  class DelayProxy < Delayed::Compatibility.proxy_object_class
+  class DelayProxy < BasicObject
     def initialize(payload_class, target, options)
       @payload_class = payload_class
       @target = target
