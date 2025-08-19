@@ -27,6 +27,30 @@ describe Delayed::Command do
     end
   end
 
+  describe 'restart' do
+    before(:each) do
+      allow(Dir).to receive(:glob).with("#{run_process_options[:pid_dir]}/delayed_job*").and_return([pid_filepath])
+      allow(FileUtils).to receive(:mkdir_p).with(run_process_options[:pid_dir]).once
+    end
+    let(:command) { Delayed::Command.new(['restart']) }
+    let(:pid_filepath) { "#{run_process_options[:pid_dir]}/delayed_job.orig.pid" }
+    let(:run_process_options) do
+      {:log_dir => './log', :pid_dir => './tmp/pids', :quiet => true}
+    end
+
+    it 'sends stop for all workers then start' do
+      expect(command).to receive(:run_process).with('delayed_job.orig', run_process_options) do
+        expect(command.instance_variable_get('@args')).to eql(['stop'])
+      end
+
+      expect(command).to receive(:run_process).with('delayed_job', run_process_options) do
+        expect(command.instance_variable_get('@args')).to eql(['start'])
+      end
+
+      command.daemonize
+    end
+  end
+
   describe 'run' do
     it 'sets the Delayed::Worker logger' do
       expect(Delayed::Worker).to receive(:logger=).with(logger)
