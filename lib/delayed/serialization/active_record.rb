@@ -6,7 +6,7 @@ if defined?(ActiveRecord)
       def self.yaml_new(klass, _tag, val)
         klass.unscoped.find(val['attributes'][klass.primary_key])
       rescue ActiveRecord::RecordNotFound
-        raise Delayed::DeserializationError, "ActiveRecord::RecordNotFound, class: #{klass} , primary key: #{val['attributes'][klass.primary_key]}"
+        raise Delayed::PayloadNotFound, "ActiveRecord::RecordNotFound, class: #{klass} , primary key: #{val['attributes'][klass.primary_key]}"
       end
 
       def to_yaml_properties
