@@ -3,6 +3,7 @@ require 'active_support/dependencies'
 require 'active_support/core_ext/kernel/reporting'
 require 'active_support/core_ext/numeric/time'
 require 'active_support/core_ext/class/attribute_accessors'
+require 'active_support/core_ext/module/redefine_method'
 require 'active_support/hash_with_indifferent_access'
 require 'active_support/core_ext/hash/indifferent_access'
 require 'logger'
@@ -20,10 +21,13 @@ module Delayed
     DEFAULT_QUEUE_ATTRIBUTES = HashWithIndifferentAccess.new.freeze
     DEFAULT_READ_AHEAD       = 5
 
-    cattr_accessor :min_priority, :max_priority, :max_attempts, :max_run_time,
-                   :default_priority, :sleep_delay, :logger, :delay_jobs, :queues,
-                   :read_ahead, :plugins, :destroy_failed_jobs, :exit_on_complete,
-                   :default_log_level
+    cattr_accessor :min_priority, :max_priority, :default_priority, :sleep_delay,
+                   :logger, :delay_jobs, :queues, :read_ahead, :plugins,
+                   :destroy_failed_jobs, :exit_on_complete, :default_log_level
+
+    class << self
+      attr_accessor :max_attempts, :max_run_time
+    end
 
     # Named queue into which jobs are enqueued by default
     cattr_accessor :default_queue_name
@@ -32,6 +36,7 @@ module Delayed
 
     # name_prefix is ignored if name is set directly
     attr_accessor :name_prefix
+    attr_writer :max_attempts, :max_run_time
 
     def self.reset
       self.default_log_level = DEFAULT_LOG_LEVEL
@@ -131,6 +136,8 @@ module Delayed
     def initialize(options = {})
       @quiet = options.key?(:quiet) ? options[:quiet] : true
       @failed_reserve_count = 0
+      @name_prefix = nil
+      @exit = nil
 
       [:min_priority, :max_priority, :sleep_delay, :read_ahead, :queues, :exit_on_complete].each do |option|
         self.class.send("#{option}=", options[option]) if options.key?(option)
@@ -146,7 +153,7 @@ module Delayed
     # safely resume working on tasks which are locked by themselves. The worker will assume that
     # it crashed before.
     def name
-      return @name unless @name.nil?
+      return @name if defined?(@name)
       "#{@name_prefix}host:#{Socket.gethostname} pid:#{Process.pid}" rescue "#{@name_prefix}pid:#{Process.pid}"
     end
 

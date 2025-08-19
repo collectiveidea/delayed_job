@@ -5,7 +5,6 @@ module Delayed
   module Backend
     module Test
       class Job
-        attr_accessor :id
         attr_accessor :priority
         attr_accessor :attempts
         attr_accessor :handler
