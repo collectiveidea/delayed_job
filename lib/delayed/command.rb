@@ -108,10 +108,11 @@ module Delayed
 
     def setup_pools
       worker_index = 0
-      @worker_pools.each do |queues, worker_count|
+      @worker_pools.each do |queues, worker_count, pool_name|
         options = @options.merge(:queues => queues)
+        process_name_base = pool_name ? "delayed_job.#{pool_name}" : "delayed_job"
         worker_count.times do
-          process_name = "delayed_job.#{worker_index}"
+          process_name = "#{process_name_base}.#{worker_index}"
           run_process(process_name, options)
           worker_index += 1
         end
@@ -147,10 +148,10 @@ module Delayed
     def parse_worker_pool(pool)
       @worker_pools ||= []
 
-      queues, worker_count = pool.split(':')
+      queues, worker_count, pool_name = pool.split(':')
       queues = ['*', '', nil].include?(queues) ? [] : queues.split(',')
       worker_count = (worker_count || 1).to_i rescue 1
-      @worker_pools << [queues, worker_count]
+      @worker_pools << [queues, worker_count, pool_name]
     end
 
     def root
