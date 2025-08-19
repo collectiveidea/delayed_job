@@ -309,8 +309,12 @@ module Delayed
     # Run the next job we can get an exclusive lock on.
     # If no jobs are left we return nil
     def reserve_and_run_one_job
-      job = reserve_job
-      self.class.lifecycle.run_callbacks(:perform, self, job) { run(job) } if job
+      stop_worker =  end_rake_task if File.file?('stop_dj_worker.txt')
+      pause_worker = pause_rake_task if File.file?('pause_dj_worker.txt')
+      unless stop_worker || pause_worker
+        job = reserve_job
+        self.class.lifecycle.run_callbacks(:perform, self, job) { run(job) } if job
+      end
     end
 
     def reserve_job
@@ -333,6 +337,19 @@ module Delayed
         ActionDispatch::Reloader.cleanup!
         ActionDispatch::Reloader.prepare!
       end
+    end
+
+    def end_rake_task
+      puts 'killing worker task'
+      File.open('dj_worker_stopped.txt', 'a') { |f| f.write("#{Process.pid}\n") }
+      Process.kill("INT", Process.pid)
+      sleep(100)
+      true
+    end
+
+    def pause_rake_task
+      puts 'worker paused'
+      true
     end
   end
 end
