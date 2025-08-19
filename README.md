@@ -248,7 +248,13 @@ You can then do the following:
     RAILS_ENV=production script/delayed_job --queue=tracking start
     RAILS_ENV=production script/delayed_job --queues=mailers,tasks start
 
-    # Use the --pool option to specify a worker pool. You can use this option multiple times to start different numbers of workers for different queues.
+    # Option --exclude-specified-queues will do inverse of queues processing by skipping ones from --queue, --queues.
+    # If both --pool=* --exclude-specified-queues given, no exclusions will by applied on "*".
+    # A worker pool's queue list can be prefixed with a ! which has the same effect as setting
+    # --exclude-specified-queues but only applies it to that specific worker pool.
+
+    # Use the --pool option to specify a worker pool.
+    # You can use this option multiple times to start different numbers of workers for different queues.
     # The following command will start 1 worker for the tracking queue,
     # 2 workers for the mailers and tasks queues, and 2 workers for any jobs:
     RAILS_ENV=production script/delayed_job --pool=tracking --pool=mailers,tasks:2 --pool=*:2 start
@@ -273,6 +279,9 @@ Work off queues by setting the `QUEUE` or `QUEUES` environment variable.
 
     QUEUE=tracking rake jobs:work
     QUEUES=mailers,tasks rake jobs:work
+
+If EXCLUDE_SPECIFIED_QUEUES set to YES, then queues defined by QUEUE, QUEUES will be skipped instead.
+See option --exclude-specified-queues description for special case of queue "*"
 
 Restarting delayed_job
 ======================
