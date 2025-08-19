@@ -176,4 +176,16 @@ describe Delayed::Command do
       command.daemonize
     end
   end
+
+  describe 'when both --pool and --identifier are specified' do
+    it 'should ignore --identifier and display warning' do
+      command = nil
+      expect { command = Delayed::Command.new(['--identifier=42', '--pool=mailers']) }
+        .to output(/--identifier is ignored/).to_stderr
+
+      expect(command.worker_pools).to eq [
+        [['mailers'], 1],
+      ]
+    end
+  end
 end
