@@ -24,6 +24,7 @@ namespace :jobs do
 
     @worker_options[:sleep_delay] = ENV['SLEEP_DELAY'].to_i if ENV['SLEEP_DELAY']
     @worker_options[:read_ahead] = ENV['READ_AHEAD'].to_i if ENV['READ_AHEAD']
+    @worker_options[:exit_after] = ENV['EXIT_AFTER'].to_i if ENV['EXIT_AFTER']
   end
 
   desc "Exit with error status if any jobs older than max_age seconds haven't been attempted yet."
