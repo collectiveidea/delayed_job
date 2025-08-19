@@ -14,6 +14,7 @@ module Delayed
         set_payload
         set_queue_name
         set_priority
+        set_run_at
         handle_deprecation
         options
       end
@@ -33,8 +34,14 @@ module Delayed
       end
 
       def set_priority
-        queue_attribute = Delayed::Worker.queue_attributes[options[:queue]]
-        options[:priority] ||= (queue_attribute && queue_attribute[:priority]) || Delayed::Worker.default_priority
+        options[:priority] ||= queue_attribute(:priority) || Delayed::Worker.default_priority
+      end
+
+      def set_run_at
+        run_delay = queue_attribute(:run_delay)
+        return unless run_delay
+        raise ArgumentError 'Option `:run_delay` must be a Numeric' unless run_delay.is_a?(Numeric)
+        options[:run_at] ||= run_delay.seconds.from_now
       end
 
       def handle_deprecation
@@ -49,6 +56,12 @@ module Delayed
           raise ArgumentError, 'Cannot enqueue items which do not respond to perform'
         end
         # rubocop:enabled GuardClause
+      end
+
+      # Must be called after #set_queue_name
+      def queue_attribute(attribute)
+        attrs = Delayed::Worker.queue_attributes[options[:queue]]
+        attrs && attrs[attribute]
       end
     end
   end
