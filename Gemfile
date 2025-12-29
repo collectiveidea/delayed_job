@@ -49,10 +49,12 @@ end
 group :test do
   if ENV['RAILS_VERSION'] == 'edge'
     gem 'actionmailer', :github => 'rails/rails'
+    gem 'activejob',    :github => 'rails/rails'
     gem 'activerecord', :github => 'rails/rails'
   elsif ENV['RAILS_VERSION']
     gem 'actionmailer', "~> #{ENV['RAILS_VERSION']}"
     gem 'activerecord', "~> #{ENV['RAILS_VERSION']}"
+
     if ENV['RAILS_VERSION'] < '5.1'
       gem 'loofah', '2.3.1'
       gem 'nokogiri', '< 1.11.0'
@@ -84,6 +86,7 @@ group :test do
   if ENV['RAILS_VERSION'].nil? || ENV['RAILS_VERSION'] >= '6.0.0'
     gem 'zeitwerk', :require => false
   end
+  gem 'concurrent-ruby'
 end
 
 group :rubocop do
