@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ruby: ['3.2', '3.3', '3.4', '4.0', jruby-9.4, jruby-head, ruby-head]
+        ruby: ['3.2', '3.3', '3.4', '4.0', jruby-10.0, jruby-head, ruby-head]
         rails_version:
           - '7.0.0'
           - '7.1.0'
@@ -49,6 +49,17 @@ jobs:
           - ruby: jruby-9.2
             rails_version: '6.1.0'
             ubuntu: '22.04'
+
+          # jruby-9.4
+          - ruby: jruby-9.4
+            rails_version: '7.0.0'
+            ubuntu: latest
+          - ruby: jruby-9.4
+            rails_version: '7.1.0'
+            ubuntu: latest
+          - ruby: jruby-9.4
+            rails_version: '7.2.0'
+            ubuntu: latest
 
           #
           # The past
