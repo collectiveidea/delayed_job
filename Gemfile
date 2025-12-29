@@ -17,8 +17,8 @@ end
 platforms :jruby do
   if ENV['RAILS_VERSION'] == '4.2.0'
     gem 'activerecord-jdbcsqlite3-adapter', '< 50.0'
-  elsif ENV['RAILS_VERSION'] == 'edge' || ENV['RAILS_VERSION'] >= '8'
-    gem 'activerecord-jdbcsqlite3-adapter', github: 'jruby/activerecord-jdbc-adapter'
+  elsif ENV['RAILS_VERSION'] == 'edge' || ENV['RAILS_VERSION'].to_s >= '8'
+    gem 'activerecord-jdbcsqlite3-adapter', :github => 'jruby/activerecord-jdbc-adapter'
   else
     gem 'activerecord-jdbcsqlite3-adapter', '>= 50.0'
   end
