@@ -1,3 +1,9 @@
+4.2.0 - 2025-12-29
+=======================
+* Add dependencies for benchmark and logger which are moving out of stdlib.
+* Pull ActiveJob adapter from rails into DJ for future rails release.
+* Add Ruby 4.0 and Rails 8.1 to test matrix.
+
 4.1.13 - 2024-11-08
 =======================
 * Enable Rails 8
