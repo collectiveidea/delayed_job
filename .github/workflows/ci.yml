@@ -13,12 +13,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ruby: ['3.2', '3.3', '3.4',  jruby-9.4, jruby-head, ruby-head]
+        ruby: ['3.2', '3.3', '3.4', '4.0', jruby-9.4, jruby-head, ruby-head]
         rails_version:
           - '7.0.0'
           - '7.1.0'
           - '7.2.0'
           - '8.0.0'
+          - '8.1.0'
           - 'edge'
         ubuntu: [latest]
         include:
