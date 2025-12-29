@@ -125,7 +125,7 @@ jobs:
           - ruby: jruby-9.4
             rails_version: '6.0.0'
             ubuntu: '22.04'
-          
+
           # EOL Ruby
           - ruby: 2.7
             rails_version: '7.1.0'
@@ -134,7 +134,8 @@ jobs:
             rails_version: '7.1.0'
             ubuntu: '22.04'
 
-    continue-on-error: ${{ matrix.rails_version == 'edge' || endsWith(matrix.ruby, 'head') }}
+    # jruby activerecord-jdbc-adapter doesn't support Rails 8.1 yet
+    continue-on-error: ${{ matrix.rails_version == 'edge' || endsWith(matrix.ruby, 'head') || (startsWith(matrix.ruby, 'jruby') && matrix.rails_version >= '8.1') }}
 
     steps:
     - uses: actions/checkout@v4
