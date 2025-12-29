@@ -596,8 +596,13 @@ shared_examples_for 'a delayed_job backend' do
         @job.reload
         expect(@job.last_error).to match(/did not work/)
         if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('3.4.0')
-          # Ruby 3.4 produces a more verbose message
-          expect(@job.last_error).to match(/sample_jobs.rb:\d+:in 'ErrorJob#perform'/)
+          if defined?(JRUBY_VERSION)
+            # Jruby partially adopted ruby's error syntax changes
+            expect(@job.last_error).to match(/sample_jobs.rb:\d+:in 'perform'/)
+          else
+            # Ruby 3.4 produces a more verbose message
+            expect(@job.last_error).to match(/sample_jobs.rb:\d+:in 'ErrorJob#perform'/)
+          end
         else
           expect(@job.last_error).to match(/sample_jobs.rb:\d+:in `perform'/)
         end
