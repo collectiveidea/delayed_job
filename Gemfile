@@ -17,18 +17,10 @@ end
 platforms :jruby do
   if ENV['RAILS_VERSION'] == '4.2.0'
     gem 'activerecord-jdbcsqlite3-adapter', '< 50.0'
-  elsif ENV['RAILS_VERSION'] == '5.0.0'
-    gem 'activerecord-jdbcsqlite3-adapter', '~> 50.0'
-  elsif ENV['RAILS_VERSION'] == '5.1.0'
-    gem 'activerecord-jdbcsqlite3-adapter', '~> 51.0'
-  elsif ENV['RAILS_VERSION'] == '5.2.0'
-    gem 'activerecord-jdbcsqlite3-adapter', '~> 52.0'
-  elsif ENV['RAILS_VERSION'] == '6.0.0'
-    gem 'activerecord-jdbcsqlite3-adapter', '~> 60.0'
-  elsif ENV['RAILS_VERSION'] == '6.1.0'
-    gem 'activerecord-jdbcsqlite3-adapter', '~> 61.0'
+  elsif ENV['RAILS_VERSION'] == 'edge' || ENV['RAILS_VERSION'] >= '8'
+    gem 'activerecord-jdbcsqlite3-adapter', github: 'jruby/activerecord-jdbc-adapter'
   else
-    gem 'activerecord-jdbcsqlite3-adapter'
+    gem 'activerecord-jdbcsqlite3-adapter', '>= 50.0'
   end
   gem 'jruby-openssl'
   gem 'mime-types', ['~> 2.6', '< 2.99']
