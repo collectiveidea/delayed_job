@@ -76,6 +76,11 @@ shared_examples_for 'a delayed_job backend' do
         job = described_class.enqueue :payload_object => NamedQueueJob.new
         expect(job.queue).to eq(NamedQueueJob.new.queue_name)
       end
+
+      it "uses the payload object's priority" do
+        job = described_class.enqueue :payload_object => PrioritizedQueueJob.new
+        expect(job.priority).to eq(PrioritizedQueueJob.new.priority)
+      end
     end
 
     context 'with multiple arguments' do
@@ -332,6 +337,23 @@ shared_examples_for 'a delayed_job backend' do
       Delayed::Worker.queue_attributes = {'job_tracking' => {:priority => 4}}
       job = described_class.enqueue :payload_object => NamedQueueJob.new, :priority => 10
       expect(job.priority).to eq(10)
+    end
+
+    it 'sets job priority based on queue_attributes configuration' do
+      Delayed::Worker.queue_attributes = {'job_tracking' => {:priority => 4}}
+      job = described_class.enqueue :payload_object => PrioritizedQueueJob.new
+      expect(job.priority).to eq(5)
+    end
+
+    it 'sets job priority based on the passed in priority overrideing queue_attributes configuration' do
+      Delayed::Worker.queue_attributes = {'job_tracking' => {:priority => 4}}
+      job = described_class.enqueue :payload_object => PrioritizedQueueJob.new, :priority => 10
+      expect(job.priority).to eq(10)
+    end
+
+    it 'sets job priority based on the passed in priority in job class' do
+      job = described_class.enqueue :payload_object => PrioritizedQueueJob.new
+      expect(job.priority).to eq(5)
     end
   end
 
