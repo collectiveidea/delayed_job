@@ -53,7 +53,7 @@ module Delayed
     # (perhaps to inspect the reason for the failure), set this to false.
     self.destroy_failed_jobs = true
 
-    # By default, Signals INT and TERM set @exit, and the worker exits upon completion of the current job.
+    # By default, Signals INT and TERM set @@exit, and the worker exits upon completion of the current job.
     # If you would prefer to raise a SignalException and exit immediately you can use this.
     # Be aware daemons uses TERM to stop and restart
     # false - No exceptions will be raised
@@ -196,12 +196,20 @@ module Delayed
       end
     end
 
-    def stop
+    def self.stop
       @exit = true
     end
 
-    def stop?
+    def stop
+      self.class.stop
+    end
+
+    def self.stop?
       !!@exit
+    end
+
+    def stop?
+      self.class.stop?
     end
 
     # Do num jobs and return stats on success/failure.

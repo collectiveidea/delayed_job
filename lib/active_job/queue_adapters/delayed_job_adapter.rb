@@ -20,6 +20,10 @@ module ActiveJob
         delayed_job
       end
 
+      def stopping?
+        Delayed::Worker.stop?
+      end
+
       class JobWrapper
         attr_accessor :job_data
 
