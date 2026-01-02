@@ -185,12 +185,13 @@ module Delayed
               break
             elsif !stop?
               sleep(self.class.sleep_delay)
-              reload!
+              # reload! # original code
+              check_available_job_and_reload
             end
           else
             say format("#{count} jobs processed at %.4f j/s, %d failed", count / @realtime, @result.last)
+            GC.start # attempt to release memory
           end
-
           break if stop?
         end
       end
@@ -323,6 +324,10 @@ module Delayed
       @failed_reserve_count += 1
       raise FatalBackendError if @failed_reserve_count >= 10
       nil
+    end
+
+    def check_available_job_and_reload
+      reload! if self.class.reload_app? && defined?(Delayed::Job.ready_to_run) && Delayed::Job.ready_to_run(self.class, Worker.max_run_time).any?
     end
 
     def reload!
