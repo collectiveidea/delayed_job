@@ -180,4 +180,111 @@ describe Delayed::Worker do
       expect(performances).to eq(1)
     end
   end
+
+  # -------------------------------------------------------------------------
+  # Fix #1237 — WorkerTimeout must honour max_attempts
+  # -------------------------------------------------------------------------
+  describe '#run with WorkerTimeout' do
+    let(:worker) { Delayed::Worker.new }
+
+    # A job that always sleeps longer than any max_run_time we set in tests
+    let(:slow_job) do
+      Delayed::Job.create!(
+        :payload_object => LongRunningJob.new
+      )
+    end
+
+    before do
+      Delayed::Worker.destroy_failed_jobs = false
+    end
+
+    after do
+      Delayed::Worker.destroy_failed_jobs = true
+      Delayed::Worker.max_attempts        = Delayed::Worker::DEFAULT_MAX_ATTEMPTS
+      Delayed::Worker.max_run_time        = Delayed::Worker::DEFAULT_MAX_RUN_TIME
+    end
+
+    context 'when max_attempts = 1' do
+      before do
+        Delayed::Worker.max_attempts = 1
+        Delayed::Worker.max_run_time = 1.second
+      end
+
+      it 'marks the job as permanently failed instead of re-queuing it' do
+        worker.run(slow_job)
+        slow_job.reload
+        expect(slow_job).to be_failed,
+          'expected failed_at to be set but the job was re-queued instead'
+      end
+
+      it 'records the timeout in last_error' do
+        worker.run(slow_job)
+        slow_job.reload
+        expect(slow_job.last_error).to match(/expired|WorkerTimeout/i)
+      end
+
+      it 'clears locked_by and locked_at on the failed record' do
+        worker.run(slow_job)
+        slow_job.reload
+        expect(slow_job.locked_by).to be_nil
+        expect(slow_job.locked_at).to be_nil
+      end
+
+      it 'does not push run_at into the future' do
+        original_run_at = slow_job.run_at
+        worker.run(slow_job)
+        slow_job.reload
+        expect(slow_job.run_at).to be <= original_run_at + 2.seconds
+      end
+
+      it 'fires the :error lifecycle callback' do
+        error_fired = false
+        worker # instantiate before registering — setup_lifecycle runs in initialize
+               # and would discard any callback registered on the previous lifecycle
+        Delayed::Worker.lifecycle.after(:error) { |_w, _j| error_fired = true }
+        worker.run(slow_job)
+        expect(error_fired).to be true
+      end
+
+      it 'fires the :failure lifecycle callback' do
+        failure_fired = false
+        worker # same reason as above
+        Delayed::Worker.lifecycle.after(:failure) { |_w, _j| failure_fired = true }
+        worker.run(slow_job)
+        expect(failure_fired).to be true
+      end
+
+      it 'returns false (work failed)' do
+        result = worker.run(slow_job)
+        expect(result).to be false
+      end
+    end
+
+    context 'when max_attempts > 1' do
+      before do
+        Delayed::Worker.max_attempts = 3
+        Delayed::Worker.max_run_time = 1.second
+      end
+
+      it 'reschedules the job rather than permanently failing it' do
+        worker.run(slow_job)
+        slow_job.reload
+        expect(slow_job).not_to be_failed
+        expect(slow_job.attempts).to eq(1)
+        expect(slow_job.run_at).to be > Delayed::Job.db_time_now
+      end
+
+      it 'increments the attempts counter' do
+        worker.run(slow_job)
+        slow_job.reload
+        expect(slow_job.attempts).to eq(1)
+      end
+
+      it 'returns false (work failed)' do
+        result = worker.run(slow_job)
+        expect(result).to be false
+      end
+    end
+  end
+  # -------------------------------------------------------------------------
 end

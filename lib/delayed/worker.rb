@@ -238,6 +238,18 @@ module Delayed
 
       job.error = error
       failed(job)
+
+    # FIX #1237: Rescue WorkerTimeout explicitly *before* the broad Exception
+    # rescue. Ruby's Timeout uses Thread#raise which fires asynchronously and
+    # can interrupt the generic rescue block mid-DB-call, leaving the job in an
+    # undetermined state. A dedicated clause gives us a clean, isolated path.
+    rescue WorkerTimeout => error
+      job_say job,
+              "TIMED OUT (max_run_time=#{max_run_time(job)}s) with #{error.class.name}: #{error.message}",
+              'error'
+      self.class.lifecycle.run_callbacks(:error, self, job) { handle_failed_job(job, error) }
+      return false # work failed
+
     rescue Exception => error # rubocop:disable RescueException
       self.class.lifecycle.run_callbacks(:error, self, job) { handle_failed_job(job, error) }
       return false # work failed
@@ -265,6 +277,11 @@ module Delayed
           say "Error when running failure callback: #{error}", 'error'
           say error.backtrace.join("\n"), 'error'
         ensure
+          # FIX #1237: Unlock before persisting failure. When max_run_time
+          # elapses the DB lock is already expired, so another worker can race
+          # in and re-reserve this job in the window between the timeout firing
+          # and fail! completing. Unlocking first closes that window.
+          job.unlock
           job.destroy_failed_jobs? ? job.destroy : job.fail!
         end
       end
