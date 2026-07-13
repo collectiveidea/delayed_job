@@ -1,4 +1,4 @@
-require File.expand_path('../../../../spec/sample_jobs', __FILE__)
+require File.expand_path('../../../spec/sample_jobs', __dir__)
 
 require 'active_support/core_ext/numeric/time'
 

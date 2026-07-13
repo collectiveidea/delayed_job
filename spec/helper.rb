@@ -25,7 +25,7 @@ require 'delayed_job'
 require 'delayed/backend/shared_spec'
 
 if ENV['DEBUG_LOGS']
-  Delayed::Worker.logger = Logger.new(STDOUT)
+  Delayed::Worker.logger = Logger.new($stdout)
 else
   require 'tempfile'
 
@@ -36,7 +36,7 @@ end
 ENV['RAILS_ENV'] = 'test'
 
 # Trigger AR to initialize
-ActiveRecord::Base # rubocop:disable Void
+ActiveRecord::Base # rubocop:disable Lint/Void
 
 module Rails
   def self.root
@@ -80,8 +80,8 @@ class Story < ActiveRecord::Base
     text
   end
 
-  def whatever(n, _)
-    tell * n
+  def whatever(count, _)
+    tell * count
   end
   default_scope { where(:scoped => true) }
 

@@ -45,6 +45,7 @@ module Delayed
       end
 
       attr_reader :error
+
       def error=(error)
         @error = error
         self.last_error = "#{error.message}\n#{error.backtrace.join("\n")}" if respond_to?(:last_error=)
@@ -55,7 +56,7 @@ module Delayed
       end
       alias_method :failed, :failed?
 
-      ParseObjectFromYaml = %r{\!ruby/\w+\:([^\s]+)} # rubocop:disable ConstantName
+      ParseObjectFromYaml = %r{!ruby/\w+:([^\s]+)}.freeze # rubocop:disable Naming/ConstantName
 
       def name
         @name ||= payload_object.respond_to?(:display_name) ? payload_object.display_name : payload_object.class.name
@@ -80,7 +81,7 @@ module Delayed
             hook :before
             payload_object.perform
             hook :success
-          rescue Exception => e # rubocop:disable RescueException
+          rescue Exception => e # rubocop:disable Lint/RescueException
             hook :error, e
             raise e
           ensure
@@ -100,7 +101,8 @@ module Delayed
           method = payload_object.method(name)
           method.arity.zero? ? method.call : method.call(self, *args)
         end
-      rescue DeserializationError # rubocop:disable HandleExceptions
+      rescue DeserializationError
+        # The hook is best-effort; the deserialization failure surfaces when the job runs
       end
 
       def reschedule_at
@@ -119,11 +121,7 @@ module Delayed
         return unless payload_object.respond_to?(:max_run_time)
         return unless (run_time = payload_object.max_run_time)
 
-        if run_time > Delayed::Worker.max_run_time
-          Delayed::Worker.max_run_time
-        else
-          run_time
-        end
+        [run_time, Delayed::Worker.max_run_time].min
       end
 
       def destroy_failed_jobs?

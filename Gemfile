@@ -116,7 +116,8 @@ group :test do
 end
 
 group :rubocop do
-  gem 'rubocop', '>= 0.25', '< 0.49'
+  # RuboCop 1.x needs Ruby 2.7 to run; the RuboCop workflow uses Ruby 3.4
+  gem 'rubocop', '~> 1.88' if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.7.0')
 end
 
 gemspec
