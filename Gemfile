@@ -3,8 +3,12 @@ source 'https://rubygems.org'
 rails_version = ENV.fetch('RAILS_VERSION', nil)
 # Default to the newest Rails the JDBC adapters support. Without a pin
 # the resolver would pair a modern Active Record with an ancient 1.x
-# adapter, which has no upper bound on activerecord.
-rails_version ||= '7.2.0' if RUBY_ENGINE == 'jruby'
+# adapter, which has no upper bound on activerecord. JRuby 10.1
+# removed the Java APIs the stable 72.x adapters were compiled
+# against, so only the Rails 8 prerelease adapter works there.
+if RUBY_ENGINE == 'jruby'
+  rails_version ||= Gem::Version.new(JRUBY_VERSION) >= Gem::Version.new('10.1') ? '8.0.0' : '7.2.0'
+end
 
 gem 'rake'
 
@@ -23,6 +27,10 @@ platforms :jruby do
     gem 'activerecord-jdbcsqlite3-adapter', '~> 60.0'
   when '6.1.0'
     gem 'activerecord-jdbcsqlite3-adapter', '~> 61.0'
+  when '8.0.0'
+    # Rails 8 support is prerelease-only so far, and the resolver never
+    # picks prereleases without an explicit pin
+    gem 'activerecord-jdbcsqlite3-adapter', '80.0.pre1'
   else
     gem 'activerecord-jdbcsqlite3-adapter'
   end
