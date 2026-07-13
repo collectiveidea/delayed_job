@@ -17,6 +17,11 @@ platforms :jruby do
     gem 'activerecord-jdbcsqlite3-adapter', '~> 60.0'
   when '6.1.0'
     gem 'activerecord-jdbcsqlite3-adapter', '~> 61.0'
+  when nil
+    # Without a Rails pin the resolver would otherwise pair a modern
+    # Active Record with an ancient 1.x adapter that has no upper bound
+    # on activerecord
+    gem 'activerecord-jdbcsqlite3-adapter', '~> 72.1'
   else
     gem 'activerecord-jdbcsqlite3-adapter'
   end
