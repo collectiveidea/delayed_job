@@ -26,12 +26,15 @@ jobs:
           # Rails edge requires Ruby >= 3.3.1
           - ruby: '3.2'
             rails_version: 'edge'
-          # activerecord-jdbcsqlite3-adapter has no Rails 8 release yet
-          - ruby: jruby-10.0
-            rails_version: '8.0.0'
+          # activerecord-jdbcsqlite3-adapter supports Rails 8.0 at most,
+          # and only via its 80.0.pre1 prerelease
           - ruby: jruby-10.0
             rails_version: '8.1.0'
           - ruby: jruby-10.0
+            rails_version: 'edge'
+          - ruby: jruby-head
+            rails_version: '8.1.0'
+          - ruby: jruby-head
             rails_version: 'edge'
         include:
           # EOL Active Record still supported on Ruby >= 3.2
