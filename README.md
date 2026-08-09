@@ -215,7 +215,7 @@ Delayed::Worker.queue_attributes = {
 }
 ```
 
-Configured queue priorities can be overriden by passing priority to the delay method
+Configured queue priorities can be overridden by passing priority to the delay method
 
 ```ruby
 object.delay(:queue => 'high_priority', priority: 0).method
