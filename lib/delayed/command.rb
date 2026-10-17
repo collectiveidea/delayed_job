@@ -19,7 +19,8 @@ module Delayed
       @options = {
         :quiet => true,
         :pid_dir => "#{root}/tmp/pids",
-        :log_dir => "#{root}/log"
+        :log_dir => "#{root}/log",
+        :pid_delimiter => '.'
       }
 
       @worker_count = 1
@@ -80,6 +81,9 @@ module Delayed
         opt.on('--daemon-options a, b, c', Array, 'options to be passed through to daemons gem') do |daemon_options|
           @daemon_options = daemon_options
         end
+        opt.on('--pid_delimiter=DELIMITER', 'Specifies an alternate delimiter for pids files.') do |delimiter|
+          @options[:pid_delimiter] = delimiter
+        end
       end
       @args = opts.parse!(args) + (@daemon_options || [])
     end
@@ -120,7 +124,12 @@ module Delayed
 
     def run_process(process_name, options = {})
       Delayed::Worker.before_fork
-      Daemons.run_proc(process_name, :dir => options[:pid_dir], :dir_mode => :normal, :monitor => @monitor, :ARGV => @args) do |*_args|
+      Daemons.run_proc(process_name,
+                       :dir => options[:pid_dir],
+                       :dir_mode => :normal,
+                       :monitor => @monitor,
+                       :ARGV => @args,
+                       :pid_delimiter => options[:pid_delimiter]) do |*_args|
         $0 = File.join(options[:prefix], process_name) if @options[:prefix]
         run process_name, options
       end

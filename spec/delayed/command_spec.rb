@@ -162,13 +162,13 @@ describe Delayed::Command do
       expect(FileUtils).to receive(:mkdir_p).with('./tmp/pids').once
 
       [
-        ['delayed_job.0', {:quiet => true, :pid_dir => './tmp/pids', :log_dir => './log', :queues => []}],
-        ['delayed_job.1', {:quiet => true, :pid_dir => './tmp/pids', :log_dir => './log', :queues => ['test_queue']}],
-        ['delayed_job.2', {:quiet => true, :pid_dir => './tmp/pids', :log_dir => './log', :queues => ['test_queue']}],
-        ['delayed_job.3', {:quiet => true, :pid_dir => './tmp/pids', :log_dir => './log', :queues => ['test_queue']}],
-        ['delayed_job.4', {:quiet => true, :pid_dir => './tmp/pids', :log_dir => './log', :queues => ['test_queue']}],
-        ['delayed_job.5', {:quiet => true, :pid_dir => './tmp/pids', :log_dir => './log', :queues => %w[mailers misc]}],
-        ['delayed_job.6', {:quiet => true, :pid_dir => './tmp/pids', :log_dir => './log', :queues => %w[mailers misc]}]
+        ['delayed_job.0', {:quiet => true, :pid_delimiter => '.', :pid_dir => './tmp/pids', :log_dir => './log', :queues => []}],
+        ['delayed_job.1', {:quiet => true, :pid_delimiter => '.', :pid_dir => './tmp/pids', :log_dir => './log', :queues => ['test_queue']}],
+        ['delayed_job.2', {:quiet => true, :pid_delimiter => '.', :pid_dir => './tmp/pids', :log_dir => './log', :queues => ['test_queue']}],
+        ['delayed_job.3', {:quiet => true, :pid_delimiter => '.', :pid_dir => './tmp/pids', :log_dir => './log', :queues => ['test_queue']}],
+        ['delayed_job.4', {:quiet => true, :pid_delimiter => '.', :pid_dir => './tmp/pids', :log_dir => './log', :queues => ['test_queue']}],
+        ['delayed_job.5', {:quiet => true, :pid_delimiter => '.', :pid_dir => './tmp/pids', :log_dir => './log', :queues => %w[mailers misc]}],
+        ['delayed_job.6', {:quiet => true, :pid_delimiter => '.', :pid_dir => './tmp/pids', :log_dir => './log', :queues => %w[mailers misc]}]
       ].each do |args|
         expect(command).to receive(:run_process).with(*args).once
       end
