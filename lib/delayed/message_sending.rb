@@ -41,7 +41,7 @@ module Delayed
   end
 
   module MessageSendingClassMethods
-    def handle_asynchronously(method, opts = {}) # rubocop:disable Metrics/PerceivedComplexity
+    def handle_asynchronously(method, opts = {})
       aliased_method = method.to_s.sub(/([?!=])$/, '')
       punctuation = $1 # rubocop:disable Style/PerlBackrefs
       with_method = "#{aliased_method}_with_delay#{punctuation}"
@@ -67,7 +67,7 @@ module Delayed
         public method
       elsif protected_method_defined?(without_method)
         protected method
-      elsif private_method_defined?(without_method)
+      else
         private method
       end
     end
