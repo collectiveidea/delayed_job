@@ -1,5 +1,6 @@
 require 'helper'
 require 'delayed/command'
+require 'open3'
 
 describe Delayed::Command do
   let(:options) { [] }
@@ -153,6 +154,122 @@ describe Delayed::Command do
       expect(command.worker_pools).to eq [
         [['mailers'], 1],
       ]
+    end
+  end
+
+  describe 'loading' do
+    # A separate process, because loading the file again would reset its coverage
+    it 'asks for the daemons gem outside the test environment when it is missing' do
+      lib = File.expand_path('../../lib', __dir__)
+      _out, err, status = Open3.capture3({'RAILS_ENV' => 'development'}, RbConfig.ruby, '-I', lib, '-e', "require 'delayed/command'")
+      expect(status).not_to be_success
+      expect(err).to include("You need to add gem 'daemons' to your Gemfile if you wish to use it.")
+    end
+  end
+
+  describe 'parsing options' do
+    def parsed_options(args)
+      Delayed::Command.new(args).instance_variable_get(:@options)
+    end
+
+    it 'prints usage and exits with --help' do
+      expect { Delayed::Command.new(['--help']) }.to raise_error(SystemExit).and output(/Usage: .* start\|stop\|restart\|run/).to_stdout
+    end
+
+    it 'warns that --environment is deprecated' do
+      expect { Delayed::Command.new(['--environment=production']) }.to output(/deprecated and has no effect/).to_stderr_from_any_process
+    end
+
+    it 'parses worker options' do
+      options = parsed_options(%w[--min-priority 1 --max-priority 5 --pid-dir=/pids --identifier=3 --sleep-delay 9 --read-ahead 4 --prefix pre --queues=a,b --exit-on-complete])
+      expect(options).to include(
+        :min_priority => '1', :max_priority => '5', :pid_dir => '/pids', :identifier => '3', :sleep_delay => 9,
+        :read_ahead => '4', :prefix => 'pre', :queues => %w[a b], :exit_on_complete => true
+      )
+    end
+
+    it 'parses --queue' do
+      expect(parsed_options(['--queue=mailers'])).to include(:queues => ['mailers'])
+    end
+
+    it 'parses the number of workers' do
+      expect(Delayed::Command.new(['-n', '3']).worker_count).to eq(3)
+    end
+  end
+
+  describe 'daemonize' do
+    before do
+      allow(FileUtils).to receive(:mkdir_p)
+    end
+
+    it 'runs a single worker' do
+      command = Delayed::Command.new([])
+      expect(command).to receive(:run_process).with('delayed_job', hash_including(:pid_dir => './tmp/pids'))
+      command.daemonize
+    end
+
+    it 'runs when the pid dir already exists' do
+      allow(File).to receive(:exist?).and_call_original
+      allow(File).to receive(:exist?).with('./tmp/pids').and_return(true)
+      command = Delayed::Command.new([])
+      expect(command).to receive(:run_process).with('delayed_job', hash_including(:pid_dir => './tmp/pids'))
+      command.daemonize
+    end
+
+    it 'runs numbered workers' do
+      command = Delayed::Command.new(['-n', '2'])
+      expect(command).to receive(:run_process).with('delayed_job.0', anything).ordered
+      expect(command).to receive(:run_process).with('delayed_job.1', anything).ordered
+      command.daemonize
+    end
+
+    it 'runs a worker with an identifier' do
+      command = Delayed::Command.new(['--identifier=7'])
+      expect(command).to receive(:run_process).with('delayed_job.7', hash_including(:identifier => '7'))
+      command.daemonize
+    end
+
+    it 'refuses both an identifier and multiple workers' do
+      command = Delayed::Command.new(['--identifier=7', '-n', '2'])
+      expect { command.daemonize }.to raise_error(ArgumentError, 'Cannot specify both --number-of-workers and --identifier')
+    end
+  end
+
+  describe 'run_process' do
+    let(:daemons) { Daemons }
+
+    before do
+      allow(Delayed::Worker).to receive(:before_fork)
+    end
+
+    it 'runs the worker in a daemon' do
+      command = Delayed::Command.new(['--monitor', 'start', '--daemon-options', 'a,b'])
+      expect(daemons).to receive(:run_proc).
+        with('delayed_job', :dir => './tmp/pids', :dir_mode => :normal, :monitor => true, :ARGV => %w[start a b]).
+        and_yield
+      options = {:pid_dir => './tmp/pids'}
+      expect(command).to receive(:run).with('delayed_job', options)
+      command.run_process('delayed_job', :pid_dir => './tmp/pids')
+      expect(Delayed::Worker).to have_received(:before_fork)
+    end
+
+    it 'prefixes the process name' do
+      program_name = $PROGRAM_NAME
+      begin
+        command = Delayed::Command.new(['--prefix', 'app'])
+        allow(daemons).to receive(:run_proc).and_yield
+        allow(command).to receive(:run)
+        command.run_process('delayed_job', :prefix => 'app')
+        expect($PROGRAM_NAME).to eq('app/delayed_job')
+      ensure
+        $PROGRAM_NAME = program_name
+      end
+    end
+  end
+
+  describe 'exit_with_error_status' do
+    it 'exits with status 1' do
+      expect { Delayed::Command.new([]).send(:exit_with_error_status) }.to raise_error(SystemExit) { |e| expect(e.status).to eq(1) }
     end
   end
 
