@@ -118,9 +118,15 @@ module Delayed
       end
     end
 
+    # Workers are named delayed_job.0, delayed_job.1, and so on, but since 1.2
+    # Daemons looks for delayed_job_num0.pid, so `stop` and `status` without -n
+    # found nothing. Daemons 1.3.1+ honors this; the pid file names don't change.
+    PID_DELIMITER = '.'.freeze
+
     def run_process(process_name, options = {})
       Delayed::Worker.before_fork
-      Daemons.run_proc(process_name, :dir => options[:pid_dir], :dir_mode => :normal, :monitor => @monitor, :ARGV => @args) do |*_args|
+      Daemons.run_proc(process_name, :dir => options[:pid_dir], :dir_mode => :normal, :monitor => @monitor,
+                                     :ARGV => @args, :pid_delimiter => PID_DELIMITER) do |*_args|
         $0 = File.join(options[:prefix], process_name) if @options[:prefix]
         run process_name, options
       end
