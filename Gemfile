@@ -68,7 +68,7 @@ group :test do
   end
   gem 'net-smtp'
   gem 'rspec', '>= 3'
-  gem 'simplecov', '>= 1', :require => false
+  gem 'simplecov', '>= 1.2', :require => false
   gem 'simplecov-lcov', :require => false
   if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('3.3.0')
     # New dependencies with a deprecation notice in Ruby 3.3 and required in Ruby 3.4
