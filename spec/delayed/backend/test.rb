@@ -1,5 +1,3 @@
-require 'ostruct'
-
 # An in-memory backend suitable only for testing. Tries to behave as if it were an ORM.
 module Delayed
   module Backend
