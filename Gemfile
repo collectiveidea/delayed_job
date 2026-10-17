@@ -24,9 +24,9 @@ end
 platforms :jruby do
   case rails_version
   when '6.0.0'
-    gem 'activerecord-jdbcsqlite3-adapter', '~> 60.0'
+    gem 'activerecord-jdbcsqlite3-adapter', '~> 60'
   when '6.1.0'
-    gem 'activerecord-jdbcsqlite3-adapter', '~> 61.0'
+    gem 'activerecord-jdbcsqlite3-adapter', '~> 61'
   when '8.0.0'
     # Rails 8 support is prerelease-only so far, and the resolver never
     # picks prereleases without an explicit pin
@@ -46,7 +46,7 @@ platforms :jruby do
   elsif rails_version
     gem 'railties', "~> #{rails_version}"
   else
-    gem 'railties', ['>= 3.0', '< 9.0']
+    gem 'railties', ['>= 6', '< 9']
   end
 end
 
@@ -63,8 +63,8 @@ group :test do
     gem 'actionmailer', "~> #{rails_version}"
     gem 'activerecord', "~> #{rails_version}"
   else
-    gem 'actionmailer', ['>= 3.0', '< 9.0']
-    gem 'activerecord', ['>= 3.0', '< 9.0']
+    gem 'actionmailer', ['>= 6', '< 9']
+    gem 'activerecord', ['>= 6', '< 9']
   end
   gem 'net-smtp'
   gem 'rspec', '>= 3'
@@ -79,7 +79,7 @@ group :test do
     gem 'ostruct'
   end
   gem 'concurrent-ruby'
-  gem 'zeitwerk', :require => false if rails_version.nil? || rails_version >= '6.0.0'
+  gem 'zeitwerk', :require => false
 end
 
 group :rubocop do
