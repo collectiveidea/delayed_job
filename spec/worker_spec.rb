@@ -1,4 +1,5 @@
 require 'helper'
+require 'tmpdir'
 
 describe Delayed::Worker do
   describe 'backend=' do
@@ -160,6 +161,223 @@ describe Delayed::Worker do
       expect(@worker.logger).to receive(:send).
         with('info', "#{@expected_time}: #{@worker_name} #{@text}")
       @worker.say(@text, Delayed::Worker.default_log_level)
+    end
+  end
+
+  describe '.guess_backend' do
+    it 'warns that it is deprecated' do
+      expect { Delayed::Worker.guess_backend }.to output(/guess_backend is deprecated/).to_stderr
+    end
+  end
+
+  describe 'forking' do
+    let(:dir) { Dir.mktmpdir }
+    let(:open_file) { File.open(File.join(dir, 'open.log'), 'w') }
+    let(:closed_file) { File.open(File.join(dir, 'closed.log'), 'w') { |file| file } }
+    let(:broken_file) { double('File', :closed? => false, :path => File.join(dir, 'broken.log')) }
+
+    before do
+      allow(ObjectSpace).to receive(:each_object).with(File).
+        and_yield(open_file).and_yield(closed_file).and_yield(broken_file)
+      allow(broken_file).to receive(:reopen).and_raise(IOError)
+    end
+
+    after do
+      Delayed::Worker.instance_variable_set(:@files_to_reopen, nil)
+      open_file.close
+      FileUtils.remove_entry(dir)
+    end
+
+    it 'remembers open files once and lets the backend prepare' do
+      expect(Delayed::Job).to receive(:before_fork).twice.and_call_original
+      Delayed::Worker.before_fork
+      Delayed::Worker.before_fork
+      expect(ObjectSpace).to have_received(:each_object).once
+      expect(Delayed::Worker.instance_variable_get(:@files_to_reopen)).to eq([open_file, broken_file])
+    end
+
+    it 'reopens remembered files after forking' do
+      Delayed::Worker.before_fork
+      expect(open_file).to receive(:reopen).with(open_file.path, 'a+').and_call_original
+      expect(Delayed::Job).to receive(:after_fork).and_call_original
+      Delayed::Worker.after_fork
+      expect(open_file.sync).to be true
+    end
+  end
+
+  describe '.reload_app?' do
+    let(:config) { double('config', :cache_classes => false) }
+
+    before do
+      stub_const('ActionDispatch::Reloader', Class.new)
+      allow(Rails).to receive(:application).and_return(double('application', :config => config))
+    end
+
+    it 'is true when classes are not cached' do
+      expect(Delayed::Worker.reload_app?).to be true
+    end
+
+    it 'is false when classes are cached' do
+      allow(config).to receive(:cache_classes).and_return(true)
+      expect(Delayed::Worker.reload_app?).to be false
+    end
+  end
+
+  describe '#reload!' do
+    it 'does nothing when the app does not need reloading' do
+      allow(Delayed::Worker).to receive(:reload_app?).and_return(false)
+      expect(Rails).not_to receive(:application)
+      Delayed::Worker.new.send(:reload!)
+    end
+
+    it 'reloads the app' do
+      reloader = double('reloader')
+      allow(Delayed::Worker).to receive(:reload_app?).and_return(true)
+      allow(Rails).to receive(:application).and_return(double('application', :reloader => reloader))
+      expect(reloader).to receive(:reload!)
+      Delayed::Worker.new.send(:reload!)
+    end
+  end
+
+  describe '.delay_job?' do
+    it 'calls a proc without arguments' do
+      Delayed::Worker.delay_jobs = -> { false }
+      expect(Delayed::Worker.delay_job?(double('job'))).to be false
+    end
+  end
+
+  describe 'options' do
+    it 'applies worker options to the class settings' do
+      Delayed::Worker.new(:min_priority => 1, :max_priority => 9, :sleep_delay => 3, :read_ahead => 2, :queues => %w[a], :exit_on_complete => true)
+      expect(Delayed::Worker.min_priority).to eq(1)
+      expect(Delayed::Worker.max_priority).to eq(9)
+      expect(Delayed::Worker.sleep_delay).to eq(3)
+      expect(Delayed::Worker.read_ahead).to eq(2)
+      expect(Delayed::Worker.queues).to eq(%w[a])
+      expect(Delayed::Worker.exit_on_complete).to be true
+    ensure
+      Delayed::Worker.min_priority = nil
+      Delayed::Worker.max_priority = nil
+      Delayed::Worker.exit_on_complete = false
+    end
+  end
+
+  describe 'quiet option' do
+    it 'prints messages when not quiet' do
+      worker = Delayed::Worker.new(:quiet => false)
+      worker.name = 'loud'
+      expect { worker.say('hello') }.to output("[Worker(loud)] hello\n").to_stdout
+    end
+  end
+
+  describe 'without a logger' do
+    around do |example|
+      logger = Delayed::Worker.logger
+      Delayed::Worker.logger = nil
+      example.run
+    ensure
+      Delayed::Worker.logger = logger
+    end
+
+    it 'only prints messages' do
+      worker = Delayed::Worker.new(:quiet => false)
+      worker.name = 'loud'
+      expect { worker.say('hello') }.to output("[Worker(loud)] hello\n").to_stdout
+    end
+  end
+
+  describe 'class setting accessors' do
+    settings = %i(min_priority max_priority default_priority sleep_delay delay_jobs queues read_ahead plugins
+                  destroy_failed_jobs exit_on_complete default_log_level default_queue_name raise_signal_exceptions)
+
+    it 'reads and writes class settings from an instance' do
+      worker = Delayed::Worker.new
+      settings.each do |setting|
+        value = Delayed::Worker.public_send(setting)
+        worker.public_send(:"#{setting}=", value)
+        expect(worker.public_send(setting)).to eq(value)
+      end
+      worker.max_attempts = Delayed::Worker.max_attempts
+      worker.max_run_time = Delayed::Worker.max_run_time
+      expect(worker.backend).to eq(Delayed::Worker.backend)
+      expect(worker.queue_attributes).to eq(Delayed::Worker.queue_attributes)
+    end
+  end
+
+  describe '#start' do
+    let(:worker) { Delayed::Worker.new }
+    let(:traps) { {} }
+
+    before do
+      Delayed::Job.delete_all
+      allow(worker).to receive(:trap) { |signal, &block| traps[signal] = block }
+    end
+
+    after do
+      Delayed::Worker.exit_on_complete = false
+      Delayed::Worker.raise_signal_exceptions = false
+    end
+
+    it 'sleeps and reloads while waiting for jobs' do
+      worker.sleep_delay = 7
+      expect(worker).to receive(:sleep).with(7) { worker.stop }
+      expect(worker).to receive(:reload!)
+      worker.start
+      expect(worker).to be_stop
+    end
+
+    it 'reports processed jobs and keeps working until none are left' do
+      Delayed::Worker.exit_on_complete = true
+      'hello'.delay.length
+      expect(worker).to receive(:say).with('Starting job worker')
+      expect(worker).to receive(:say).with(/1 jobs processed at \d+\.\d{4} j\/s, 0 failed/)
+      expect(worker).to receive(:say).with('No more jobs available. Exiting')
+      allow(worker).to receive(:job_say)
+      worker.start
+      expect(Delayed::Job.count).to eq(0)
+    end
+
+    it 'does not sleep once stopped' do
+      worker.stop
+      expect(worker).not_to receive(:sleep)
+      worker.start
+    end
+
+    context 'when handling signals' do
+      before do
+        Delayed::Worker.exit_on_complete = true
+        worker.start
+        allow(Thread).to receive(:new) { |&block| block.call }
+      end
+
+      %w[TERM INT].each do |signal|
+        it "stops on #{signal}" do
+          traps[signal].call
+          expect(worker).to be_stop
+        end
+
+        it "raises on #{signal} when signal exceptions are enabled" do
+          Delayed::Worker.raise_signal_exceptions = true
+          expect { traps[signal].call }.to raise_error(SignalException, "SIG#{signal}")
+        end
+      end
+
+      it 'raises on TERM only when signal exceptions are :term' do
+        Delayed::Worker.raise_signal_exceptions = :term
+        traps['INT'].call
+        expect { traps['TERM'].call }.to raise_error(SignalException, 'SIGTERM')
+      end
+    end
+  end
+
+  describe '#work_off' do
+    it 'stops between jobs once the worker is stopped' do
+      Delayed::Job.delete_all
+      2.times { 'hello'.delay.length }
+      worker = Delayed::Worker.new
+      worker.stop
+      expect(worker.work_off).to eq([1, 0])
+      expect(Delayed::Job.count).to eq(1)
     end
   end
 
