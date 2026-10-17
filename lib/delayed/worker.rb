@@ -116,8 +116,13 @@ module Delayed
       plugins.each { |klass| klass.new }
     end
 
+    # Reload only in apps with reloading enabled, and only when files changed
     def self.reload_app?
-      Rails.application.reloaders.any?(&:updated?) && Rails.application.config.cache_classes == false
+      return false unless defined?(ActionDispatch::Reloader) && defined?(Rails.application)
+      return false unless Rails.application.config.cache_classes == false
+
+      # Rails 3.0 and 3.1 can't tell which files changed
+      !Rails.application.respond_to?(:reloaders) || Rails.application.reloaders.any?(&:updated?)
     end
 
     def self.delay_job?(job)

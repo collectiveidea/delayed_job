@@ -163,6 +163,45 @@ describe Delayed::Worker do
     end
   end
 
+  describe '.reload_app?' do
+    let(:config) { double('config', :cache_classes => false) }
+    let(:file_watcher) { double('file watcher', :updated? => true) }
+
+    before do
+      stub_const('ActionDispatch::Reloader', Class.new)
+      allow(Rails).to receive(:application).and_return(double('application', :config => config, :reloaders => [file_watcher]))
+    end
+
+    it 'is true when classes are not cached and files changed' do
+      expect(Delayed::Worker.reload_app?).to be true
+    end
+
+    it 'is false when no files changed' do
+      allow(file_watcher).to receive(:updated?).and_return(false)
+      expect(Delayed::Worker.reload_app?).to be false
+    end
+
+    it 'is true on Rails versions that cannot tell which files changed' do
+      allow(Rails).to receive(:application).and_return(double('application', :config => config))
+      expect(Delayed::Worker.reload_app?).to be true
+    end
+
+    it 'is false when classes are cached' do
+      allow(config).to receive(:cache_classes).and_return(true)
+      expect(Delayed::Worker.reload_app?).to be false
+    end
+
+    it 'is false without a Rails application' do
+      RSpec::Mocks.space.proxy_for(Rails).reset
+      expect(Delayed::Worker.reload_app?).to be false
+    end
+
+    it 'is false without ActionDispatch' do
+      hide_const('ActionDispatch::Reloader')
+      expect(Delayed::Worker.reload_app?).to be false
+    end
+  end
+
   describe 'plugin registration' do
     it 'does not double-register plugins on worker instantiation' do
       performances = 0
