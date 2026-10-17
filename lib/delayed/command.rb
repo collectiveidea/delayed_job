@@ -10,12 +10,12 @@ require 'optparse'
 require 'pathname'
 
 module Delayed
-  class Command # rubocop:disable ClassLength
+  class Command # rubocop:disable Metrics/ClassLength
     attr_accessor :worker_count, :worker_pools
 
     DIR_PWD = Pathname.new Dir.pwd
 
-    def initialize(args) # rubocop:disable MethodLength
+    def initialize(args) # rubocop:disable Metrics/MethodLength
       @options = {
         :quiet => true,
         :pid_dir => "#{root}/tmp/pids",
@@ -33,7 +33,7 @@ module Delayed
           exit 1
         end
         opt.on('-e', '--environment=NAME', 'Specifies the environment to run this delayed jobs under (test/development/production).') do |_e|
-          STDERR.puts 'The -e/--environment option has been deprecated and has no effect. Use RAILS_ENV and see http://github.com/collectiveidea/delayed_job/issues/7'
+          warn 'The -e/--environment option has been deprecated and has no effect. Use RAILS_ENV and see http://github.com/collectiveidea/delayed_job/issues/7'
         end
         opt.on('--min-priority N', 'Minimum priority of jobs to run.') do |n|
           @options[:min_priority] = n
@@ -84,20 +84,20 @@ module Delayed
       @args = opts.parse!(args) + (@daemon_options || [])
     end
 
-    def daemonize # rubocop:disable PerceivedComplexity
+    def daemonize
       dir = @options[:pid_dir]
-      FileUtils.mkdir_p(dir) unless File.exist?(dir)
+      FileUtils.mkdir_p(dir)
 
       if worker_pools
         setup_pools
       elsif @options[:identifier]
-        # rubocop:disable GuardClause
+        # rubocop:disable Style/GuardClause
         if worker_count > 1
           raise ArgumentError, 'Cannot specify both --number-of-workers and --identifier'
         else
           run_process("delayed_job.#{@options[:identifier]}", @options)
         end
-        # rubocop:enable GuardClause
+        # rubocop:enable Style/GuardClause
       else
         worker_count.times do |worker_index|
           process_name = worker_count == 1 ? 'delayed_job' : "delayed_job.#{worker_index}"
@@ -135,9 +135,9 @@ module Delayed
       worker = Delayed::Worker.new(options)
       worker.name_prefix = "#{worker_name} "
       worker.start
-    rescue => e
-      STDERR.puts e.message
-      STDERR.puts e.backtrace
+    rescue StandardError => e
+      warn e.message
+      warn e.backtrace
       ::Rails.logger.fatal(e) if rails_logger_defined?
       exit_with_error_status
     end

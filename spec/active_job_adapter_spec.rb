@@ -7,9 +7,7 @@ end
 
 describe 'a Rails active job backend' do
   before do
-    if ActiveSupport.gem_version < Gem::Version.new('8.1.0.alpha')
-      skip("Bundled adapter used in #{ActiveSupport.gem_version}")
-    end
+    skip("Bundled adapter used in #{ActiveSupport.gem_version}") if ActiveSupport.gem_version < Gem::Version.new('8.1.0.alpha')
   end
 
   if ActiveSupport.gem_version >= Gem::Version.new('8.1.0.alpha')

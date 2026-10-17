@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ruby: ['3.2', '3.3', '3.4', '4.0', jruby-9.4, jruby-head, ruby-head]
+        ruby: ['3.2', '3.3', '3.4', '4.0', jruby-10.0, jruby-head, ruby-head]
         rails_version:
           - '7.0.0'
           - '7.1.0'
@@ -22,105 +22,27 @@ jobs:
           - '8.1.0'
           - 'edge'
         ubuntu: [latest]
+        exclude:
+          # Rails edge requires Ruby >= 3.3.1
+          - ruby: '3.2'
+            rails_version: 'edge'
+          # activerecord-jdbcsqlite3-adapter supports Rails 8.0 at most,
+          # and only via its 80.0.pre1 prerelease
+          - ruby: jruby-10.0
+            rails_version: '8.1.0'
+          - ruby: jruby-10.0
+            rails_version: 'edge'
+          - ruby: jruby-head
+            rails_version: '8.1.0'
+          - ruby: jruby-head
+            rails_version: 'edge'
         include:
-          # Ruby 2.6
-          - ruby: 2.6
+          # EOL Active Record still supported on Ruby >= 3.2
+          - ruby: '3.2'
             rails_version: '6.0.0'
             ubuntu: '22.04'
-          - ruby: 2.6
+          - ruby: '3.2'
             rails_version: '6.1.0'
-            ubuntu: '22.04'
-
-          # ruby 3.1 (Dropped by Rails 8)
-          - ruby: 3.1
-            rails_version: '7.0.0'
-            ubuntu: 'latest'
-          - ruby: 3.1
-            rails_version: '7.1.0'
-            ubuntu: 'latest'
-          - ruby: 3.1
-            rails_version: '7.2.0'
-            ubuntu: 'latest'
-
-          # jruby-9.2
-          - ruby: jruby-9.2
-            rails_version: '6.0.0'
-            ubuntu: '22.04'
-          - ruby: jruby-9.2
-            rails_version: '6.1.0'
-            ubuntu: '22.04'
-
-          #
-          # The past
-          #
-          # EOL Active Record
-          #
-          # Ruby 2.2 is known to seg fault on 22.04 and 20.04 has been dropped.
-          # Maybe revisit local runner possibilities.
-          # - ruby: 2.2
-          #   rails_version: '3.2.0'
-          #   ubuntu: '22.04'
-          - ruby: 2.1
-            rails_version: '4.1.0'
-            ubuntu: '22.04'
-          - ruby: 2.4
-            rails_version: '4.2.0'
-            ubuntu: '22.04'
-          - ruby: 2.4
-            rails_version: '5.0.0'
-            ubuntu: '22.04'
-          - ruby: 2.5
-            rails_version: '5.1.0'
-            ubuntu: '22.04'
-          - ruby: 2.6
-            rails_version: '5.2.0'
-            ubuntu: '22.04'
-          - ruby: 2.7
-            rails_version: '5.2.0'
-            ubuntu: '22.04'
-          - ruby: jruby-9.2
-            rails_version: '5.2.0'
-            ubuntu: '22.04'
-          - ruby: 2.7
-            rails_version: '6.0.0'
-            ubuntu: '22.04'
-          - ruby: 3.0
-            rails_version: '6.0.0'
-            ubuntu: '22.04'
-          - ruby: 3.2
-            rails_version: '6.0.0'
-            ubuntu: '22.04'
-          - ruby: jruby-9.4
-            rails_version: '6.0.0'
-            ubuntu: '22.04'
-          - ruby: 2.7
-            rails_version: '6.1.0'
-            ubuntu: '22.04'
-          - ruby: 3.0
-            rails_version: '6.1.0'
-            ubuntu: '22.04'
-          - ruby: 3.2
-            rails_version: '6.1.0'
-            ubuntu: '22.04'
-          - ruby: jruby-9.4
-            rails_version: '6.0.0'
-            ubuntu: '22.04'
-          - ruby: 2.7
-            rails_version: '7.0.0'
-            ubuntu: '22.04'
-          - ruby: 3.0
-            rails_version: '7.0.0'
-            ubuntu: '22.04'
-          - ruby: jruby-9.4
-            rails_version: '6.0.0'
-            ubuntu: '22.04'
-          
-          # EOL Ruby
-          - ruby: 2.7
-            rails_version: '7.1.0'
-            ubuntu: '22.04'
-          - ruby: 3.0
-            rails_version: '7.1.0'
             ubuntu: '22.04'
 
     continue-on-error: ${{ matrix.rails_version == 'edge' || endsWith(matrix.ruby, 'head') }}
@@ -143,6 +65,8 @@ jobs:
         github-token: ${{ secrets.github_token }}
         flag-name: run-${{ matrix.ruby }}-${{ matrix.rails_version }}
         parallel: true
+        # Don't fail otherwise-green jobs when coveralls.io has an outage
+        fail-on-error: false
 
   finish:
     needs: test
@@ -153,3 +77,4 @@ jobs:
       with:
         github-token: ${{ secrets.github_token }}
         parallel-finished: true
+        fail-on-error: false

@@ -47,6 +47,7 @@ describe Delayed::MessageSending do
       describe 'using a proc with parameters' do
         class Yarn
           attr_accessor :importance
+
           def spin; end
           handle_asynchronously :spin, :priority => proc { |y| y.importance }
         end
@@ -65,6 +66,7 @@ describe Delayed::MessageSending do
   context 'delay' do
     class FairyTail
       attr_accessor :happy_ending
+
       def self.princesses; end
 
       def tell

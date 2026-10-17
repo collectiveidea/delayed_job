@@ -5,15 +5,13 @@ SimpleCov::Formatter::LcovFormatter.config do |c|
   c.report_with_single_file = true
   c.single_report_path = 'coverage/lcov.info'
 end
-SimpleCov.formatters = SimpleCov::Formatter::MultiFormatter.new(
-  [
-    SimpleCov::Formatter::HTMLFormatter,
-    SimpleCov::Formatter::LcovFormatter
-  ]
-)
+SimpleCov.formatters = [
+  SimpleCov::Formatter::HTMLFormatter,
+  SimpleCov::Formatter::LcovFormatter
+]
 
 SimpleCov.start do
-  add_filter '/spec/'
+  skip '/spec/'
 end
 
 require 'logger'
@@ -26,7 +24,7 @@ require 'delayed_job'
 require 'delayed/backend/shared_spec'
 
 if ENV['DEBUG_LOGS']
-  Delayed::Worker.logger = Logger.new(STDOUT)
+  Delayed::Worker.logger = Logger.new($stdout)
 else
   require 'tempfile'
 
@@ -37,7 +35,7 @@ end
 ENV['RAILS_ENV'] = 'test'
 
 # Trigger AR to initialize
-ActiveRecord::Base # rubocop:disable Void
+ActiveRecord::Base # rubocop:disable Lint/Void
 
 module Rails
   def self.root
@@ -81,8 +79,8 @@ class Story < ActiveRecord::Base
     text
   end
 
-  def whatever(n, _)
-    tell * n
+  def whatever(count, _)
+    tell * count
   end
   default_scope { where(:scoped => true) }
 

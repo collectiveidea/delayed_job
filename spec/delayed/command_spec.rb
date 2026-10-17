@@ -84,11 +84,11 @@ describe Delayed::Command do
       before do
         allow(Delayed::Worker).to receive(:new).and_raise(test_error.new('An error'))
         allow(subject).to receive(:exit_with_error_status)
-        allow(STDERR).to receive(:puts)
+        allow(subject).to receive(:warn)
       end
 
       it 'prints the error message to STDERR' do
-        expect(STDERR).to receive(:puts).with('An error')
+        expect(subject).to receive(:warn).with('An error')
         subject.run
       end
 

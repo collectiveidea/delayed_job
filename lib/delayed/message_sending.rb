@@ -6,8 +6,8 @@ module Delayed
     end
 
     # Let DelayProxy raise exceptions.
-    def raise(*args)
-      ::Object.send(:raise, *args)
+    def raise(*)
+      ::Object.send(:raise, *)
     end
 
     def initialize(payload_class, target, options)
@@ -16,11 +16,11 @@ module Delayed
       @options = options
     end
 
-    # rubocop:disable MethodMissing
-    def method_missing(method, *args)
+    # DelayProxy inherits from BasicObject, which has no respond_to?, so
+    # there is no respond_to_missing? contract to uphold here.
+    def method_missing(method, *args) # rubocop:disable Style/MissingRespondToMissing
       Job.enqueue({:payload_object => @payload_class.new(@target, method.to_sym, args)}.merge(@options))
     end
-    # rubocop:enable MethodMissing
   end
 
   module MessageSending
@@ -29,27 +29,28 @@ module Delayed
     end
     alias_method :__delay__, :delay
 
-    def send_later(method, *args)
+    def send_later(method, *)
       warn '[DEPRECATION] `object.send_later(:method)` is deprecated. Use `object.delay.method'
-      __delay__.__send__(method, *args)
+      __delay__.__send__(method, *)
     end
 
-    def send_at(time, method, *args)
+    def send_at(time, method, *)
       warn '[DEPRECATION] `object.send_at(time, :method)` is deprecated. Use `object.delay(:run_at => time).method'
-      __delay__(:run_at => time).__send__(method, *args)
+      __delay__(:run_at => time).__send__(method, *)
     end
   end
 
   module MessageSendingClassMethods
-    def handle_asynchronously(method, opts = {}) # rubocop:disable PerceivedComplexity
+    def handle_asynchronously(method, opts = {}) # rubocop:disable Metrics/PerceivedComplexity
       aliased_method = method.to_s.sub(/([?!=])$/, '')
-      punctuation = $1 # rubocop:disable PerlBackrefs
+      punctuation = $1 # rubocop:disable Style/PerlBackrefs
       with_method = "#{aliased_method}_with_delay#{punctuation}"
       without_method = "#{aliased_method}_without_delay#{punctuation}"
       define_method(with_method) do |*args|
         curr_opts = opts.clone
         curr_opts.each_key do |key|
           next unless (val = curr_opts[key]).is_a?(Proc)
+
           curr_opts[key] = if val.arity == 1
             val.call(self)
           else

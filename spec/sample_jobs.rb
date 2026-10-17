@@ -23,7 +23,8 @@ class ErrorJob
   cattr_accessor :runs
   @runs = 0
   def perform
-    raise Exception, 'did not work'
+    # Deliberately a non-StandardError to exercise the worker's Exception handling
+    raise Exception, 'did not work' # rubocop:disable Lint/RaiseException
   end
 end
 
@@ -50,6 +51,7 @@ class OnPermanentFailureJob < SimpleJob
   attr_writer :raise_error
 
   def initialize
+    super
     @raise_error = false
   end
 
