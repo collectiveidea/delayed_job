@@ -1,40 +1,34 @@
 require 'helper'
-
-if ActiveSupport.gem_version >= Gem::Version.new('8.1.0.alpha')
-  require 'active_job'
-  require 'concurrent'
-end
+require 'active_job'
+require 'concurrent'
+# Load this gem's adapter even where Rails bundles its own at the same path,
+# as happens when delayed_job comes first on the load path
+require File.expand_path('../lib/active_job/queue_adapters/delayed_job_adapter', __dir__)
 
 describe 'a Rails active job backend' do
-  before do
-    skip("Bundled adapter used in #{ActiveSupport.gem_version}") if ActiveSupport.gem_version < Gem::Version.new('8.1.0.alpha')
-  end
+  module JobBuffer
+    @values = Concurrent::Array.new
 
-  if ActiveSupport.gem_version >= Gem::Version.new('8.1.0.alpha')
-    module JobBuffer
-      @values = Concurrent::Array.new
+    class << self
+      def clear
+        @values.clear
+      end
 
-      class << self
-        def clear
-          @values.clear
-        end
+      def add(value)
+        @values << value
+      end
 
-        def add(value)
-          @values << value
-        end
-
-        def values
-          @values.dup
-        end
+      def values
+        @values.dup
       end
     end
+  end
 
-    class TestJob < ActiveJob::Base
-      queue_as :integration_tests
+  class TestJob < ActiveJob::Base
+    queue_as :integration_tests
 
-      def perform(message)
-        JobBuffer.add(message)
-      end
+    def perform(message)
+      JobBuffer.add(message)
     end
   end
 
@@ -45,6 +39,11 @@ describe 'a Rails active job backend' do
     Delayed::Job.delete_all
     ActiveJob::Base.queue_adapter = :delayed_job
     ActiveJob::Base.logger = nil
+  end
+
+  it 'uses this gem’s adapter' do
+    adapter = ActiveJob::QueueAdapters::DelayedJobAdapter
+    expect(adapter.instance_method(:enqueue).source_location.first).to start_with(File.expand_path('../lib', __dir__))
   end
 
   it 'should supply a wrapped class name to DelayedJob' do
@@ -78,6 +77,7 @@ describe 'a Rails active job backend' do
   end
 
   it 'runs multiple queued jobs' do
+    skip('perform_all_later is new in Rails 7.1') unless ActiveJob.respond_to?(:perform_all_later)
     ActiveJob.perform_all_later(TestJob.new('Rails'), TestJob.new('World'))
     worker.work_off
     expect(JobBuffer.values).to eq(%w[Rails World])
@@ -98,6 +98,7 @@ describe 'a Rails active job backend' do
   end
 
   it 'should run job bulk enqueued in the future at the specified time' do
+    skip('perform_all_later is new in Rails 7.1') unless ActiveJob.respond_to?(:perform_all_later)
     ActiveJob.perform_all_later([TestJob.new('Rails').set(:wait => 5.seconds)])
 
     expect(Delayed::Job.all.last.run_at).to within(1.second).of(5.seconds.from_now)
