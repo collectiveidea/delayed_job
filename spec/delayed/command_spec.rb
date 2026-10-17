@@ -237,7 +237,7 @@ describe Delayed::Command do
     it 'runs the worker in a daemon' do
       command = Delayed::Command.new(['--monitor', 'start', '--daemon-options', 'a,b'])
       expect(daemons).to receive(:run_proc).
-        with('delayed_job', :dir => './tmp/pids', :dir_mode => :normal, :monitor => true, :ARGV => %w[start a b]).
+        with('delayed_job', :dir => './tmp/pids', :dir_mode => :normal, :monitor => true, :ARGV => %w[start a b], :pid_delimiter => '.').
         and_yield
       expect(command).to receive(:run).with('delayed_job', {:pid_dir => './tmp/pids'})
       command.run_process('delayed_job', :pid_dir => './tmp/pids')

@@ -29,6 +29,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 - Workers in Rack apps that load ActionDispatch without Rails raised `NameError`. ([#1145], [#1146], [@bazay])
 - Delayed module methods were logged as `Module#method` instead of `MyModule.method`. ([#1120], [@xronos-i-am])
 - Ruby warned that `Delayed::Worker#max_attempts` and `#max_run_time` were redefined.
+- `delayed_job stop` and `status` without `-n` found no workers with daemons 1.2 or later. ([#1080], [#1081], [@TemaMix])
 
 ## [4.2.0] - 2025-12-29
 
@@ -628,6 +629,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 [#1064]: https://github.com/collectiveidea/delayed_job/pull/1064
 [#1074]: https://github.com/collectiveidea/delayed_job/pull/1074
 [#1077]: https://github.com/collectiveidea/delayed_job/pull/1077
+[#1080]: https://github.com/collectiveidea/delayed_job/issues/1080
+[#1081]: https://github.com/collectiveidea/delayed_job/pull/1081
 [#1093]: https://github.com/collectiveidea/delayed_job/pull/1093
 [#1120]: https://github.com/collectiveidea/delayed_job/pull/1120
 [#1121]: https://github.com/collectiveidea/delayed_job/pull/1121
@@ -642,5 +645,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 [@joshuapinter]: https://github.com/joshuapinter
 [@raldred]: https://github.com/raldred
 [@stuwil]: https://github.com/stuwil
+[@TemaMix]: https://github.com/TemaMix
 [@xronos-i-am]: https://github.com/xronos-i-am
 [@yujideveloper]: https://github.com/yujideveloper
