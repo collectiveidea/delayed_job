@@ -31,7 +31,8 @@ namespace :jobs do
     args.with_defaults(:max_age => 300, :not_locked => false)
 
     unprocessed_jobs = Delayed::Job.where('attempts = 0 AND run_at < ?', args[:max_age].to_i.seconds.ago)
-    unprocessed_jobs = unprocessed_jobs.where('locked_at IS NULL') if args[:not_locked]
+    # Rake passes task arguments as strings, so "false" must not count as true
+    unprocessed_jobs = unprocessed_jobs.where('locked_at IS NULL') if %w[true 1].include?(args[:not_locked].to_s)
     unprocessed_jobs = unprocessed_jobs.count
 
     raise "#{unprocessed_jobs} jobs older than #{args[:max_age]} seconds have not been processed yet" if unprocessed_jobs > 0
