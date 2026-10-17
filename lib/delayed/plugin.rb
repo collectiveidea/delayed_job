@@ -2,7 +2,7 @@ require 'active_support/core_ext/class/attribute'
 
 module Delayed
   class Plugin
-    class_attribute :callback_block
+    class_attribute :callback_block # simplecov:disable method - Ruby 4.1 counts readers ActiveSupport replaces
 
     def self.callbacks(&block)
       self.callback_block = block
