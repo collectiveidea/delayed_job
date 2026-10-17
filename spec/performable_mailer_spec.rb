@@ -37,6 +37,15 @@ describe ActionMailer::Base do
         expect(email).to receive(:deliver)
         mailer.perform
       end
+
+      it 'calls #deliver_now when the mailer supports it' do
+        email = double('email', :deliver_now => true)
+        mailer_class = double('MailerClass', :signup => email)
+        mailer = Delayed::PerformableMailer.new(mailer_class, :signup, ['john@example.com'])
+
+        expect(email).to receive(:deliver_now)
+        mailer.perform
+      end
     end
   end
 end

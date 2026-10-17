@@ -72,4 +72,18 @@ describe Delayed::Lifecycle do
     lifecycle.before(:execute, &callback)
     expect { lifecycle.run_callbacks(:execute, 1, 2, 3) {} }.to raise_error(ArgumentError, /1 parameter/)
   end
+
+  it 'raises when adding a callback for an unknown event' do
+    expect { lifecycle.before(:unknown, &callback) }.to raise_error(Delayed::InvalidCallback, 'Unknown callback event: unknown')
+  end
+
+  it 'raises when running callbacks for an unknown event' do
+    expect { lifecycle.run_callbacks(:unknown) {} }.to raise_error(Delayed::InvalidCallback, 'Unknown callback event: unknown')
+  end
+end
+
+describe Delayed::Callback do
+  it 'raises on an unknown callback type' do
+    expect { Delayed::Callback.new.add(:sideways) {} }.to raise_error(Delayed::InvalidCallback, 'Invalid callback type: sideways')
+  end
 end

@@ -91,6 +91,32 @@ describe Delayed::MessageSending do
     end
   end
 
+  describe 'send_later' do
+    it 'warns and delays the method' do
+      job = nil
+      expect { job = 'hello'.send_later(:count, 'l') }.to output(/send_later.*deprecated/).to_stderr
+      expect(job.payload_object.method_name).to eq(:count)
+      expect(job.payload_object.args).to eq(['l'])
+    end
+  end
+
+  describe 'send_at' do
+    it 'warns and delays the method until the given time' do
+      run_at = 1.hour.from_now
+      job = nil
+      expect { job = 'hello'.send_at(run_at, :count, 'l') }.to output(/send_at.*deprecated/).to_stderr
+      expect(job.run_at).to eq(run_at)
+      expect(job.payload_object.method_name).to eq(:count)
+    end
+  end
+
+  describe Delayed::DelayProxy do
+    it 'raises exceptions' do
+      proxy = Delayed::DelayProxy.new(Delayed::PerformableMethod, 'hello', {})
+      expect { proxy.raise(ArgumentError, 'boom') }.to raise_error(ArgumentError, 'boom')
+    end
+  end
+
   context 'delay' do
     class FairyTail
       attr_accessor :happy_ending
