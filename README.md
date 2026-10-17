@@ -128,7 +128,9 @@ device.deliver
 - `:run_at` (Time): run the job after this time (probably in the future)
 - `:queue` (string): named queue to put this job in, an alternative to priorities (see below)
 
-These params can be Proc objects, allowing call-time evaluation of the value.
+With `#handle_asynchronously`, these params can be Proc objects, which are
+evaluated each time the method is called. `#delay` uses the values as given, so
+pass it the computed value instead, e.g. `delay(:run_at => 5.minutes.from_now)`.
 
 For example:
 
@@ -257,6 +259,10 @@ You can then do the following:
     RAILS_ENV=production script/delayed_job start --exit-on-complete
     # or to run in the foreground
     RAILS_ENV=production script/delayed_job run --exit-on-complete
+
+    # Pass options through to the daemons gem, separated by commas.
+    # This waits up to 42 seconds (-w) for workers to finish before killing them:
+    RAILS_ENV=production script/delayed_job --daemon-options -w,42 stop
 
 **Rails 4:** *replace script/delayed_job with bin/delayed_job*
 
