@@ -66,7 +66,12 @@ module Delayed
           end
           jobs.select! { |j| j.priority <= Worker.max_priority } if Worker.max_priority
           jobs.select! { |j| j.priority >= Worker.min_priority } if Worker.min_priority
-          jobs.select! { |j| Worker.queues.include?(j.queue) } if Worker.queues.any?
+          if Worker.queues.any?
+            jobs.select! do |j|
+              includes = Worker.queues.include?(j.queue)
+              Worker.exclude_specified_queues ? !includes : includes
+            end
+          end
           jobs.sort_by! { |j| [j.priority, j.run_at] }[0..limit - 1]
         end
 

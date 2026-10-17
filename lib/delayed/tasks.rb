@@ -19,6 +19,7 @@ namespace :jobs do
       :min_priority => ENV['MIN_PRIORITY'],
       :max_priority => ENV['MAX_PRIORITY'],
       :queues => (ENV['QUEUES'] || ENV['QUEUE'] || '').split(','),
+      :exclude_specified_queues => ENV['EXCLUDE_SPECIFIED_QUEUES'].to_s.casecmp('YES').zero?,
       :quiet => ENV['QUIET']
     }
 
