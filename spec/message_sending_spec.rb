@@ -63,6 +63,35 @@ describe Delayed::MessageSending do
     end
   end
 
+  describe 'handle_asynchronously visibility and options' do
+    class Saga
+      def recite; end
+      handle_asynchronously :recite, :queue => 'sagas'
+
+    protected
+
+      def hum; end
+      handle_asynchronously :hum
+
+    private
+
+      def whisper; end
+      handle_asynchronously :whisper
+    end
+
+    it 'passes static options through' do
+      expect(Saga.new.recite.queue).to eq('sagas')
+    end
+
+    it 'keeps protected methods protected' do
+      expect(Saga.protected_method_defined?(:hum)).to be true
+    end
+
+    it 'keeps private methods private' do
+      expect(Saga.private_method_defined?(:whisper)).to be true
+    end
+  end
+
   context 'delay' do
     class FairyTail
       attr_accessor :happy_ending
