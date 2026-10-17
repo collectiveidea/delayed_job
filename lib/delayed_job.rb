@@ -11,12 +11,12 @@ require 'delayed/backend/base'
 require 'delayed/backend/job_preparer'
 require 'delayed/worker'
 require 'delayed/deserialization_error'
-require 'delayed/railtie' if defined?(Rails::Railtie)
+require 'delayed/railtie' if defined?(Rails::Railtie) # simplecov:disable - specs run without Rails
 
 ActiveSupport.on_load(:action_mailer) do
   require 'delayed/performable_mailer'
   ActionMailer::Base.extend(Delayed::DelayMail)
-  ActionMailer::Parameterized::Mailer.include(Delayed::DelayMail) if defined?(ActionMailer::Parameterized::Mailer)
+  ActionMailer::Parameterized::Mailer.include(Delayed::DelayMail) if defined?(ActionMailer::Parameterized::Mailer) # simplecov:disable branch - depends on the Rails version
 end
 
 module Delayed

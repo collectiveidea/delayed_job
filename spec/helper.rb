@@ -11,8 +11,23 @@ SimpleCov.formatters = [
 ]
 
 SimpleCov.start do
-  # SimpleCov 1.0 renamed add_filter to skip
-  respond_to?(:skip) ? skip('/spec/') : add_filter('/spec/')
+  # SimpleCov 1.0 renamed add_filter to skip, and only SimpleCov 1.x, which
+  # requires Ruby 3.2, measures branch and method coverage
+  if respond_to?(:skip)
+    skip '/spec/'
+    # Shared examples for backend gems, not library code
+    skip 'lib/delayed/backend/shared_spec.rb'
+
+    # JRuby can't measure branch or method coverage, and its line coverage
+    # is unreliable without --debug, so only enforce thresholds on CRuby
+    if RUBY_ENGINE == 'ruby'
+      coverage :line, :minimum => 100
+      coverage :branch, :minimum => 100
+      coverage :method, :minimum => 100
+    end
+  else
+    add_filter '/spec/'
+  end
 end
 
 require 'logger'
