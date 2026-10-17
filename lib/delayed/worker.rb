@@ -20,10 +20,12 @@ module Delayed
     DEFAULT_QUEUE_ATTRIBUTES = HashWithIndifferentAccess.new.freeze
     DEFAULT_READ_AHEAD       = 5
 
-    cattr_accessor :min_priority, :max_priority, :max_attempts, :max_run_time,
-                   :default_priority, :sleep_delay, :logger, :delay_jobs, :queues,
-                   :read_ahead, :plugins, :destroy_failed_jobs, :exit_on_complete,
-                   :default_log_level
+    cattr_accessor :min_priority, :max_priority, :default_priority, :sleep_delay,
+                   :logger, :delay_jobs, :queues, :read_ahead, :plugins,
+                   :destroy_failed_jobs, :exit_on_complete, :default_log_level
+
+    # The instance readers are defined below and take the job into account
+    cattr_accessor :max_attempts, :max_run_time, :instance_reader => false
 
     # Named queue into which jobs are enqueued by default
     cattr_accessor :default_queue_name
