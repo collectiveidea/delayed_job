@@ -24,6 +24,8 @@ module Delayed
 
       @worker_count = 1
       @monitor = false
+      @args = nil
+      @daemon_options = nil
 
       opts = OptionParser.new do |opt|
         opt.banner = "Usage: #{File.basename($PROGRAM_NAME)} [options] start|stop|restart|run"
