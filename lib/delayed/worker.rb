@@ -7,6 +7,7 @@ require 'active_support/hash_with_indifferent_access'
 require 'active_support/core_ext/hash/indifferent_access'
 require 'logger'
 require 'benchmark'
+require 'delayed/event'
 
 module Delayed
   class Worker # rubocop:disable ClassLength
@@ -131,6 +132,8 @@ module Delayed
     def initialize(options = {})
       @quiet = options.key?(:quiet) ? options[:quiet] : true
       @failed_reserve_count = 0
+      @exit = false
+      @exit_event = Delayed::Event.new
 
       [:min_priority, :max_priority, :sleep_delay, :read_ahead, :queues, :exit_on_complete].each do |option|
         self.class.send("#{option}=", options[option]) if options.key?(option)
@@ -156,14 +159,12 @@ module Delayed
 
     def start # rubocop:disable CyclomaticComplexity, PerceivedComplexity
       trap('TERM') do
-        Thread.new { say 'Exiting...' }
-        stop
+        stop_from_signal
         raise SignalException, 'TERM' if self.class.raise_signal_exceptions
       end
 
       trap('INT') do
-        Thread.new { say 'Exiting...' }
-        stop
+        stop_from_signal
         raise SignalException, 'INT' if self.class.raise_signal_exceptions && self.class.raise_signal_exceptions != :term
       end
 
@@ -183,8 +184,9 @@ module Delayed
             if self.class.exit_on_complete
               say 'No more jobs available. Exiting'
               break
-            elsif !stop?
-              sleep(self.class.sleep_delay)
+            elsif wait_stop(self.class.sleep_delay)
+              break
+            else
               reload!
             end
           else
@@ -197,11 +199,16 @@ module Delayed
     end
 
     def stop
-      @exit = true
+      @exit_event.set!
     end
 
     def stop?
-      !!@exit
+      wait_stop(0)
+    end
+
+    # Sleep for timeout seconds, or until someone calls #stop.
+    def wait_stop(timeout)
+      @exit ||= @exit_event.wait(timeout)
     end
 
     # Do num jobs and return stats on success/failure.
@@ -332,6 +339,13 @@ module Delayed
       else
         ActionDispatch::Reloader.cleanup!
         ActionDispatch::Reloader.prepare!
+      end
+    end
+
+    def stop_from_signal
+      Thread.new do
+        say 'Exiting...'
+        stop
       end
     end
   end
