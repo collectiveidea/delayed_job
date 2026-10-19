@@ -1,3 +1,7 @@
+4.3.0 - UNRELEASED
+=================
+* Addition of `Delayed::UnprocessedJobError` for rake task (#1044)
+
 4.2.0 - 2025-12-29
 =======================
 * Add dependencies for benchmark and logger which are moving out of stdlib.
