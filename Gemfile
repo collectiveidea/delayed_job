@@ -86,7 +86,15 @@ group :test do
   end
   gem 'net-smtp' if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('3.1.0')
   gem 'rspec', '>= 3'
-  gem 'simplecov', :require => false
+  if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('3.3.0')
+    gem 'simplecov', '~> 1.3', :require => false
+  elsif Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('3.2.0')
+    # SimpleCov 1.3 requires Ruby 3.3
+    gem 'simplecov', '~> 1.2.0', :require => false
+  else
+    # SimpleCov 1.0 requires Ruby 3.2
+    gem 'simplecov', :require => false
+  end
   if /\A2.[12]/ =~ RUBY_VERSION
     # 0.8.0 doesn't work with simplecov < 0.18.0 and older ruby can't run 0.18.0
     gem 'simplecov-lcov', '< 0.8.0', :require => false

@@ -5,15 +5,14 @@ SimpleCov::Formatter::LcovFormatter.config do |c|
   c.report_with_single_file = true
   c.single_report_path = 'coverage/lcov.info'
 end
-SimpleCov.formatters = SimpleCov::Formatter::MultiFormatter.new(
-  [
-    SimpleCov::Formatter::HTMLFormatter,
-    SimpleCov::Formatter::LcovFormatter
-  ]
-)
+SimpleCov.formatters = [
+  SimpleCov::Formatter::HTMLFormatter,
+  SimpleCov::Formatter::LcovFormatter
+]
 
 SimpleCov.start do
-  add_filter '/spec/'
+  # SimpleCov 1.0 renamed add_filter to skip
+  respond_to?(:skip) ? skip('/spec/') : add_filter('/spec/')
 end
 
 require 'logger'
