@@ -21,11 +21,13 @@ end
 module Delayed
   module PsychExt
     class ToRuby < Psych::Visitors::ToRuby
+      # simplecov:disable - depends on the Psych version
       unless respond_to?(:create)
         def self.create
           new
         end
       end
+      # simplecov:enable
 
       def visit_Psych_Nodes_Mapping(object) # rubocop:disable CyclomaticComplexity, MethodName, PerceivedComplexity
         klass = Psych.load_tags[object.tag]
@@ -54,7 +56,7 @@ module Delayed
           klass = resolve_class(Regexp.last_match[1])
           payload = Hash[*object.children.map { |c| accept c }]
           id = payload['attributes'][klass.primary_key]
-          id = id.value if defined?(ActiveRecord::Attribute) && id.is_a?(ActiveRecord::Attribute)
+          id = id.value if defined?(ActiveRecord::Attribute) && id.is_a?(ActiveRecord::Attribute) # simplecov:disable branch - Rails 4.2 to 5.1 only
           begin
             klass.unscoped.find(id)
           rescue ActiveRecord::RecordNotFound => error

@@ -1,3 +1,4 @@
+# simplecov:disable - runs at load time, before specs can stub anything
 unless ENV['RAILS_ENV'] == 'test'
   begin
     require 'daemons'
@@ -5,6 +6,7 @@ unless ENV['RAILS_ENV'] == 'test'
     raise "You need to add gem 'daemons' to your Gemfile if you wish to use it."
   end
 end
+# simplecov:enable
 require 'fileutils'
 require 'optparse'
 require 'pathname'

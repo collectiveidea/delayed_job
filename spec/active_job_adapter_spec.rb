@@ -55,6 +55,13 @@ describe 'a Rails active job backend' do
     expect(job.name).to match(/TestJob \[[0-9a-f-]+\] from DelayedJob\(integration_tests\) with arguments: \[\]/)
   end
 
+  it 'omits arguments from the name when the job class is missing' do
+    wrapper = ActiveJob::QueueAdapters::DelayedJobAdapter::JobWrapper.new(
+      'job_class' => 'MissingJob', 'job_id' => '123', 'queue_name' => 'default', 'arguments' => [1]
+    )
+    expect(wrapper.display_name).to eq('MissingJob [123] from DelayedJob(default)')
+  end
+
   it 'enqueus and executes the job' do
     TestJob.perform_later('Rails')
     worker.work_off
