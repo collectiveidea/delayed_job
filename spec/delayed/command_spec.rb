@@ -176,4 +176,13 @@ describe Delayed::Command do
       command.daemonize
     end
   end
+
+  describe 'run_process' do
+    it 'tells daemons that worker names end in .0, .1, and so on' do
+      allow(Delayed::Worker).to receive(:before_fork)
+      command = Delayed::Command.new([])
+      expect(Daemons).to receive(:run_proc).with('delayed_job', hash_including(:pid_delimiter => '.'))
+      command.run_process('delayed_job', :pid_dir => './tmp/pids')
+    end
+  end
 end
