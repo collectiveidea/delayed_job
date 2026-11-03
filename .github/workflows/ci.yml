@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ruby: ['3.2', '3.3', '3.4', '4.0', jruby-9.4, jruby-head, ruby-head]
+        ruby: ['3.2', '3.3', '3.4', '4.0', jruby-9.4, jruby-10.0, jruby-10.1, jruby-head, ruby-head]
         rails_version:
           - '7.0.0'
           - '7.1.0'
@@ -22,6 +22,31 @@ jobs:
           - '8.1.0'
           - 'edge'
         ubuntu: [latest]
+        exclude:
+          # Rails edge requires Ruby >= 3.3.1
+          - ruby: '3.2'
+            rails_version: 'edge'
+          # Rails 8 requires Ruby >= 3.2, and JRuby 9.4 targets Ruby 3.1
+          - ruby: jruby-9.4
+            rails_version: '8.0.0'
+          - ruby: jruby-9.4
+            rails_version: '8.1.0'
+          - ruby: jruby-9.4
+            rails_version: 'edge'
+          # activerecord-jdbcsqlite3-adapter supports Rails 8.0 at most,
+          # and only via its 80.0.pre1 prerelease
+          - ruby: jruby-10.0
+            rails_version: '8.1.0'
+          - ruby: jruby-10.0
+            rails_version: 'edge'
+          - ruby: jruby-10.1
+            rails_version: '8.1.0'
+          - ruby: jruby-10.1
+            rails_version: 'edge'
+          - ruby: jruby-head
+            rails_version: '8.1.0'
+          - ruby: jruby-head
+            rails_version: 'edge'
         include:
           # Ruby 2.6
           - ruby: 2.6
