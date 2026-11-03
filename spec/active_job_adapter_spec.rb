@@ -107,4 +107,12 @@ describe 'a Rails active job backend' do
 
     expect(JobBuffer.values).to eq(%w[2 1])
   end
+
+  it 'adapter stopping? reflects worker stop?' do
+    adapter = ActiveJob::QueueAdapters::DelayedJobAdapter.new
+
+    expect(adapter.stopping?).to eq(false)
+    worker.stop
+    expect(adapter.stopping?).to eq(true)
+  end
 end
