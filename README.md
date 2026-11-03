@@ -56,9 +56,6 @@ running the following commands:
     bin/rails generate delayed_job:active_record
     bin/rails db:migrate
 
-On Rails 4 and earlier, run `rails generate delayed_job:active_record` and
-`rake db:migrate` instead.
-
 ## Active Job
 
 To use delayed_job with [Active Job](https://guides.rubyonrails.org/active_job_basics.html)
@@ -68,8 +65,9 @@ on Rails 4.2 or later, set the queue adapter in `config/application.rb`:
 config.active_job.queue_adapter = :delayed_job
 ```
 
-delayed_job ships its own Active Job adapter, which replaces the one Rails used to
-bundle. See the [Rails guide](https://guides.rubyonrails.org/active_job_basics.html#setting-the-backend)
+If your version of Rails bundles a delayed_job adapter, delayed_job uses that
+one. Otherwise, delayed_job supplies its own. See the
+[Rails guide](https://guides.rubyonrails.org/active_job_basics.html#setting-the-backend)
 for more details.
 
 ## protected_attributes
