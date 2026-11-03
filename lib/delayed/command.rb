@@ -5,9 +5,11 @@ unless ENV['RAILS_ENV'] == 'test'
     raise "You need to add gem 'daemons' to your Gemfile if you wish to use it."
   end
 end
+require 'erb'
 require 'fileutils'
 require 'optparse'
 require 'pathname'
+require 'yaml'
 
 module Delayed
   class Command # rubocop:disable ClassLength
@@ -16,14 +18,7 @@ module Delayed
     DIR_PWD = Pathname.new Dir.pwd
 
     def initialize(args) # rubocop:disable MethodLength
-      @options = {
-        :quiet => true,
-        :pid_dir => "#{root}/tmp/pids",
-        :log_dir => "#{root}/log"
-      }
-
-      @worker_count = 1
-      @monitor = false
+      @options = {:quiet => true}
 
       opts = OptionParser.new do |opt|
         opt.banner = "Usage: #{File.basename($PROGRAM_NAME)} [options] start|stop|restart|run"
@@ -34,6 +29,9 @@ module Delayed
         end
         opt.on('-e', '--environment=NAME', 'Specifies the environment to run this delayed jobs under (test/development/production).') do |_e|
           STDERR.puts 'The -e/--environment option has been deprecated and has no effect. Use RAILS_ENV and see http://github.com/collectiveidea/delayed_job/issues/7'
+        end
+        opt.on('-C', '--config PATH', 'path to YAML config file') do |arg|
+          @options[:config_file] = arg
         end
         opt.on('--min-priority N', 'Minimum priority of jobs to run.') do |n|
           @options[:min_priority] = n
@@ -81,7 +79,21 @@ module Delayed
           @daemon_options = daemon_options
         end
       end
+
+      # Set command line options
       @args = opts.parse!(args) + (@daemon_options || [])
+
+      # Set config from file
+      load_config!
+
+      # Set remaining defaults
+      @options.reverse_merge!(
+        :pid_dir => "#{root}/tmp/pids",
+        :log_dir => "#{root}/log"
+      )
+
+      @worker_count ||= 1
+      @monitor ||= false
     end
 
     def daemonize # rubocop:disable PerceivedComplexity
@@ -151,6 +163,45 @@ module Delayed
       queues = ['*', '', nil].include?(queues) ? [] : queues.split(',')
       worker_count = (worker_count || 1).to_i rescue 1
       @worker_pools << [queues, worker_count]
+    end
+
+    def load_config!
+      %w[config/delayed_job.yml config/delayed_job.yml.erb].each do |filename|
+        @options[:config_file] ||= filename if File.exist?(filename)
+      end
+
+      cfile = @options[:config_file]
+      return unless cfile
+
+      opts = parse_config(cfile)
+
+      pools = opts.delete(:pools) || []
+      pools.each { |pool| parse_worker_pool(pool) }
+
+      @monitor ||= opts.delete(:monitor)
+      @worker_count ||= opts.delete(:number_of_workers)
+
+      @options.reverse_merge!(opts)
+    end
+
+    def parse_config(cfile)
+      opts = {}
+      if File.exist?(cfile)
+        opts = YAML.load(ERB.new(IO.read(cfile)).result) || opts
+
+        if opts.respond_to? :deep_symbolize_keys!
+          opts.deep_symbolize_keys!
+        else
+          symbolize_keys_deep!(opts)
+        end
+
+        opts = opts.merge(opts.delete(environment.to_sym) || {})
+      end
+      opts
+    end
+
+    def environment
+      ENV.fetch('RAILS_ENV', 'development')
     end
 
     def root
