@@ -107,7 +107,6 @@ group :test do
     gem 'base64'
     gem 'bigdecimal'
     gem 'mutex_m'
-    gem 'ostruct'
   elsif Gem::Version.new(RUBY_VERSION) <= Gem::Version.new('2.2.100')
     gem 'logger', '< 1.3'
   end
