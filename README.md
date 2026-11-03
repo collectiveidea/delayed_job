@@ -260,6 +260,8 @@ You can then do the following:
 
 **Rails 4:** *replace script/delayed_job with bin/delayed_job*
 
+**Note:** `script/delayed_job` / `bin/delayed_job` will hang in development mode on OSX because of an issue with `daemons` and `fsevent_watch` - more information [in the issue here](https://github.com/collectiveidea/delayed_job/issues/935#issuecomment-242171610). 
+
 Workers can be running on any computer, as long as they have access to the
 database and their clock is in sync. Keep in mind that each worker will check
 the database at least every 5 seconds.
