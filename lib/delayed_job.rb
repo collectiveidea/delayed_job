@@ -23,5 +23,5 @@ module Delayed
   autoload :PerformableMailer, 'delayed/performable_mailer'
 end
 
-Object.send(:include, Delayed::MessageSending)
-Module.send(:include, Delayed::MessageSendingClassMethods)
+Object.include Delayed::MessageSending
+Module.include Delayed::MessageSendingClassMethods

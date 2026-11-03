@@ -3,12 +3,12 @@ module Delayed
 
   class Lifecycle
     EVENTS = {
-      :enqueue    => [:job],
-      :execute    => [:worker],
-      :loop       => [:worker],
-      :perform    => [:worker, :job],
-      :error      => [:worker, :job],
-      :failure    => [:worker, :job],
+      :enqueue => [:job],
+      :execute => [:worker],
+      :loop => [:worker],
+      :perform => [:worker, :job],
+      :error => [:worker, :job],
+      :failure => [:worker, :job],
       :invoke_job => [:job]
     }.freeze
 
@@ -33,9 +33,7 @@ module Delayed
     def run_callbacks(event, *args, &block)
       missing_callback(event) unless @callbacks.key?(event)
 
-      unless EVENTS[event].size == args.size
-        raise ArgumentError, "Callback #{event} expects #{EVENTS[event].size} parameter(s): #{EVENTS[event].join(', ')}"
-      end
+      raise ArgumentError, "Callback #{event} expects #{EVENTS[event].size} parameter(s): #{EVENTS[event].join(', ')}" unless EVENTS[event].size == args.size
 
       @callbacks[event].execute(*args, &block)
     end

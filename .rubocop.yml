@@ -1,40 +1,90 @@
-AbcSize:
-  Enabled: false
-
-# Enforce outdenting of access modifiers (i.e. public, private, protected)
-AccessModifierIndentation:
-  EnforcedStyle: outdent
-
-Alias:
-  EnforcedStyle: prefer_alias_method
-
 AllCops:
-  Include:
-    - 'Gemfile'
-    - 'Rakefile'
-    - 'delayed_job.gemspec'
+  NewCops: enable
+  SuggestExtensions: false
   TargetRubyVersion: 2.1
 
-RedundantBlockCall:
+Bundler/DuplicatedGem:
   Enabled: false
 
-BlockLength:
+# Leave the supported Rubies undeclared, as they always have been
+Gemspec/RequiredRubyVersion:
   Enabled: false
 
-# Avoid more than `Max` levels of nesting.
-BlockNesting:
-  Max: 2
+# Specs define example classes inside describe blocks and pass
+# deliberately empty callback blocks
+Lint/ConstantDefinitionInBlock:
+  Exclude:
+    - 'spec/**/*'
+
+Lint/EmptyBlock:
+  Exclude:
+    - 'spec/**/*'
+
+# Enforce outdenting of access modifiers (i.e. public, private, protected)
+Layout/AccessModifierIndentation:
+  EnforcedStyle: outdent
 
 # Indentation of when/else
-CaseIndentation:
+Layout/CaseIndentation:
   EnforcedStyle: end
   IndentOneStep: false
 
-ClassLength:
+# Allow dots at the end of lines
+Layout/DotPosition:
+  EnforcedStyle: trailing
+
+Layout/EmptyLinesAroundAccessModifier:
+  Enabled: true
+
+# Align ends correctly
+Layout/EndAlignment:
+  EnforcedStyleAlignWith: variable
+
+Layout/LineLength:
+  Enabled: false
+
+Layout/MultilineOperationIndentation:
+  EnforcedStyle: indented
+
+# No spaces inside hash literals
+Layout/SpaceInsideHashLiteralBraces:
+  EnforcedStyle: no_space
+
+Metrics/AbcSize:
+  Enabled: false
+
+Metrics/BlockLength:
+  Enabled: false
+
+# Avoid more than `Max` levels of nesting.
+Metrics/BlockNesting:
+  Max: 2
+
+Metrics/ClassLength:
   Max: 100
 
+Metrics/MethodLength:
+  CountComments: false
+  Max: 53
+
+# Avoid long parameter lists
+Metrics/ParameterLists:
+  Max: 4
+  CountKeywordArgs: true
+
+# The backend API mirrors ActiveRecord semantics, where methods like
+# save and lock_exclusively! return booleans without a ? suffix
+Naming/PredicateMethod:
+  Enabled: false
+
+Security/YAMLLoad:
+  Enabled: false
+
+Style/Alias:
+  EnforcedStyle: prefer_alias_method
+
 # Align with the style guide.
-CollectionMethods:
+Style/CollectionMethods:
   PreferredMethods:
     collect:  'map'
     collect!: 'map!'
@@ -43,60 +93,42 @@ CollectionMethods:
     find_all: 'select'
 
 # Disable documentation checking until a class needs to be documented once
-Documentation:
+Style/Documentation:
   Enabled: false
 
-# Allow dots at the end of lines
-DotPosition:
-  EnforcedStyle: trailing
-
-DoubleNegation:
+Style/DoubleNegation:
   Enabled: false
 
-# Detects any duplication as issue including our conditional requires
-DuplicatedGem:
-  Enabled: false
-
-EmptyLinesAroundAccessModifier:
-  Enabled: true
-
-# Don't require magic comment at the top of every file
-Encoding:
-  Enabled: false
-
-# Align ends correctly
-EndAlignment:
-  EnforcedStyleAlignWith: variable
+# Old versions of Bundler read the gemspec in the locale's encoding, and it
+# lists a non-ASCII author name
+Style/Encoding:
+  Exclude:
+    - 'delayed_job.gemspec'
 
 Style/FrozenStringLiteralComment:
   Enabled: false
 
 # Enforce Ruby 1.8-compatible hash syntax
-HashSyntax:
+Style/HashSyntax:
   EnforcedStyle: hash_rockets
 
-Lambda:
+Style/Lambda:
   Enabled: false
-
-LineLength:
-  Enabled: false
-
-MethodLength:
-  CountComments: false
-  Max: 53
-
-MultilineOperationIndentation:
-  EnforcedStyle: indented
 
 Style/NumericPredicate:
   Enabled: false
 
-# Avoid long parameter lists
-ParameterLists:
-  Max: 4
-  CountKeywordArgs: true
+# The ext files monkey-patch third-party classes and necessarily reopen
+# several of them; the spec support files define collections of small
+# fixture classes
+Style/OneClassPerFile:
+  Exclude:
+    - 'lib/delayed/psych_ext.rb'
+    - 'lib/delayed/syck_ext.rb'
+    - 'spec/helper.rb'
+    - 'spec/sample_jobs.rb'
 
-PercentLiteralDelimiters:
+Style/PercentLiteralDelimiters:
   PreferredDelimiters:
     '%':  ()
     '%i': ()
@@ -108,39 +140,35 @@ PercentLiteralDelimiters:
     '%W': '[]'
     '%x': ()
 
-RaiseArgs:
+Style/RaiseArgs:
   EnforcedStyle: exploded
 
-RegexpLiteral:
+Style/RegexpLiteral:
   Enabled: false
 
-RescueModifier:
+Style/RescueModifier:
   Enabled: false
 
 Style/SafeNavigation:
   Enabled: false
 
-SignalException:
+Style/SignalException:
   EnforcedStyle: only_raise
-
-# No spaces inside hash literals
-SpaceInsideHashLiteralBraces:
-  EnforcedStyle: no_space
 
 Style/SymbolArray:
   Enabled: false
 
-SymbolProc:
+Style/SymbolProc:
   Enabled: false
 
-TrailingCommaInLiteral:
+Style/TrailingCommaInArguments:
   Enabled: false
 
-TrailingCommaInArguments:
+Style/TrailingCommaInArrayLiteral:
   Enabled: false
 
-YAMLLoad:
+Style/TrailingCommaInHashLiteral:
   Enabled: false
 
-ZeroLengthPredicate:
+Style/ZeroLengthPredicate:
   Enabled: false
