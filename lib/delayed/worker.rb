@@ -117,7 +117,7 @@ module Delayed
     end
 
     def self.reload_app?
-      defined?(ActionDispatch::Reloader) && Rails.application.config.cache_classes == false
+      defined?(ActionDispatch::Reloader) && defined?(Rails) && Rails.application.config.cache_classes == false
     end
 
     def self.delay_job?(job)
@@ -327,7 +327,7 @@ module Delayed
 
     def reload!
       return unless self.class.reload_app?
-      if defined?(ActiveSupport::Reloader)
+      if defined?(ActiveSupport::Reloader) && defined?(Rails)
         Rails.application.reloader.reload!
       else
         ActionDispatch::Reloader.cleanup!
