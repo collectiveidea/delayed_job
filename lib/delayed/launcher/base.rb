@@ -77,12 +77,17 @@ module Delayed
       def setup_pooled_workers
         pools.each do |queues, pool_process_count|
           options = @options.merge(:queues => queues)
-          pool_process_count.times { add_worker(options) }
+          pool_process_count.times { add_worker_safely(options) }
         end
       end
 
       def setup_multiple_workers
-        processes.times { add_worker(@options) }
+        processes.times { add_worker_safely(@options) }
+      end
+
+      # The forking launcher retries a failed fork with back-off.
+      def add_worker_safely(options)
+        add_worker(options)
       end
 
       def multiple_processes?

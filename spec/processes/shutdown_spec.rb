@@ -47,8 +47,10 @@ describe 'Stopping a forking launcher', :processes do
     expect(ProcessHelpers::Run.where(:key => 'too slow').count).to eq 0
   end
 
-  it 'kills a job ignoring the interrupt, recovers it, and exits with status 1 after the recovery' do
-    job = enqueue_process_job(ProcessJobs::StubbornJob.new('stubborn'))
+  # A child that can't exit (frozen); one whose job merely ignores the
+  # interrupt exits JOBS_STUCK by itself, before the kill.
+  it 'kills a frozen child, recovers its job, and exits with status 1 after the recovery' do
+    job = enqueue_process_job(ProcessJobs::FreezeJob.new('frozen'))
     pid, reader = spawn_launcher(:processes => 2, :shutdown_timeout => 1, :worker => worker_settings)
     wait_for { reload_job(job).locked_by }
     Process.kill('TERM', pid)
@@ -58,6 +60,21 @@ describe 'Stopping a forking launcher', :processes do
     expect(output).to match(/exited forcefully after \d+ second timeout/)
     expect(output).not_to include 'exited gracefully'
     expect(output).not_to include 'No child processes found'
+    job = reload_job(job)
+    expect(job.locked_by).to be_nil
+    expect(job.attempts).to eq 1
+  end
+
+  it 'lets a child whose job ignores the interrupt exit JOBS_STUCK before the kill, recovering its job' do
+    job = enqueue_process_job(ProcessJobs::StubbornJob.new('stubborn'))
+    pid, reader = spawn_launcher(:processes => 2, :shutdown_timeout => 1, :worker => worker_settings)
+    wait_for { reload_job(job).locked_by }
+    Process.kill('TERM', pid)
+    status, output = wait_for_launcher(pid, reader, 40)
+
+    expect(status).to be_success
+    expect(output).not_to include 'Kill invoked'
+    expect(output).to match(/exited: pid \d+ exit #{Delayed::Launcher::Forking::JOBS_STUCK}$/)
     job = reload_job(job)
     expect(job.locked_by).to be_nil
     expect(job.attempts).to eq 1

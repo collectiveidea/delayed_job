@@ -179,7 +179,7 @@ describe 'Mold process with worker features' do
     let(:launcher_class) do
       Class.new do
         attr_reader :workers, :started, :logged
-        attr_accessor :stopped, :pools, :supervisor
+        attr_accessor :stopped, :pools, :supervisor, :shutdown_timeout
 
         def initialize
           @workers = {}

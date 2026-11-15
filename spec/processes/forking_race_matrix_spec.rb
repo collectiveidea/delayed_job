@@ -52,8 +52,8 @@ describe 'A forking launcher under races', :processes do
   describe "the shutdown timeout's kill" do
     # The crashing pool's replacement is pending (back-off) when the kill
     # comes: it must be dropped, not forked mid-kill.
-    it 'drops a replacement pending its back-off, kills the stubborn child, and exits 1 with its job recovered once' do
-      job = enqueue_process_job(ProcessJobs::StubbornJob.new('stubborn'), :queue => 'healthy')
+    it 'drops a replacement pending its back-off, kills the frozen child, and exits 1 with its job recovered once' do
+      job = enqueue_process_job(ProcessJobs::FreezeJob.new('frozen'), :queue => 'healthy')
       options = {:pools => [[['crash'], 1], [['healthy'], 1]], :crash_queue => 'crash', :respawn_delay_unit => 2,
                  :shutdown_timeout => 0, :worker => worker_settings}
       with_launcher(options) do |pid, reader, output|
@@ -96,7 +96,7 @@ describe 'A forking launcher under races', :processes do
     # TERM's kill is due in 30s; QUIT schedules one in 10s, which wins.
     it 'is brought forward by a QUIT after TERM' do
       skip 'no SIGQUIT on this platform' unless Signal.list.key?('QUIT')
-      job = enqueue_process_job(ProcessJobs::StubbornJob.new('stubborn'))
+      job = enqueue_process_job(ProcessJobs::FreezeJob.new('frozen'))
       with_launcher(:processes => 2, :shutdown_timeout => 20, :worker => worker_settings) do |pid, reader, output|
         wait_for { reload_job(job).locked_by }
         Process.kill('TERM', pid)
@@ -118,7 +118,7 @@ describe 'A forking launcher under races', :processes do
     # HUP schedules the kill; TERM later must not postpone or repeat it.
     # The idle sibling has already exited and been reaped when it fires.
     it 'fires once after HUP then TERM, skips the child that already exited, and deletes the pidfile' do
-      job = enqueue_process_job(ProcessJobs::StubbornJob.new('stubborn'))
+      job = enqueue_process_job(ProcessJobs::FreezeJob.new('frozen'))
       options = {:processes => 2, :shutdown_timeout => 0, :pid_file => pid_file, :worker => worker_settings}
       with_launcher(options) do |pid, reader, output|
         wait_for { reload_job(job).locked_by }

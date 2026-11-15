@@ -16,6 +16,12 @@ module Delayed
       false
     end
 
+    # Whether this process's parent is still `supervisor` (a pid, or any of
+    # several pids): once it dies, the process is reparented.
+    def parent_alive?(supervisor)
+      Array(supervisor).include?(Process.ppid)
+    end
+
     # Whether `pid` still runs: false once it exited, even as an unreaped
     # zombie, or if the pid now belongs to another user (EPERM).
     def alive?(pid)

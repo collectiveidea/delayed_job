@@ -160,11 +160,10 @@ describe 'Mold process signal races', :processes do
     expect_no_process_left(pid)
   end
 
-  # Its stuck job abandoned (still running), the promoted child forks no
-  # mold and exits 75, which the parent takes for a clean give-up: the lock
-  # is cleared without an attempt, though the job was cut off mid-run (as
-  # SIGKILL would, which counts one). A job ignoring interrupts then runs,
-  # and is cut off, forever.
+  # A stuck job (ignoring its interrupt) is cut off mid-run when the
+  # promoted child exits: JOBS_STUCK, not a clean give-up (75), so the job
+  # counts an attempt, as SIGKILL would. Otherwise a job ignoring interrupts
+  # would run, and be cut off, forever.
   it 'counts an attempt for a job a promoted child abandons, stuck past the shutdown timeout' do
     pid, reader = spawn_launcher(launch_options.merge(:processes => 1, :mold => [1000], :shutdown_timeout => 1,
                                                       :mold_retry_delay_unit => 60))
@@ -172,9 +171,9 @@ describe 'Mold process signal races', :processes do
     job = enqueue_process_job(ProcessJobs::StubbornJob.new('stubborn'))
     holder = holder_of(job)
     Process.kill('URG', pid)
-    read_until(reader, output, /\(pid #{holder}\) promoted to mold still has threads running; not forking a mold/, 15)
-    read_until(reader, output, /\(pid #{holder}\) exited: pid #{holder} exit 75/)
-    attempts = reload_job(job).attempts # Before its replacement picks it up again.
+    read_until(reader, output, /\(pid #{holder}\) exiting with job thread\(s\) still running/, 15)
+    read_until(reader, output, /\(pid #{holder}\) exited: pid #{holder} exit #{Delayed::Launcher::Forking::JOBS_STUCK}/)
+    attempts = wait_for { reload_job(job).attempts.nonzero? } # Recovered right after the exit is logged.
     Process.kill('KILL', -pid)
     wait_for_launcher(pid, reader)
 
@@ -182,8 +181,8 @@ describe 'Mold process signal races', :processes do
   end
 
   # The same without a stop or promotion: a refork step stops the child
-  # once its replacement boots, and no kill follows. The child exits 0 with
-  # the job still running, and the parent clears its lock as stale.
+  # once its replacement boots, and no kill follows. The child exits
+  # JOBS_STUCK, not 0, so the parent counts an attempt.
   it 'counts an attempt for a job a reforked child abandons, stuck past the shutdown timeout' do
     enqueue_sleepers(10)
     pid, reader = spawn_launcher(launch_options.merge(:shutdown_timeout => 1))
@@ -194,8 +193,8 @@ describe 'Mold process signal races', :processes do
     job = enqueue_process_job(ProcessJobs::StubbornJob.new('stubborn'))
     holder = holder_of(job)
     Process.kill('URG', pid) # Promotes the idle child, then reforks the busy one.
-    read_until(reader, output, /\(pid #{holder}\) exited: pid #{holder} exit 0/, 30)
-    attempts = reload_job(job).attempts
+    read_until(reader, output, /\(pid #{holder}\) exited: pid #{holder} exit #{Delayed::Launcher::Forking::JOBS_STUCK}/, 30)
+    attempts = wait_for { reload_job(job).attempts.nonzero? }
     Process.kill('KILL', -pid)
     wait_for_launcher(pid, reader)
 
@@ -203,13 +202,13 @@ describe 'Mold process signal races', :processes do
     expect(attempts).to eq 1
   end
 
-  # The kill path with molds. The stuck child (gen 1) holds a job no
-  # interrupt stops, so it can't exit and only the parent's kill ends it
-  # (SHUTDOWN_GRACE). The kill reaches the active mold, the retired one
-  # (still waiting for the stuck child without a subreaper) and every
-  # child; the stuck child is recovered once, with an attempt.
+  # Shutdown with molds and a stuck child (gen 1) holding a job no
+  # interrupt stops: it exits JOBS_STUCK by itself, INTERRUPT_GRACE after
+  # the shutdown timeout, before the parent's kill would fire. The retired
+  # mold (still waiting for it without a subreaper) then exits; the job is
+  # recovered once, with an attempt, and the parent exits cleanly.
   [false, true].each do |no_subreaper|
-    it "kills molds and children at the shutdown timeout with a stuck child of a retired mold (#{no_subreaper ? 'no ' : ''}subreaper)" do
+    it "stops molds and children at the shutdown timeout with a stuck child of a retired mold (#{no_subreaper ? 'no ' : ''}subreaper)" do
       enqueue_sleepers(10)
       pid, reader = spawn_launcher(launch_options.merge(:no_subreaper => no_subreaper, :shutdown_timeout => 1))
       output = +''
@@ -224,11 +223,10 @@ describe 'Mold process signal races', :processes do
       wait_for { alive?(first) == no_subreaper } # Without a subreaper, retired, it waits for the stuck child.
       status = stop_launcher(pid, reader, output)
 
-      expect(status.exitstatus).to eq 1
-      expect(output).to match(/exited forcefully after \d+ second timeout/)
+      expect(status).to be_success
+      expect(output).not_to include 'Kill invoked'
       expect(output.scan(/\(pid #{holder}\) exited: /).size).to eq 1
-      # Without a subreaper its mold may report it ("x") before being killed too.
-      expect(output).to match(/\(pid #{holder}\) exited: pid #{holder} (SIGKILL \(signal 9\)#{'|exit unknown' if no_subreaper})$/)
+      expect(output).to match(/\(pid #{holder}\) exited: pid #{holder} exit #{Delayed::Launcher::Forking::JOBS_STUCK}$/)
       job = reload_job(job)
       expect(job.locked_by).to be_nil
       expect(job.attempts).to eq 1

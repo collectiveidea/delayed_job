@@ -11,7 +11,7 @@ describe 'Mold process races' do
   let(:launcher_class) do
     Class.new do
       attr_reader :workers, :started, :exits, :logged
-      attr_accessor :stopped, :pools, :supervisor
+      attr_accessor :stopped, :pools, :supervisor, :shutdown_timeout
 
       def initialize
         @workers = {}
@@ -485,6 +485,7 @@ describe 'Mold process races' do
         activate
         supervisor.reaped(900)
         expect(logged).to include 'Lost mold (pid 900); promoting a new mold in 10s'
+        ping(11, 6) # Warm: forked by the parent, so only by its jobs.
         supervisor.tick
         expect(sent('URG')).to eq [10] # Held.
         travel(11)

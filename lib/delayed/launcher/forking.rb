@@ -131,7 +131,8 @@ module Delayed
         end
       end
 
-      # Starts a child process, retrying with back-off if fork fails.
+      # Starts a child process, retrying with back-off if fork fails (EAGAIN,
+      # ENOMEM, e.g. near a container's limits), the initial ones included.
       def add_worker_safely(options, replaces_pid = nil)
         add_worker(options, :replaces_pid => replaces_pid)
       rescue SystemCallError => error
@@ -246,20 +247,7 @@ module Delayed
         return start_child(options, spawn) unless @mold_supervisor&.forking_from_mold?
         index = @worker_index
         @worker_index += 1
-        @mold_supervisor.request_fork(index, options, spawn.merge(:generation => @mold_supervisor.generation))
-      end
-
-      # The initial child processes: a failed fork (EAGAIN, ENOMEM, e.g. near
-      # a container's limits) is retried with back-off, not fatal.
-      def setup_pooled_workers
-        pools.each do |queues, count|
-          options = @options.merge(:queues => queues)
-          count.times { add_worker_safely(options) }
-        end
-      end
-
-      def setup_multiple_workers
-        processes.times { add_worker_safely(@options) }
+        @mold_supervisor.request_fork(index, options, spawn)
       end
 
       # Forks a child process here, named after `index` (by default the next
@@ -688,29 +676,31 @@ module Delayed
 
       # In a child process. A promoted one stops like on TERM, then forks
       # its mold, if nothing is left running that a fork would freeze.
+      #
+      # Exiting cleanly with a job thread still running (its job ignored the
+      # interrupt) would make the parent release its lock as stale, with no
+      # attempt counted, though it was cut off mid-run: JOBS_STUCK instead.
       def run_dispatcher(worker_name, dispatcher, pending_signals)
-        return run_mold_dispatcher(worker_name, dispatcher, pending_signals) if @mold_pipes
-        super
-        exit_if_stuck(worker_name, dispatcher)
+        ping = boot_mold_child(dispatcher) if @mold_pipes
+        dispatcher.start(pending_signals)
+        ping&.kill&.join
+        unless dispatcher.cleanly_stopped?
+          logger.error "Child process #{worker_name} (pid #{Process.pid}) exiting with job thread(s) still running"
+          flush_and_exit!(JOBS_STUCK)
+        end
+        finish_mold_child(worker_name, dispatcher) if @mold_pipes
       end
 
-      # Exiting cleanly would make the parent release a stuck job's lock as
-      # stale, with no attempt counted, though it was cut off mid-run.
-      def exit_if_stuck(worker_name, dispatcher)
-        return if dispatcher.cleanly_stopped?
-        logger.error "Child process #{worker_name} (pid #{Process.pid}) exiting with job thread(s) still running"
-        flush_and_exit!(JOBS_STUCK)
-      end
-
-      def run_mold_dispatcher(worker_name, dispatcher, pending_signals)
+      # Returns the ping thread.
+      def boot_mold_child(dispatcher)
         Signal.trap('URG') { dispatcher.promote }
         # After the trap: only booted children are promoted. Its index and
         # mold let the parent adopt it if the mold's "f" never comes.
         @mold_pipes.report("b #{Process.pid} #{@child_index || '-'} #{@forked_by_mold || '-'}")
-        ping = start_mold_ping(dispatcher)
-        dispatcher.start(pending_signals)
-        ping.kill.join
-        exit_if_stuck(worker_name, dispatcher)
+        start_mold_ping(dispatcher)
+      end
+
+      def finish_mold_child(worker_name, dispatcher)
         flush_and_exit!(Mold::PROMOTION_FAILED) if dispatcher.promotion_cancelled? # The parent then retries.
         return unless dispatcher.promoted?
         child_signals.clear
@@ -729,10 +719,10 @@ module Delayed
       end
 
       # Exits with Mold::PROMOTION_FAILED (the parent then retries) instead
-      # of forking a mold it shouldn't (threads still running exited
-      # JOBS_STUCK already, see #exit_if_stuck).
+      # of forking a mold it shouldn't (with threads still running, it
+      # exited JOBS_STUCK already).
       def promote_to_mold(worker_name, dispatcher)
-        if !Array(supervisor_pid).include?(Process.ppid)
+        if !ProcessUtil.parent_alive?(supervisor_pid)
           logger.warn "Child process #{worker_name} (pid #{Process.pid}) promoted to mold: the parent is gone; not forking a mold"
         elsif !Delayed::Worker.fork_safe? # Since its last ping.
           logger.error "Child process #{worker_name} (pid #{Process.pid}) promoted to mold is no longer fork safe; not forking a mold"

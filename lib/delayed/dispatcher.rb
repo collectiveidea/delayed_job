@@ -393,7 +393,7 @@ module Delayed
 
     # Re-parented (parent died): stops gracefully.
     def supervisor_gone?
-      return false unless supervisor_pid && !Array(supervisor_pid).include?(Process.ppid)
+      return false unless supervisor_pid && !ProcessUtil.parent_alive?(supervisor_pid)
       say "Parent process #{Array(supervisor_pid).first} is gone; stopping", 'warn'
       cancel_promotion
       stop
@@ -663,24 +663,27 @@ module Delayed
       until (item = inbox.pop).equal?(Inbox::EOQ)
         slot, job, reserved_at = item
         discard_stale_interrupts
-        next release_unstarted(worker, slot, job, stop_reason) if past_shutdown_deadline? || (@prefetch > 0 && stop?)
         lock_left = lock_time_left(slot, reserved_at)
-        next release_unstarted(worker, slot, job, :lock_expired) if lock_left && lock_left <= 0
-        run_job(worker, slot, job, lock_left)
+        reason = start_job(worker, slot, job, lock_left)
+        reason ? release_unstarted(worker, slot, job, reason) : run_job(worker, slot, job, lock_left)
+      end
+    end
+
+    # Registers the job as running, unless it mustn't start: returns why not
+    # (see UNSTARTED_REASONS). Under the lock #stop_threads reads @running
+    # under, so a quit landing just before can't miss the job.
+    def start_job(worker, slot, job, lock_left)
+      synchronize do
+        next stop_reason if past_shutdown_deadline? || (@prefetch > 0 && stop?)
+        next :lock_expired if lock_left && lock_left <= 0
+        @running[Thread.current] = job
+        @running_slot[worker] = slot
+        nil
       end
     end
 
     # A job interrupted by shutdown is released.
     def run_job(worker, slot, job, lock_left)
-      # Registered and checked under the lock #stop_threads reads @running
-      # under: a quit landing just before would otherwise interrupt nobody.
-      started = synchronize do
-        next false if past_shutdown_deadline?
-        @running[Thread.current] = job
-        @running_slot[worker] = slot
-        true
-      end
-      return release_unstarted(worker, slot, job, stop_reason) unless started
       result = with_reloader { untrack_job_after(worker) { worker.perform_job(job, lock_left) } }
       synchronize { @running.delete(Thread.current) }
       job_finished(worker, slot, result)
@@ -810,10 +813,13 @@ module Delayed
         wait_for_threads
       end
       if shutdown_deadline
-        interrupt_threads(synchronize { @running.keys.select(&:alive?) })
+        # One grace for both: waiting it twice for a stuck job would let the
+        # parent's kill (SHUTDOWN_GRACE) beat this process's own exit.
+        grace_ends = monotonic_now + INTERRUPT_GRACE
+        interrupt_threads(synchronize { @running.keys.select(&:alive?) }, grace_ends)
         # Also join idle threads: they may be releasing a late job and must run
         # :execute callbacks (ClearLocks) before process exit kills them.
-        join_threads(monotonic_now + INTERRUPT_GRACE)
+        join_threads(grace_ends)
       end
       raise late_signal if late_signal
     end
@@ -854,7 +860,6 @@ module Delayed
     # Rechecks the deadline on each wait so #quit takes effect at once.
     def wait_for_threads
       loop do
-        supervisor_gone? if promoted? # Its poll loop, which checks, has ended.
         update_procline
         busy = @threads.find(&:alive?)
         break unless busy
@@ -865,14 +870,14 @@ module Delayed
       end
     end
 
-    def interrupt_threads(busy)
+    def interrupt_threads(busy, deadline)
       return if busy.empty?
       reason = quit? ? 'Quitting' : format('Shutdown timeout of %gs exceeded', Worker.shutdown_timeout)
       say "#{reason}: interrupting #{busy.size} running job(s)", 'warn'
       Delayed.instrument(:jobs_interrupted, :dispatcher => name, :jobs => busy.size, :reason => reason)
       busy.each { |thread| thread.raise(ShutdownInterrupt, reason) }
-      deadline = monotonic_now + INTERRUPT_GRACE
-      busy.each { |thread| thread.join([deadline - monotonic_now, 0].max) }
+      # All interrupted before any is waited for.
+      busy.each { |thread| thread.join([deadline - monotonic_now, 0].max) } # rubocop:disable Style/CombinableLoops
       stuck = busy.count(&:alive?)
       return if stuck.zero?
       say format('%<stuck>d job(s) did not stop within %<grace>gs of being interrupted; ' \

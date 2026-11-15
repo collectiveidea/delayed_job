@@ -101,8 +101,8 @@ describe 'Dispatcher race matrix' do
         m.call(*args)
       end
       interrupted = Queue.new
-      allow(d).to receive(:interrupt_threads).and_wrap_original do |m, busy|
-        m.call(busy).tap { interrupted << busy.size }
+      allow(d).to receive(:interrupt_threads).and_wrap_original do |m, busy, deadline|
+        m.call(busy, deadline).tap { interrupted << busy.size }
       end
       thread = run_in_thread(d)
       Timeout.timeout(5) { entered.pop }
@@ -191,20 +191,6 @@ describe 'Dispatcher race matrix' do
       expect(d).to be_promotion_cancelled
       expect(d).to be_quit
       expect(d.procline).to start_with 'dj: quitting, '
-    end
-  end
-
-  describe 'the parent going away while a promotion drains running jobs' do
-    it 'cancels the promotion, as a signal would, so no orphaned mold is forked' do
-      gate_jobs(1)
-      d = dispatcher(1, :supervisor_pid => Process.ppid)
-      thread = run_in_thread(d)
-      Timeout.timeout(5) { GateJob.started.pop }
-      d.promote # Stops polling; the running job drains (no shutdown timeout).
-      d.supervisor_pid = [-1] # As if re-parented: the parent died.
-      GateJob.release = true
-      Timeout.timeout(10) { thread.join }
-      expect(d).to be_promotion_cancelled
     end
   end
 

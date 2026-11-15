@@ -9,7 +9,7 @@ describe 'Mold process signal races' do
   let(:launcher_class) do
     Class.new do
       attr_reader :workers, :started, :exits, :logged
-      attr_accessor :stopped, :pools
+      attr_accessor :stopped, :pools, :shutdown_timeout
 
       def initialize
         @workers = {}

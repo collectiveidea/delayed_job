@@ -241,15 +241,12 @@ module Delayed
         !@launcher.stopped? && @promotion.nil? && @retry_trigger.nil? && refork_idle?
       end
 
+      # A refork runs only from an active mold: with none (lost, or none yet),
+      # older children are no refork in progress.
       def refork_idle?
+        return true unless @active_mold
         @steps.empty? && @pending_forks.empty? && @deferred_slots.empty? &&
           @children.values.all? { |info| current?(info) && !info.retiring }
-      end
-
-      # A refork runs only from an active mold: with none (lost, or never
-      # promoted), older children are no refork in progress.
-      def reforking?
-        @active_mold && !refork_idle?
       end
 
       def current?(info)
@@ -279,18 +276,18 @@ module Delayed
         signal(pid, 'URG')
       end
 
-      # Among children past the threshold (any, if none is and it's not a
-      # threshold promotion): idle first, then the most jobs. An idle child
-      # with few jobs would make a mold with little warmed memory.
+      # Among warm children (forked from a mold, or past the first threshold;
+      # on SIGURG, any if none is): idle first, then the most jobs. A cold
+      # child would make a mold with little warmed memory.
       def promotion_candidate(trigger)
         eligible = @children.select { |_, info| promotable?(info) }
-        warm = eligible.select { |_, info| info.jobs >= warm_floor(trigger) }
-        warm = eligible if warm.empty? && trigger != :threshold
+        warm = eligible.select { |_, info| warm?(info) }
+        warm = eligible if warm.empty? && trigger == :signal
         warm.max_by { |_, info| [info.busy.zero? ? 1 : 0, info.jobs] }
       end
 
-      def warm_floor(trigger)
-        (trigger == :threshold ? @thresholds[@threshold_index] : @thresholds.first).to_i
+      def warm?(info)
+        info.generation.to_i > 0 || info.jobs >= @thresholds.first
       end
 
       def promotable?(info)
@@ -303,7 +300,7 @@ module Delayed
         requested = @promote_requested
         @promote_requested = false
         if requested
-          return logger.warn('Received SIGURG while a promotion or refork is in progress; ignoring it') if @promotion || reforking?
+          return logger.warn('Received SIGURG while a promotion or refork is in progress; ignoring it') if @promotion || !refork_idle?
           rearm if @disabled
           return promote(:signal)
         end
@@ -666,7 +663,7 @@ module Delayed
       end
 
       def shutdown_bound
-        timeout = @launcher.respond_to?(:shutdown_timeout) ? @launcher.shutdown_timeout : Delayed::Worker.shutdown_timeout
+        timeout = @launcher.shutdown_timeout
         timeout ? "shutdown_timeout of #{timeout}s" : 'shutdown_timeout if set'
       end
 

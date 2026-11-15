@@ -110,7 +110,7 @@ describe 'The process title of a worker process' do
       launcher = Delayed::Launcher::Forking.new(:prefix => 'app')
       allow(Delayed::Worker).to receive(:after_fork)
       allow(Dir).to receive(:chdir)
-      expect(Delayed::Dispatcher).to receive(:new).with(hash_including(:procline => 'app/delayed_job.1')).and_return(double(:name_prefix= => nil, :start => nil))
+      expect(Delayed::Dispatcher).to receive(:new).with(hash_including(:procline => 'app/delayed_job.1')).and_return(double(:name_prefix= => nil, :start => nil, :cleanly_stopped? => true))
       launcher.send(:run_worker, 'delayed_job.1', {})
     end
 

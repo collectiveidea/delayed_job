@@ -125,6 +125,16 @@ describe 'Mold process (Worker.mold)' do
       expect(info[:generation]).to eq 3
     end
 
+    it 'forks no mold from a promoted child whose parent died while it drained (status 75)' do
+      launcher = Delayed::Launcher::Forking.new(:mold => true)
+      launcher.instance_variable_set(:@supervisor_pid, -1) # Re-parented: the parent is gone.
+      allow(launcher).to receive(:logger).and_return(Logger.new(nil))
+      dispatcher = instance_double(Delayed::Dispatcher, :promoted? => true)
+      expect(launcher).not_to receive(:fork_mold)
+      expect(launcher).to receive(:flush_and_exit!).with(Delayed::Launcher::Mold::PROMOTION_FAILED)
+      launcher.send(:promote_to_mold, 'delayed_job.0', dispatcher)
+    end
+
     it 'forks even one process' do
       expect(Delayed::Launcher::Forking.new(:mold => true).send(:forking?)).to be true
       expect(Delayed::Launcher::Forking.new({}).send(:forking?)).to be false
@@ -305,6 +315,8 @@ describe 'Mold process (Worker.mold)' do
         end
 
         def pools; end
+
+        def shutdown_timeout; end
 
         def child_name(index)
           "delayed_job.#{index}"

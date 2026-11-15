@@ -1340,7 +1340,7 @@ describe Delayed::Dispatcher, 'shutdown timeout message' do
       Delayed::Worker.shutdown_timeout = timeout
       stub_const('Delayed::Dispatcher::INTERRUPT_GRACE', 0)
       allow(thread).to receive(:raise)
-      dispatcher.send(:interrupt_threads, [thread])
+      dispatcher.send(:interrupt_threads, [thread], Process.clock_gettime(Process::CLOCK_MONOTONIC))
     end
     expect(messages.grep(/Shutdown timeout/)).to eq [
       'Shutdown timeout of 1s exceeded: interrupting 1 running job(s)',

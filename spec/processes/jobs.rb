@@ -99,4 +99,13 @@ module ProcessJobs
       end
     end
   end
+
+  # Freezes the process running it (SIGSTOP), like a hung native call
+  # holding the GVL: it can neither run nor exit, so only the parent's kill
+  # (SIGKILL) ends it.
+  FreezeJob = Struct.new(:key) do
+    def perform
+      Process.kill('STOP', Process.pid)
+    end
+  end
 end
