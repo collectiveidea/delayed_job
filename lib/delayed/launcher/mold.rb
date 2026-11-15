@@ -17,6 +17,10 @@ module Delayed
       # promotion was cancelled by a signal, or its threads didn't stop).
       PROMOTION_FAILED = 75
 
+      # Seconds a :mold hook (or the heap warmup) may still run once the
+      # parent is gone, before the mold exits regardless.
+      ORPHAN_GRACE = 10
+
       # Index of the pool with these options' queues, or NO_POOL.
       def self.pool_index(pools, options)
         return NO_POOL unless pools
@@ -110,12 +114,17 @@ module Delayed
         trap_signals
         return if @launcher.child_signals.any? # Signalled before the traps.
         yield if block_given?
+        watchdog = watch_parent
         Delayed::Worker.lifecycle.run_callbacks(:mold, Process.pid, @info[:generation]) do
           @launcher.warmup_heap # After the hooks, which may free memory.
           warn_about_threads
+          stop_watching(watchdog) # Not in the children; fork_loop watches.
           @pipes.report("m #{Process.pid} #{@info[:promoted_pid]}")
           fork_loop
+          watchdog = watch_parent # For the after(:mold) hooks.
         end
+      ensure
+        stop_watching(watchdog)
       end
 
     private
@@ -136,6 +145,27 @@ module Delayed
           end
         end
         Signal.trap('HUP') {} # rubocop:disable Lint/EmptyBlock
+      end
+
+      # Outside fork_loop (in hooks, which may hang), a thread notices the
+      # parent is gone: a mold left running would hold the pidfile's lock,
+      # keeping a new launcher from starting. Exits ORPHAN_GRACE seconds
+      # later, if still running.
+      def watch_parent
+        watchdog = Thread.new do
+          @pipes.life_read.wait_readable
+          sleep ORPHAN_GRACE
+          @launcher.logger.error "Mold (pid #{Process.pid}): the parent is gone and its :mold hooks still run " \
+                                 "after #{ORPHAN_GRACE}s; exiting"
+          @launcher.flush_and_exit!(1)
+        end
+        watchdog.name = 'Mold parent watchdog'
+        watchdog.thread_variable_set(:fork_safe, true) # Here: before #warn_about_threads looks.
+        watchdog
+      end
+
+      def stop_watching(watchdog)
+        watchdog&.kill&.join
       end
 
       # Threads don't survive fork: whatever they were doing is frozen,

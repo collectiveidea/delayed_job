@@ -462,6 +462,26 @@ describe 'Mold process (Worker.mold)' do
       expect(launcher.logged.join).to include 'Lost mold (pid 900); promoting a new mold in'
     end
 
+    it "names each failure in the circuit breaker's message, telling app errors from mold faults" do
+      described_class.boot_timeout = 0
+      boot(10)
+      boot(11)
+      supervisor.send(:handle_status, 'p', 10, 6, 0, 0)
+      supervisor.send(:handle_status, 'M', 10, 900)
+      supervisor.send(:handle_status, 'm', 900, 10)
+      supervisor.child_started(30, :mold_pid => 900, :generation => 1)
+      supervisor.child_exited(30, Delayed::ReportedStatus.new(30, 1, nil), {})
+      supervisor.child_started(31, :mold_pid => 900, :generation => 1)
+      supervisor.send(:check_boot_timeouts)
+      supervisor.child_exited(31, Delayed::ReportedStatus.new(31, nil, 9), {})
+      supervisor.instance_variable_get(:@pending_forks)[4] = {:options => {}, :spawn => {:generation => 1}, :sent => 0}
+      supervisor.send(:handle_status, 'e', 900, 4, Errno::EAGAIN::Errno)
+      expect(launcher.logged.join("\n")).to include '3 child processes forked by mold (pid 900) failed to start in a row ' \
+                                                    "(pid 30 exit 1, pid 31 boot timeout, fork failed (errno #{Errno::EAGAIN::Errno})); stopping it"
+    ensure
+      described_class.boot_timeout = 60
+    end
+
     it 'forks the pending children itself when the mold dies' do
       boot(10)
       boot(11)
@@ -702,7 +722,7 @@ describe 'Mold process (Worker.mold)' do
         supervisor.send(:advance_refork)
         index = launcher.started.find { |kind, _, pid| kind == :add && pid == 11 } && 20
         supervisor.instance_variable_get(:@pending_forks)[index] = {:options => {}, :spawn => {:replaces_pid => 11, :generation => 1}, :sent => 0}
-        supervisor.instance_variable_set(:@boot_failures, 2)
+        supervisor.instance_variable_set(:@boot_failures, ['pid 1 exit 1', 'pid 2 exit 1'])
         supervisor.send(:handle_status, 'e', 900, index, 12)
         expect(launcher.started).not_to include [:start, index, {}, {:replaces_pid => 11, :generation => nil}]
         expect(supervisor.replacement_needed?(11)).to be false

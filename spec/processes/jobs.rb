@@ -56,4 +56,16 @@ module ProcessJobs
       ProcessJobs.record(key, Time.now.to_f)
     end
   end
+
+  # Ignores the shutdown interrupt, so only a kill stops it.
+  StubbornJob = Struct.new(:key) do
+    def perform
+      deadline = Time.now + 60
+      begin
+        sleep 0.1 while Time.now < deadline
+      rescue Delayed::ShutdownInterrupt
+        retry
+      end
+    end
+  end
 end

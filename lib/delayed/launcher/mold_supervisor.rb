@@ -15,7 +15,7 @@ module Delayed
       # Child process state tracked from status lines. `replaces`: the old
       # child a refork replacement takes over from, until it boots.
       Child = Struct.new(:mold_pid, :generation, :started_at, :replaces, :jobs, :busy,
-                         :booted, :retiring, :promoted, :unsafe, :orphaned, :keyword_init => true)
+                         :booted, :retiring, :promoted, :unsafe, :orphaned, :boot_timed_out, :keyword_init => true)
 
       # Seconds a mold may take to fork a requested child before it counts
       # as hung and is killed.
@@ -133,7 +133,7 @@ module Delayed
         return false unless info
         step_failed = refork_step_failed(info)
         @steps.delete(pid) # An old child exiting mid-step: its replacement takes over.
-        count_boot_failure(pid) if failed_to_boot?(info, status)
+        count_boot_failure(boot_failure(pid, info, status)) if failed_to_boot?(info, status)
         return promoted_exited(pid, status, options, info.retiring) if info.promoted
         info.retiring || step_failed
       end
@@ -234,7 +234,7 @@ module Delayed
       def mark_booted(info)
         return if info.booted
         info.booted = true
-        @boot_failures = 0 if info.mold_pid && info.mold_pid == @active_mold
+        @boot_failures = [] if info.mold_pid && info.mold_pid == @active_mold
         old = info.replaces
         return unless old && @steps.delete(old)
         info.replaces = nil
@@ -376,7 +376,7 @@ module Delayed
         @molds[mold_pid] = :active
         @active_mold = mold_pid
         @active_since = monotonic_now
-        @boot_failures = 0
+        @boot_failures = []
         @generation += 1
         logger.info "Mold (pid #{mold_pid}) ready; reforking child processes from it (generation #{@generation}#{pss_note(@pss_before)})"
         Delayed.instrument(:mold_activated, :pid => mold_pid, :generation => @generation, :pss_mb => @pss_before,
@@ -445,7 +445,7 @@ module Delayed
         logger.warn "Mold (pid #{mold_pid}) could not fork child process #{index} (errno #{errno}); forking it from the parent"
         error = SystemCallError.new("mold (pid #{mold_pid}) could not fork child process #{index}", errno.to_i)
         Delayed::Worker.thread_error(error, :context => 'Mold forking', :worker => @launcher.child_name(index), :pid => mold_pid)
-        count_boot_failure(nil) # May abort the refork the fork was for.
+        count_boot_failure("fork failed (errno #{errno})") # May abort the refork the fork was for.
         start_from_parent(index, entry)
       end
 
@@ -523,13 +523,22 @@ module Delayed
         true
       end
 
-      def count_boot_failure(pid)
-        @boot_failures = @boot_failures.to_i + 1
-        return unless @active_mold && @boot_failures >= BOOT_FAILURE_LIMIT
+      # How a child failed to boot, for the circuit breaker's message: an
+      # error exit (e.g. an after_fork hook raising) points at the app, a
+      # boot timeout or signal at the mold (e.g. a lock frozen by fork).
+      def boot_failure(pid, info, status)
+        return "pid #{pid} boot timeout" if info.boot_timed_out
+        status.to_s.start_with?("pid #{pid}") ? status.to_s : "pid #{pid} #{status}"
+      end
+
+      # `reason`: how it failed (see #boot_failure).
+      def count_boot_failure(reason)
+        (@boot_failures ||= []) << reason
+        return unless @active_mold && @boot_failures.size >= BOOT_FAILURE_LIMIT
         mold = @active_mold
-        logger.error "#{@boot_failures} child processes forked by mold (pid #{mold}) failed to start in a row" \
-                     "#{" (last: pid #{pid})" if pid}; stopping it"
-        @boot_failures = 0
+        logger.error "#{@boot_failures.size} child processes forked by mold (pid #{mold}) failed to start in a row " \
+                     "(#{@boot_failures.join(', ')}); stopping it"
+        @boot_failures = []
         abandon(mold)
         lose_active_mold(mold, :broken, 'is broken')
       end
@@ -608,6 +617,7 @@ module Delayed
           next if info.booted || !info.mold_pid || monotonic_now - info.started_at < boot_timeout
           logger.warn "Child process (pid #{pid}) did not start within #{boot_timeout}s; killing it"
           info.started_at = monotonic_now # Killed once.
+          info.boot_timed_out = true
           signal(pid, 'KILL')
         end
       end

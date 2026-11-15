@@ -655,8 +655,10 @@ group, the cgroup, or the `process_spawned` events (`:mold_pid`).
   replaced), the parent forks new child processes itself, and a new mold is
   promoted, with a back-off growing after each failure in a row. A promotion
   that fails (the mold never gets ready) is retried the same way. A mold
-  whose child processes keep failing to start, that stops forking them, or
-  that is stopped by a signal sent to it alone, is replaced the same way.
+  whose child processes keep failing to start (3 in a row; the log lists how
+  each failed: an error exit usually means an `after_fork` hook raising, a
+  boot timeout or signal a problem in the mold), that stops forking them,
+  or that is stopped by a signal sent to it alone, is replaced the same way.
   After 5 failures in a row, promotion stops (`mold_disabled` event; child
   processes are forked from the parent) until `SIGURG` re-arms it.
 * Before forking, the mold runs your `:mold` hooks, compacts its heap, and
@@ -664,7 +666,9 @@ group, the cgroup, or the `process_spawned` events (`:mold_pid`).
   the children shouldn't share (it's passed the mold's pid and generation).
   `before(:mold)` and the heap compaction must finish within 2 minutes of the
   promoted child exiting, or the promotion fails. `after(:mold)` doesn't run
-  if the mold is killed (e.g. when replaced). An exception in a hook is
+  if the mold is killed (e.g. when replaced). If the parent dies, a hook
+  still running gets 10 seconds before the mold exits regardless (a mold
+  left running would keep the pidfile locked). An exception in a hook is
   reported to `on_thread_error` (context `Mold`) and fails the promotion:
 
   ```ruby

@@ -1,5 +1,6 @@
 require 'active_support/core_ext/class/attribute'
 require 'concurrent/array'
+require 'monitor'
 
 module Delayed
   module Launcher
@@ -27,6 +28,7 @@ module Delayed
         super
         @pid_file = pid_file
         @workers_lock = Mutex.new # Created eagerly: lazy init would race.
+        @exit_lock = Monitor.new # See #kill.
         # Created eagerly: signal traps can't lazily init safely.
         @stop_signals = Concurrent::Array.new
         @child_signals = Concurrent::Array.new
@@ -55,6 +57,7 @@ module Delayed
           end
           setup_workers
           run_loop if forking?
+          finish_kill if @killed
           before_graceful_exit
         ensure
           delete_pidfile
@@ -83,16 +86,22 @@ module Delayed
       end
 
       def kill(exit_status = 0, message = nil)
+        @kill_thread = Thread.current # Before @killed: see #finish_kill.
         @stopped = true
         @killed = true
         stop_signals << 'KILL'
         message = " #{message}" if message
         logger.warn "Kill invoked#{message}"
-        killed = workers_lock.synchronize { workers.dup }
-        signal_workers('KILL')
-        reap_killed_workers(killed)
-        logger.warn "#{parent_name} exited forcefully#{message} - pid #{$$}"
-        exit(exit_status)
+        # Once an exit the run loop is handling is done, the children are
+        # this thread's alone: the run loop skips them (not in #workers),
+        # and nothing it does is cut short by the exit.
+        @exit_lock.synchronize do
+          killed = workers_lock.synchronize { workers.dup.tap { workers.clear } }
+          signal_workers('KILL', killed)
+          reap_killed_workers(killed)
+          logger.warn "#{parent_name} exited forcefully#{message} - pid #{$$}"
+          exit(exit_status)
+        end
       end
 
       # Used by MoldSupervisor and Mold; not public API.
@@ -364,7 +373,15 @@ module Delayed
           break if @stopped && workers.empty?
         end
       rescue Errno::ECHILD
-        logger.warn 'No child processes found'
+        logger.warn 'No child processes found' unless @killed
+      end
+
+      # The run loop ends once the kill timer thread has reaped the children,
+      # which then still recovers their jobs: wait for it to exit (status 1),
+      # rather than exit gracefully, cutting it short.
+      def finish_kill
+        @kill_thread.join unless @kill_thread == Thread.current
+        exit(1) # In case it didn't exit.
       end
 
       # Polls: children forked by a mold are reported by it, and, without a
@@ -420,6 +437,10 @@ module Delayed
       end
 
       def handle_exit(worker_pid, child_status)
+        @exit_lock.synchronize { handle_exit_unlocked(worker_pid, child_status) }
+      end
+
+      def handle_exit_unlocked(worker_pid, child_status)
         worker_name, options = workers_lock.synchronize { workers.delete(worker_pid) }
         return false unless worker_name
         promoted = promoted_child?(worker_pid)
@@ -537,14 +558,16 @@ module Delayed
         Process.clock_gettime(Process::CLOCK_MONOTONIC)
       end
 
-      # The run loop may reap some first; it then recovers them itself. A
-      # child forked by a mold can't be waited for: polled until it's gone.
+      # Recovers the jobs of every killed child, whoever reaps it. A child
+      # forked by a mold can't be waited for: polled until it's gone.
       def reap_killed_workers(killed)
         killed.each do |pid, (worker_name, options)|
           begin
             _, status = Process.waitpid2(pid)
           rescue Errno::ECHILD
-            next unless @mold_supervisor&.wait_until_gone(pid)
+            # Reaped by the run loop meanwhile (it skips children no longer
+            # in #workers), or forked by a mold: recovered here all the same.
+            next if @mold_supervisor && !@mold_supervisor.wait_until_gone(pid)
             status = ReportedStatus.new(pid, nil, 9)
           end
           workers_lock.synchronize { workers.delete(pid) }
@@ -593,8 +616,8 @@ module Delayed
       end
 
       # Skips workers that already exited, so a kill isn't aborted.
-      def signal_workers(signal)
-        workers.dup.each do |pid, (worker_name, _)|
+      def signal_workers(signal, targets = workers.dup)
+        targets.each do |pid, (worker_name, _)|
           Process.kill(signal, pid)
           logger.info "Sent SIG#{signal} to child process #{worker_name} (pid #{pid})"
         rescue Errno::ESRCH
@@ -747,7 +770,7 @@ module Delayed
         flush_and_exit!(status) # Not the dispatcher's at_exit hooks again.
       end
 
-      public :workers, :handle_exit, :add_worker, :start_child, :child_started, :child_signal, :child_signals, :logger, :warmup_heap
+      public :workers, :handle_exit, :add_worker, :start_child, :child_started, :child_signal, :child_signals, :logger, :warmup_heap, :flush_and_exit!
     end
   end
 end

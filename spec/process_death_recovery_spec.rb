@@ -400,12 +400,34 @@ describe 'Recovering the jobs of a dead worker process' do
         expect { launcher.kill(1, 'test') }.to raise_error(SystemExit)
       end
 
-      it 'skips workers already reaped by the main thread' do
+      it 'recovers workers the run loop reaped meanwhile, which then skips them' do
         launcher.send(:workers)[99] = ['delayed_job.1', {}]
         allow(Process).to receive(:kill)
         allow(Process).to receive(:waitpid2).with(99).and_raise(Errno::ECHILD)
-        expect(launcher).not_to receive(:recover_jobs_of_worker)
+        recovered = []
+        allow(launcher).to receive(:recover_jobs_of_worker) { |name, pid, _, status| recovered << [name, pid, status.termsig] }
         expect { launcher.kill(1) }.to raise_error(SystemExit)
+        expect(recovered).to eq [['delayed_job.1', 99, 9]]
+        expect(launcher.send(:handle_exit, 99, killed)).to be false # The run loop's reap.
+        expect(recovered.size).to eq 1
+      end
+
+      it 'waits for an exit the run loop is handling before killing' do
+        launcher.send(:workers)[98] = ['delayed_job.0', {}]
+        allow(Process).to receive(:kill)
+        allow(Process).to receive(:waitpid2).and_raise(Errno::ECHILD)
+        allow(launcher).to receive(:replace_worker)
+        order = Queue.new
+        allow(launcher).to receive(:recover_jobs_of_worker) do |_, pid, *|
+          sleep 0.2 if pid == 98
+          order << pid
+        end
+        handling = Thread.new { launcher.send(:handle_exit, 98, killed) }
+        sleep 0.01 until launcher.instance_variable_get(:@exit_lock).mon_locked?
+        launcher.send(:workers)[99] = ['delayed_job.1', {}]
+        expect { launcher.kill(1) }.to raise_error(SystemExit)
+        handling.join
+        expect(Array.new(order.size) { order.pop }).to eq [98, 99]
       end
     end
   end

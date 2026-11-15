@@ -22,6 +22,10 @@ describe Delayed::Launcher::Mold, :fork do
 
       def warmup_heap; end
 
+      def flush_and_exit!(status)
+        exit!(status)
+      end
+
       # sqlite3 warns, in each forked process, about the spec process's
       # database connections it closes there.
       def quiet_fork(&block)
@@ -238,6 +242,40 @@ describe Delayed::Launcher::Mold, :fork do
 
     expect(wait_for_line('s', pid)).to eq [pid]
     expect(wait_for_exit(pid)).to be_success
+  end
+
+  describe 'with a :mold hook hanging when the parent is gone' do
+    before { stub_const("#{described_class}::ORPHAN_GRACE", 0.2) }
+
+    it 'exits ORPHAN_GRACE after the parent, from a before(:mold) hook' do
+      pid = start_mold { Delayed::Worker.lifecycle.before(:mold) { sleep } }
+      sleep 0.3
+      close_life_pipe
+      expect(wait_for_exit(pid, 5).exitstatus).to eq 1
+      expect(log).to include "Mold (pid #{pid}): the parent is gone and its :mold hooks still run after 0.2s; exiting"
+      expect(lines.map(&:first)).not_to include 'm'
+    end
+
+    it 'exits ORPHAN_GRACE after the parent, from an after(:mold) hook' do
+      pid = ready_mold { Delayed::Worker.lifecycle.after(:mold) { sleep } }
+      close_life_pipe
+      expect(wait_for_exit(pid, 5).exitstatus).to eq 1
+      expect(log).to include 'the parent is gone and its :mold hooks still run'
+    end
+
+    it 'lets a slow hook finish within ORPHAN_GRACE' do
+      stub_const("#{described_class}::ORPHAN_GRACE", 3)
+      pid = ready_mold { Delayed::Worker.lifecycle.after(:mold) { sleep 0.3 } }
+      close_life_pipe
+      expect(wait_for_exit(pid, 5)).to be_success
+      expect(log).not_to include 'the parent is gone'
+    end
+
+    it 'runs no watchdog while forking children' do
+      pid = ready_mold
+      threads = Dir.children("/proc/#{pid}/task").map { |task| File.read("/proc/#{pid}/task/#{task}/comm").strip }
+      expect(threads.grep(/watchdog/i)).to be_empty
+    end
   end
 
   it 'warns about threads still running, except those marked fork safe' do

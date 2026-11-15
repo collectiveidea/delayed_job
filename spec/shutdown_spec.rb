@@ -1156,6 +1156,35 @@ describe Delayed::Launcher::Forking, 'stopping worker processes' do
     end
   end
 
+  describe 'the run loop ending while the kill timer thread recovers jobs' do
+    it 'waits for it, and exits with status 1 rather than gracefully' do
+      allow(Process).to receive(:kill)
+      allow(Process).to receive(:waitpid2) { |pid| [pid, Delayed::ReportedStatus.new(pid, nil, 9)] }
+      recovered = Queue.new
+      allow(launcher).to receive(:recover_jobs_of_worker) do |_, pid, *|
+        sleep 0.2
+        recovered << pid
+      end
+      exits = Queue.new
+      allow(launcher).to receive(:exit) { |status| exits << [status, recovered.size] }
+      killer = Thread.new { launcher.kill(1, 'after 1 second timeout') }
+      sleep 0.01 until launcher.send(:workers).empty? # The run loop would end now.
+      launcher.send(:finish_kill)
+      killer.join(2)
+
+      expect(Array.new(exits.size) { exits.pop }).to eq [[1, 2], [1, 2]]
+      expect(logger).not_to have_received(:info).with(/exited gracefully/)
+    end
+
+    it "doesn't log 'No child processes found' once killed" do
+      launcher.instance_variable_set(:@killed, true)
+      launcher.instance_variable_set(:@stopped, true)
+      allow(Process).to receive(:wait2).and_raise(Errno::ECHILD)
+      launcher.send(:run_loop)
+      expect(logger).not_to have_received(:warn).with('No child processes found')
+    end
+  end
+
   describe '#schedule_kill' do
     it 'kills the workers after the timeout' do
       expect(launcher).to receive(:kill).with(1, 'after 0.05 second timeout')
