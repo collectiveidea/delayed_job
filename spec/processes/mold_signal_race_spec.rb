@@ -120,7 +120,7 @@ describe 'Mold process signal races', :processes do
   end
 
   # HUP is forwarded as TERM, which overrides the promotion: the draining
-  # child finishes its job and exits 75 rather than fork a mold.
+  # child finishes its job and exits rather than fork a mold.
   it 'cancels the promotion of the only child, draining a job, on HUP: it finishes the job and forks no mold' do
     pid, reader = spawn_launcher(launch_options.merge(:processes => 1, :mold => [1000]))
     output = +''
@@ -131,7 +131,10 @@ describe 'Mold process signal races', :processes do
     status = stop_launcher(pid, reader, output, 'HUP')
 
     expect(status).to be_success
-    expect(output).to include "(pid #{holder}) exited: pid #{holder} exit 75"
+    # 75 if the child took the promotion before the stop; 0 if the stop
+    # came first (the order a process runs its traps in isn't guaranteed)
+    # and the promotion never started. Either way: no mold, no attempt.
+    expect(output).to match(/\(pid #{holder}\) exited: pid #{holder} exit (75|0)$/)
     expect(output).not_to match(/Mold \(pid \d+\)/)
     expect(output).not_to include 'Kill invoked'
     expect(ProcessHelpers::Run.where(:key => 'draining').count).to eq 1
@@ -152,7 +155,10 @@ describe 'Mold process signal races', :processes do
 
     expect(status).to be_success
     expect(took).to be < 10
-    expect(output).to include "(pid #{holder}) exited: pid #{holder} exit 75"
+    # 75 if the child took the promotion before the stop; 0 if the stop
+    # came first (the order a process runs its traps in isn't guaranteed)
+    # and the promotion never started. Either way: no mold, no attempt.
+    expect(output).to match(/\(pid #{holder}\) exited: pid #{holder} exit (75|0)$/)
     expect(output).not_to include 'Kill invoked'
     job = reload_job(job)
     expect(job.locked_by).to be_nil
