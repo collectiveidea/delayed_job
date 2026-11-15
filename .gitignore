@@ -5,3 +5,6 @@
 .rvmrc
 /coverage
 Gemfile.lock
+/tmp
+lib/delayed/*.so
+lib/delayed/*.bundle

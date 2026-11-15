@@ -11,6 +11,7 @@ if RUBY_ENGINE == 'jruby'
 end
 
 gem 'rake'
+gem 'rake-compiler', :platforms => :ruby # rake compile: the C extension (ext/delayed_job)
 
 platforms :ruby do
   # Rails 5.1 is the first to work with sqlite 1.4

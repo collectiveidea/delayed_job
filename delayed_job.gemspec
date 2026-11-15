@@ -3,14 +3,14 @@
 Gem::Specification.new do |spec|
   spec.add_dependency 'activesupport', '>= 4.0'
   spec.add_dependency 'benchmark'
-  # Mold process: prctl(PR_SET_CHILD_SUBREAPER). A bundled gem since Ruby 3.5.
-  spec.add_dependency 'fiddle', '>= 1.0'
   spec.add_dependency 'logger'
   spec.authors        = ['Brandon Keepers', 'Brian Ryckbost', 'Chris Gaffney', 'David Genord II', 'Erik Berlin', 'Matt Griffin', 'Steve Richert', 'Tobias Lütke']
   spec.description    = 'Delayed_job (or DJ) encapsulates the common pattern of asynchronously executing longer tasks in the background. It is a direct extraction from Shopify where the job table is responsible for a multitude of core tasks.'
   spec.email          = ['brian@collectiveidea.com']
   spec.files          = %w[CHANGELOG.md CONTRIBUTING.md LICENSE.md README.md Rakefile delayed_job.gemspec]
-  spec.files          += Dir.glob('{contrib,lib,recipes,spec}/**/*') # rubocop:disable Layout/SpaceAroundOperators
+  spec.files          += Dir.glob('{contrib,ext,lib,recipes,spec}/**/*').grep_v(/\.(so|bundle)\z/) # rubocop:disable Layout/SpaceAroundOperators
+  # The mold process's child subreaper (Linux); a stub elsewhere, none on JRuby.
+  spec.extensions     = ['ext/delayed_job/extconf.rb']
   spec.homepage       = 'http://github.com/collectiveidea/delayed_job'
   spec.licenses       = ['MIT']
   spec.name           = 'delayed_job'

@@ -652,7 +652,7 @@ module Delayed
           @mold_pipes = Mold::Pipes.new
           @reaps_orphans = Process.pid == 1 || ProcessUtil.enable_child_subreaper
           unless @reaps_orphans
-            logger.warn 'Mold process: could not make the parent a child subreaper (needs Linux and the fiddle gem); ' \
+            logger.warn 'Mold process: could not make the parent a child subreaper (needs Linux and the C extension, not built on JRuby); ' \
                         "a mold's child processes will stop if it dies"
           end
           @mold_supervisor = MoldSupervisor.new(self, mold_thresholds, @mold_pipes, @reaps_orphans)

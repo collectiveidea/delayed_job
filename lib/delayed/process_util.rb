@@ -1,18 +1,15 @@
 module Delayed
   # Process helpers for the mold process (Linux; safe no-ops elsewhere).
   module ProcessUtil
-    PR_SET_CHILD_SUBREAPER = 36
-
   module_function
 
     # Makes orphaned descendants reparent to this process instead of init,
-    # so it can wait for them. Returns whether it worked (Linux, with Fiddle).
+    # so it can wait for them. Returns whether it worked: Linux, with the C
+    # extension (ext/delayed_job) built; not on JRuby.
     def enable_child_subreaper
-      return false unless RUBY_PLATFORM.include?('linux')
-      require 'fiddle'
-      prctl = Fiddle::Function.new(Fiddle.dlopen(nil)['prctl'], [Fiddle::TYPE_INT] + [Fiddle::TYPE_LONG] * 4, Fiddle::TYPE_INT)
-      prctl.call(PR_SET_CHILD_SUBREAPER, 1, 0, 0, 0).zero?
-    rescue LoadError, StandardError
+      require 'delayed/subreaper'
+      native_enable_child_subreaper
+    rescue LoadError
       false
     end
 

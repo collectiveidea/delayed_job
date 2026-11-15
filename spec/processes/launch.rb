@@ -35,7 +35,7 @@ Delayed::Launcher::Forking.mold_ping_interval = mold_ping_interval if mold_ping_
   value = options.delete(option)
   Delayed::Launcher::MoldSupervisor.send("#{setting}=", value) if value
 end
-# Runs the mold process as without a child subreaper (not Linux, no fiddle).
+# Runs the mold process as without a child subreaper (not Linux, or JRuby).
 Delayed::ProcessUtil.define_singleton_method(:enable_child_subreaper) { false } if options.delete(:no_subreaper)
 # Child processes forked by a mold crash (exit 3) as they start.
 broken_mold = options.delete(:broken_mold)

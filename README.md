@@ -609,9 +609,9 @@ MOLD=1000,5000,20000 NUM_PROCESSES=4 rake jobs:work
 Delayed::Worker.mold = [1000, 5000, 20000] # true for [1000]
 ```
 
-On Linux, the parent becomes a *child subreaper* (`prctl`, through the
-`fiddle` gem), so the mold, and any child process it leaves behind, is
-reparented to the parent:
+On Linux, the parent becomes a *child subreaper* (`prctl`, through a small C
+extension built when the gem is installed), so the mold, and any child
+process it leaves behind, is reparented to the parent:
 
 ```
 delayed_job (parent)
@@ -620,8 +620,8 @@ delayed_job (parent)
  └─ delayed_job.3 gen 1: 5/5 busy, queues=*
 ```
 
-(`ps` shows the children under the mold while it lives.) Elsewhere, or if
-`fiddle` can't be loaded, a warning is logged and the mold is reparented to
+(`ps` shows the children under the mold while it lives.) Elsewhere, or on
+JRuby (no C extension), a warning is logged and the mold is reparented to
 init instead, with its children under it: process-tree tools such as
 `pstree` or `pkill -P` won't find them under the parent, so use the process
 group, the cgroup, or the `process_spawned` events (`:mold_pid`).
