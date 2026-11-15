@@ -3,7 +3,7 @@ name: CI
 on:
   push:
     branches: [ master ]
-  # Every PR, whatever branch it targets (e.g. one stacked on another PR).
+  # run on every PR
   pull_request:
 
 permissions:
@@ -43,8 +43,6 @@ jobs:
             rails_version: '8.1.0'
 
     continue-on-error: ${{ matrix.rails_version == 'edge' || endsWith(matrix.ruby, 'head') }}
-    # A run takes about 8 minutes; a hung one would otherwise hold a runner
-    # for GitHub's 6-hour default.
     timeout-minutes: 30
 
     env:
@@ -64,9 +62,7 @@ jobs:
         github-token: ${{ secrets.github_token }}
         flag-name: run-${{ matrix.ruby }}-${{ matrix.rails_version }}
         parallel: true
-        # Reporting coverage must not fail the build, e.g. on a fork with no
-        # Coveralls project.
-        fail-on-error: false
+        fail-on-error: false # coverage must not fail the build
 
   finish:
     needs: test
