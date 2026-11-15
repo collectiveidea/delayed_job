@@ -44,11 +44,7 @@ module Delayed
           options[:run_at]   = args[1]
         end
 
-        # rubocop:disable GuardClause
-        unless options[:payload_object].respond_to?(:perform)
-          raise ArgumentError, 'Cannot enqueue items which do not respond to perform'
-        end
-        # rubocop:enabled GuardClause
+        raise ArgumentError, 'Cannot enqueue items which do not respond to perform' unless options[:payload_object].respond_to?(:perform)
       end
     end
   end

@@ -1,6 +1,9 @@
 require 'active_support'
-require 'delayed/compatibility'
+require 'fileutils'
+require 'pathname'
+require 'delayed/util'
 require 'delayed/exceptions'
+require 'delayed/instrumentation'
 require 'delayed/message_sending'
 require 'delayed/performable_method'
 require 'delayed/yaml_ext'
@@ -9,8 +12,24 @@ require 'delayed/plugin'
 require 'delayed/plugins/clear_locks'
 require 'delayed/backend/base'
 require 'delayed/backend/job_preparer'
+require 'delayed/logging'
 require 'delayed/worker'
+require 'delayed/launch_options'
+require 'delayed/inbox'
+require 'delayed/dispatcher'
+require 'delayed/pidfile'
+require 'delayed/reported_status'
+require 'delayed/exit_status'
+require 'delayed/process_util'
+require 'delayed/launcher/base'
+require 'delayed/launcher/mold'
+require 'delayed/launcher/mold_supervisor'
+require 'delayed/launcher/daemonized'
+require 'delayed/launcher/forking'
+require 'delayed/pool_parser'
+require 'delayed/command'
 require 'delayed/deserialization_error'
+require 'delayed/log_subscriber'
 require 'delayed/railtie' if defined?(Rails::Railtie)
 
 ActiveSupport.on_load(:action_mailer) do
@@ -23,5 +42,5 @@ module Delayed
   autoload :PerformableMailer, 'delayed/performable_mailer'
 end
 
-Object.send(:include, Delayed::MessageSending)
-Module.send(:include, Delayed::MessageSendingClassMethods)
+Object.include Delayed::MessageSending
+Module.include Delayed::MessageSendingClassMethods

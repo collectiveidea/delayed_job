@@ -71,6 +71,43 @@ describe Delayed::Worker do
     end
   end
 
+  describe 'name' do
+    it 'appends the thread index when set' do
+      worker = Delayed::Worker.new
+      worker.name_prefix = 'delayed_job.0 '
+      worker.thread_index = 2
+      expect(worker.name).to start_with('delayed_job.0 ')
+      expect(worker.name).to end_with(" pid:#{Process.pid} thread:2")
+    end
+
+    it 'does not include a thread index by default' do
+      expect(Delayed::Worker.new.name).not_to include('thread:')
+    end
+  end
+
+  describe '#start' do
+    it 'runs the worker in a single-threaded Delayed::Dispatcher' do
+      worker = Delayed::Worker.new
+      worker.name_prefix = 'dj.0 '
+      expect_any_instance_of(Delayed::Dispatcher).to receive(:start) do |dispatcher|
+        expect(dispatcher.workers).to eq [worker]
+        expect(dispatcher.name_prefix).to eq 'dj.0 '
+      end
+      worker.start
+    end
+
+    it 'stops the dispatcher when the worker is stopped' do
+      Delayed::Worker.sleep_delay = 30
+      worker = Delayed::Worker.new
+      allow_any_instance_of(Delayed::Dispatcher).to receive(:trap_signals)
+      thread = Thread.new { worker.start }
+      sleep 0.2
+      worker.stop
+      expect(Timeout.timeout(2) { thread.join }).to eq thread
+      Delayed::Worker.sleep_delay = Delayed::Worker::DEFAULT_SLEEP_DELAY
+    end
+  end
+
   context 'worker exit on complete' do
     before do
       Delayed::Worker.exit_on_complete = true
@@ -109,6 +146,23 @@ describe Delayed::Worker do
       expect { worker.work_off }.to raise_exception Delayed::FatalBackendError
     end
 
+    it 'counts a job that fails to deserialize as failed and keeps working' do
+      Delayed::Job.delete_all
+      SimpleJob.runs = 0
+      Delayed::Job.create(:handler => '--- !ruby/object:JobThatDoesNotExist {}', :run_at => 1.minute.ago)
+      Delayed::Job.enqueue(SimpleJob.new)
+      expect(Delayed::Worker.new.work_off).to eq [1, 1]
+    end
+
+    it 'reuses its dispatcher, so reservation failures accumulate across calls' do
+      worker = Delayed::Worker.new
+      worker.work_off
+      dispatcher = worker.dispatcher
+      expect(dispatcher).to be_a Delayed::Dispatcher
+      worker.work_off
+      expect(worker.dispatcher).to equal dispatcher
+    end
+
     it 'allows the backend to attempt recovery from reservation errors' do
       expect(Delayed::Job).to receive(:reserve).and_raise(Exception)
       expect(Delayed::Job).to receive(:recover_from).with(instance_of(Exception))
@@ -118,6 +172,7 @@ describe Delayed::Worker do
 
   context '#say' do
     before(:each) do
+      @logger = Delayed::Worker.logger
       @worker = Delayed::Worker.new
       @worker.name = 'ExampleJob'
       @worker.logger = double('job')
@@ -128,8 +183,10 @@ describe Delayed::Worker do
       @expected_time = time.strftime('%FT%T%z')
     end
 
+    # Worker#logger= sets the class-wide logger: restore it, or later
+    # examples' launchers log to STDOUT.
     after(:each) do
-      @worker.logger = nil
+      Delayed::Worker.logger = @logger
     end
 
     shared_examples_for 'a worker which logs on the correct severity' do |severity|
@@ -178,6 +235,58 @@ describe Delayed::Worker do
       Delayed::Worker.lifecycle.run_callbacks(:enqueue, nil) {}
 
       expect(performances).to eq(1)
+    end
+  end
+
+  describe '.new while a job runs' do
+    before { SimpleJob.runs = 0 }
+
+    # A job that calls Delayed::Worker.new while it runs.
+    def enqueue_job_calling_new
+      payload = SimpleJob.new
+      def payload.perform
+        Delayed::Worker.new
+      end
+      Delayed::Job.enqueue(payload)
+    end
+
+    it 'raises, failing the job, instead of resetting every worker' do
+      worker = Delayed::Worker.new
+      allow(worker).to receive(:say)
+      Delayed::Worker.lifecycle.before(:perform) { |_w, _j| nil } # Would be lost by a reset.
+      lifecycle = Delayed::Worker.lifecycle
+      job = enqueue_job_calling_new
+      expect(worker.work_off(1)).to eq [0, 1]
+      expect(job.reload.last_error).to start_with 'Delayed::Worker.new was called from a running job'
+      expect(Delayed::Worker.lifecycle).to equal lifecycle
+    end
+
+    it 'raises on worker threads too' do
+      job = enqueue_job_calling_new
+      dispatcher = Delayed::Dispatcher.new(:threads => 2, :sleep_delay => 0.05)
+      silence_say(*and_workers(dispatcher))
+      lifecycle = Delayed::Worker.lifecycle
+      Delayed::Worker.exit_on_complete = true
+      Timeout.timeout(5) { dispatcher.run }
+      expect(job.reload.last_error).to start_with 'Delayed::Worker.new was called from a running job'
+      expect(Delayed::Worker.lifecycle).to equal lifecycle
+    end
+
+    it 'is allowed again once the job is done, on the same thread' do
+      worker = Delayed::Worker.new
+      allow(worker).to receive(:say)
+      Delayed::Job.enqueue(SimpleJob.new)
+      worker.work_off(1)
+      expect(Thread.current[:delayed_job_running]).to be_falsey
+      expect { Delayed::Worker.new }.not_to raise_error
+    end
+
+    it 'is allowed after a job that raised' do
+      worker = Delayed::Worker.new
+      allow(worker).to receive(:say)
+      Delayed::Job.enqueue(ErrorJob.new)
+      worker.work_off(1)
+      expect { Delayed::Worker.new }.not_to raise_error
     end
   end
 end

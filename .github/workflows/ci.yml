@@ -3,178 +3,75 @@ name: CI
 on:
   push:
     branches: [ master ]
+  # run on every PR
   pull_request:
-    branches: [ master ]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   test:
     name: Test (Ruby ${{ matrix.ruby }}, Rails ${{ matrix.rails_version }})
-    runs-on: ubuntu-${{ matrix.ubuntu }}
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        ruby: ['3.2', '3.3', '3.4', '4.0', jruby-9.4, jruby-10.0, jruby-10.1, jruby-head, ruby-head]
+        ruby: ['3.3', '3.4', '4.0', head]
         rails_version:
-          - '7.0.0'
-          - '7.1.0'
           - '7.2.0'
           - '8.0.0'
           - '8.1.0'
           - 'edge'
-        ubuntu: [latest]
-        exclude:
-          # Rails edge requires Ruby >= 3.3.1
-          - ruby: '3.2'
-            rails_version: 'edge'
-          # Rails 8 requires Ruby >= 3.2, and JRuby 9.4 targets Ruby 3.1
-          - ruby: jruby-9.4
-            rails_version: '8.0.0'
-          - ruby: jruby-9.4
-            rails_version: '8.1.0'
-          - ruby: jruby-9.4
-            rails_version: 'edge'
-          # activerecord-jdbcsqlite3-adapter supports Rails 8.0 at most,
-          # and only via its 80.0.pre1 prerelease
-          - ruby: jruby-10.0
-            rails_version: '8.1.0'
-          - ruby: jruby-10.0
-            rails_version: 'edge'
-          - ruby: jruby-10.1
-            rails_version: '8.1.0'
-          - ruby: jruby-10.1
-            rails_version: 'edge'
-          - ruby: jruby-head
-            rails_version: '8.1.0'
-          - ruby: jruby-head
-            rails_version: 'edge'
         include:
-          # Ruby 2.6
-          - ruby: 2.6
-            rails_version: '6.0.0'
-            ubuntu: '22.04'
-          - ruby: 2.6
-            rails_version: '6.1.0'
-            ubuntu: '22.04'
-
-          # ruby 3.1 (Dropped by Rails 8)
-          - ruby: 3.1
-            rails_version: '7.0.0'
-            ubuntu: 'latest'
-          - ruby: 3.1
-            rails_version: '7.1.0'
-            ubuntu: 'latest'
-          - ruby: 3.1
+          # JRuby: activerecord-jdbcsqlite3-adapter supports Rails 7.2 (72.x),
+          # and Rails 8.0 only via its 80.0.pre1 prerelease. JRuby 10.1 removed
+          # the Java APIs 72.x was compiled against (see the Gemfile).
+          - ruby: jruby-10.0
             rails_version: '7.2.0'
-            ubuntu: 'latest'
-
-          # jruby-9.2
-          - ruby: jruby-9.2
-            rails_version: '6.0.0'
-            ubuntu: '22.04'
-          - ruby: jruby-9.2
-            rails_version: '6.1.0'
-            ubuntu: '22.04'
-
-          #
-          # The past
-          #
-          # EOL Active Record
-          #
-          # Ruby 2.2 is known to seg fault on 22.04 and 20.04 has been dropped.
-          # Maybe revisit local runner possibilities.
-          # - ruby: 2.2
-          #   rails_version: '3.2.0'
-          #   ubuntu: '22.04'
-          - ruby: 2.1
-            rails_version: '4.1.0'
-            ubuntu: '22.04'
-          - ruby: 2.4
-            rails_version: '4.2.0'
-            ubuntu: '22.04'
-          - ruby: 2.4
-            rails_version: '5.0.0'
-            ubuntu: '22.04'
-          - ruby: 2.5
-            rails_version: '5.1.0'
-            ubuntu: '22.04'
-          - ruby: 2.6
-            rails_version: '5.2.0'
-            ubuntu: '22.04'
-          - ruby: 2.7
-            rails_version: '5.2.0'
-            ubuntu: '22.04'
-          - ruby: jruby-9.2
-            rails_version: '5.2.0'
-            ubuntu: '22.04'
-          - ruby: 2.7
-            rails_version: '6.0.0'
-            ubuntu: '22.04'
-          - ruby: 3.0
-            rails_version: '6.0.0'
-            ubuntu: '22.04'
-          - ruby: 3.2
-            rails_version: '6.0.0'
-            ubuntu: '22.04'
-          - ruby: jruby-9.4
-            rails_version: '6.0.0'
-            ubuntu: '22.04'
-          - ruby: 2.7
-            rails_version: '6.1.0'
-            ubuntu: '22.04'
-          - ruby: 3.0
-            rails_version: '6.1.0'
-            ubuntu: '22.04'
-          - ruby: 3.2
-            rails_version: '6.1.0'
-            ubuntu: '22.04'
-          - ruby: jruby-9.4
-            rails_version: '6.0.0'
-            ubuntu: '22.04'
-          - ruby: 2.7
-            rails_version: '7.0.0'
-            ubuntu: '22.04'
-          - ruby: 3.0
-            rails_version: '7.0.0'
-            ubuntu: '22.04'
-          - ruby: jruby-9.4
-            rails_version: '6.0.0'
-            ubuntu: '22.04'
-          
-          # EOL Ruby
-          - ruby: 2.7
-            rails_version: '7.1.0'
-            ubuntu: '22.04'
-          - ruby: 3.0
-            rails_version: '7.1.0'
-            ubuntu: '22.04'
+          - ruby: jruby-10.1
+            rails_version: '8.0.0'
+          - ruby: jruby-head
+            rails_version: '8.0.0'
+          # TruffleRuby (parallel threads, as on JRuby; native sqlite3)
+          - ruby: truffleruby
+            rails_version: '8.1.0'
+          - ruby: truffleruby-head
+            rails_version: '8.1.0'
 
     continue-on-error: ${{ matrix.rails_version == 'edge' || endsWith(matrix.ruby, 'head') }}
+    timeout-minutes: 30
+
+    env:
+      RAILS_VERSION: ${{ matrix.rails_version }}
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
     - uses: ruby/setup-ruby@v1
-      env:
-        RAILS_VERSION: ${{ matrix.rails_version }}
       with:
         ruby-version: ${{ matrix.ruby }}
         bundler-cache: true # runs 'bundle install' and caches installed gems automatically
     - name: Run tests
-      env:
-        RAILS_VERSION: ${{ matrix.rails_version }}
-      run: bundle exec rspec
+      run: bundle exec rake compile && bundle exec rspec
     - name: Coveralls Parallel
-      uses: coverallsapp/github-action@main
+      uses: coverallsapp/github-action@v2
       with:
         github-token: ${{ secrets.github_token }}
         flag-name: run-${{ matrix.ruby }}-${{ matrix.rails_version }}
         parallel: true
+        fail-on-error: false # coverage must not fail the build
 
   finish:
     needs: test
+    if: ${{ always() }}
     runs-on: ubuntu-latest
     steps:
     - name: Coveralls Finished
-      uses: coverallsapp/github-action@main
+      uses: coverallsapp/github-action@v2
       with:
         github-token: ${{ secrets.github_token }}
         parallel-finished: true
+        fail-on-error: false

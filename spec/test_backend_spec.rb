@@ -2,6 +2,7 @@ require 'helper'
 
 describe Delayed::Backend::Test::Job do
   it_should_behave_like 'a delayed_job backend'
+  it_should_behave_like 'a delayed_job backend running a dispatcher'
 
   describe '#reload' do
     it 'causes the payload object to be reloaded' do

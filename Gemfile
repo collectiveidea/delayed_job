@@ -11,6 +11,7 @@ if RUBY_ENGINE == 'jruby'
 end
 
 gem 'rake'
+gem 'rake-compiler', :platforms => :ruby # rake compile: the C extension (ext/delayed_job)
 
 platforms :ruby do
   # Rails 5.1 is the first to work with sqlite 1.4
@@ -49,9 +50,15 @@ platforms :jruby do
   gem 'jruby-openssl'
   gem 'mime-types', ['~> 2.6', '< 2.99']
 
-  # rdoc 8 depends on rbs, whose native extension does not build on JRuby;
-  # railties pulls rdoc in via irb
-  gem 'rdoc', '< 8'
+  # railties pulls rdoc in via irb. rdoc 6.4+ depends on the psych gem,
+  # and Bundler installs its own copy of psych even though JRuby ships it
+  # as a default gem. psych-java declares a Maven jar (snakeyaml-engine),
+  # so installing it runs jar-dependencies' Maven post-install hook, which
+  # intermittently crashes on JRuby 10.0 and breaks `bundle install`.
+  # rdoc < 6.4 has no psych dependency, which also rules out rdoc 8, whose
+  # rbs dependency has a native extension that does not build on JRuby.
+  # Nothing in the specs loads rdoc.
+  gem 'rdoc', '< 6.4'
 
   if rails_version == 'edge'
     gem 'railties', :github => 'rails/rails'
@@ -116,7 +123,7 @@ group :test do
 end
 
 group :rubocop do
-  gem 'rubocop', '>= 0.25', '< 0.49'
+  gem 'rubocop', '~> 1.88'
 end
 
 gemspec

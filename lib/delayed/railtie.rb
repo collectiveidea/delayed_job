@@ -6,9 +6,7 @@ module Delayed
     initializer 'delayed_job.active_job' do
       ActiveSupport.on_load(:active_job) do
         # Use Rails packaged adpater if present
-        unless defined?(ActiveJob::QueueAdapters::DelayedJobAdapter)
-          require 'active_job/queue_adapters/delayed_job_adapter'
-        end
+        require 'active_job/queue_adapters/delayed_job_adapter' unless defined?(ActiveJob::QueueAdapters::DelayedJobAdapter)
       end
     end
 
@@ -21,7 +19,7 @@ module Delayed
     end
 
     rake_tasks do
-      load 'delayed/tasks.rb'
+      load 'delayed/tasks.rake'
     end
   end
 end

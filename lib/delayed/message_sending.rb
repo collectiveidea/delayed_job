@@ -16,11 +16,11 @@ module Delayed
       @options = options
     end
 
-    # rubocop:disable MethodMissing
+    # rubocop:disable Style/MissingRespondToMissing
     def method_missing(method, *args)
       Job.enqueue({:payload_object => @payload_class.new(@target, method.to_sym, args)}.merge(@options))
     end
-    # rubocop:enable MethodMissing
+    # rubocop:enable Style/MissingRespondToMissing
   end
 
   module MessageSending
@@ -41,9 +41,9 @@ module Delayed
   end
 
   module MessageSendingClassMethods
-    def handle_asynchronously(method, opts = {}) # rubocop:disable PerceivedComplexity
+    def handle_asynchronously(method, opts = {}) # rubocop:disable Metrics/PerceivedComplexity
       aliased_method = method.to_s.sub(/([?!=])$/, '')
-      punctuation = $1 # rubocop:disable PerlBackrefs
+      punctuation = $1 # rubocop:disable Style/PerlBackrefs
       with_method = "#{aliased_method}_with_delay#{punctuation}"
       without_method = "#{aliased_method}_without_delay#{punctuation}"
       define_method(with_method) do |*args|

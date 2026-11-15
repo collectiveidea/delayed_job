@@ -5,9 +5,7 @@ module Delayed
     def initialize(object, method_name, args)
       raise NoMethodError, "undefined method `#{method_name}' for #{object.inspect}" unless object.respond_to?(method_name, true)
 
-      if object.respond_to?(:persisted?) && !object.persisted?
-        raise(ArgumentError, "job cannot be created for non-persisted record: #{object.inspect}")
-      end
+      raise(ArgumentError, "job cannot be created for non-persisted record: #{object.inspect}") if object.respond_to?(:persisted?) && !object.persisted?
 
       self.object       = object
       self.args         = args
@@ -30,11 +28,11 @@ module Delayed
       object.method(sym)
     end
 
-    # rubocop:disable MethodMissing
+    # rubocop:disable Style/MissingRespondToMissing
     def method_missing(symbol, *args)
       object.send(symbol, *args)
     end
-    # rubocop:enable MethodMissing
+    # rubocop:enable Style/MissingRespondToMissing
 
     def respond_to?(symbol, include_private = false)
       super || object.respond_to?(symbol, include_private)

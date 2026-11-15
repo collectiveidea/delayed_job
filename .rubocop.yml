@@ -1,104 +1,109 @@
-AbcSize:
+inherit_from: .rubocop_todo.yml
+
+AllCops:
+  TargetRubyVersion: 3.0
+  NewCops: disable
+  SuggestExtensions: false
+  Exclude:
+    - 'vendor/**/*'
+
+Bundler/DuplicatedGem:
   Enabled: false
 
 # Enforce outdenting of access modifiers (i.e. public, private, protected)
-AccessModifierIndentation:
+Layout/AccessModifierIndentation:
   EnforcedStyle: outdent
 
-Alias:
-  EnforcedStyle: prefer_alias_method
-
-AllCops:
-  Include:
-    - 'Gemfile'
-    - 'Rakefile'
-    - 'delayed_job.gemspec'
-  TargetRubyVersion: 2.1
-
-RedundantBlockCall:
-  Enabled: false
-
-BlockLength:
-  Enabled: false
-
-# Avoid more than `Max` levels of nesting.
-BlockNesting:
-  Max: 2
-
 # Indentation of when/else
-CaseIndentation:
+Layout/CaseIndentation:
   EnforcedStyle: end
   IndentOneStep: false
 
-ClassLength:
+# Allow dots at the end of lines
+Layout/DotPosition:
+  EnforcedStyle: trailing
+
+Layout/EmptyLinesAroundAccessModifier:
+  Enabled: true
+
+# Align ends correctly
+Layout/EndAlignment:
+  EnforcedStyleAlignWith: variable
+
+Layout/LineLength:
+  Enabled: false
+
+Layout/MultilineOperationIndentation:
+  EnforcedStyle: indented
+
+# No spaces inside hash literals
+Layout/SpaceInsideHashLiteralBraces:
+  EnforcedStyle: no_space
+
+Metrics/AbcSize:
+  Enabled: false
+
+Metrics/BlockLength:
+  Enabled: false
+
+# Avoid more than `Max` levels of nesting.
+Metrics/BlockNesting:
+  Max: 2
+
+Metrics/ClassLength:
   Max: 100
 
+Metrics/MethodLength:
+  CountComments: false
+  Max: 53
+
+# Avoid long parameter lists
+Metrics/ParameterLists:
+  Max: 4
+  CountKeywordArgs: true
+
+Security/YAMLLoad:
+  Enabled: false
+
+Style/Alias:
+  EnforcedStyle: prefer_alias_method
+
 # Align with the style guide.
-CollectionMethods:
+Style/CollectionMethods:
   PreferredMethods:
-    collect:  'map'
+    collect: 'map'
     collect!: 'map!'
-    reduce:   'inject'
-    find:     'detect'
+    reduce: 'inject'
+    find: 'detect'
     find_all: 'select'
 
 # Disable documentation checking until a class needs to be documented once
-Documentation:
+Style/Documentation:
   Enabled: false
 
-# Allow dots at the end of lines
-DotPosition:
-  EnforcedStyle: trailing
-
-DoubleNegation:
+Style/DoubleNegation:
   Enabled: false
-
-# Detects any duplication as issue including our conditional requires
-DuplicatedGem:
-  Enabled: false
-
-EmptyLinesAroundAccessModifier:
-  Enabled: true
 
 # Don't require magic comment at the top of every file
-Encoding:
+Style/Encoding:
   Enabled: false
-
-# Align ends correctly
-EndAlignment:
-  EnforcedStyleAlignWith: variable
 
 Style/FrozenStringLiteralComment:
   Enabled: false
 
-# Enforce Ruby 1.8-compatible hash syntax
-HashSyntax:
+# Keep the hash-rocket style used throughout the code base
+Style/HashSyntax:
   EnforcedStyle: hash_rockets
 
-Lambda:
+Style/Lambda:
   Enabled: false
-
-LineLength:
-  Enabled: false
-
-MethodLength:
-  CountComments: false
-  Max: 53
-
-MultilineOperationIndentation:
-  EnforcedStyle: indented
 
 Style/NumericPredicate:
   Enabled: false
 
-# Avoid long parameter lists
-ParameterLists:
-  Max: 4
-  CountKeywordArgs: true
-
-PercentLiteralDelimiters:
+Style/PercentLiteralDelimiters:
   PreferredDelimiters:
-    '%':  ()
+    '%': ()
     '%i': ()
     '%q': ()
     '%Q': ()
@@ -108,39 +113,54 @@ PercentLiteralDelimiters:
     '%W': '[]'
     '%x': ()
 
-RaiseArgs:
+Style/RaiseArgs:
   EnforcedStyle: exploded
 
-RegexpLiteral:
+Style/RegexpLiteral:
   Enabled: false
 
-RescueModifier:
+Style/RescueModifier:
   Enabled: false
 
 Style/SafeNavigation:
   Enabled: false
 
-SignalException:
+Style/SignalException:
   EnforcedStyle: only_raise
 
-# No spaces inside hash literals
-SpaceInsideHashLiteralBraces:
-  EnforcedStyle: no_space
+Style/SpecialGlobalVars:
+  Enabled: false
 
 Style/SymbolArray:
   Enabled: false
 
-SymbolProc:
+Style/SymbolProc:
   Enabled: false
 
-TrailingCommaInLiteral:
+Style/TrailingCommaInArguments:
   Enabled: false
 
-TrailingCommaInArguments:
+Style/TrailingCommaInArrayLiteral:
   Enabled: false
 
-YAMLLoad:
+Style/TrailingCommaInHashLiteral:
   Enabled: false
 
-ZeroLengthPredicate:
+Style/ZeroLengthPredicate:
+  Enabled: false
+
+# House style, kept from before RuboCop 1.x:
+# no blank line forced after guard clauses,
+Layout/EmptyLineAfterGuardClause:
+  Enabled: false
+
+# rescued exceptions named `error`,
+Naming/RescuedExceptionsVariableName:
+  PreferredName: error
+
+# and STDOUT/STDERR constants.
+Style/GlobalStdStream:
+  Enabled: false
+
+Style/StderrPuts:
   Enabled: false
