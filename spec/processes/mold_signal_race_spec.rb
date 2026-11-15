@@ -75,8 +75,13 @@ describe 'Mold process signal races', :processes do
     expect(ProcessHelpers::Run.group(:key).count.select { |_, runs| runs > 1 }).to be_empty
   end
 
+  # The pid of the child that locked `job`, once the parent knows it is busy:
+  # it learns that from the child's next ping, so a SIGURG sent right away
+  # could still pick it as the idle child to promote.
   def holder_of(job)
-    wait_for { reload_job(job)&.locked_by.to_s[/pid:(\d+)/, 1] }.to_i
+    holder = wait_for { reload_job(job)&.locked_by.to_s[/pid:(\d+)/, 1] }.to_i
+    sleep 5 * launch_options[:mold_ping_interval]
+    holder
   end
 
   # Ctrl-C in a terminal: every process, the mold mid-hook included, gets INT.

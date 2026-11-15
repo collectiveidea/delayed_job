@@ -276,10 +276,10 @@ describe Delayed::Pidfile do
       Delayed::Worker.after_fork
       # The lock survives: another process still can't take the pidfile.
       expect(File.read(path)).to eq "#{Process.pid}\n"
-      _, reader = spawn_ruby("begin; Delayed::Pidfile.new(ARGV[0]).setup; print 'took it'; rescue Delayed::AlreadyRunningError; print 'refused'; end")
+      other, reader = spawn_ruby("begin; Delayed::Pidfile.new(ARGV[0]).setup; print 'took it'; rescue Delayed::AlreadyRunningError; print 'refused'; end")
       expect(reader.read).to eq 'refused'
       reader.close
-      Process.waitall
+      Process.wait(other) # Not waitall: it would wait for any other child the spec process has.
     ensure
       log.close if log
     end

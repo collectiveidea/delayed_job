@@ -20,6 +20,8 @@ module ProcessHelpers
         Job.connect(@process_db)
         Job.create_schema
         example.run
+      ensure
+        kill_launchers
       end
     end
   end
@@ -36,7 +38,22 @@ module ProcessHelpers
     pid = Process.spawn(RbConfig.ruby, '-I', LIB_DIR, LAUNCH_SCRIPT, @process_db, JSON.generate(options),
                         :out => writer, :err => writer, :pgroup => true)
     writer.close
+    launchers << pid
     [pid, reader]
+  end
+
+  # Launchers still running after the example (it failed before stopping
+  # one): kill each one's process group, so none outlives it, holding jobs
+  # or a child the next examples would wait for.
+  def kill_launchers
+    launchers.each do |pid|
+      Process.kill('KILL', -pid) rescue nil
+      Process.wait(pid) rescue nil
+    end
+  end
+
+  def launchers
+    @launchers ||= []
   end
 
   # Runs the launcher until it exits; returns [Process::Status, output].
