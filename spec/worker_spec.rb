@@ -172,6 +172,7 @@ describe Delayed::Worker do
 
   context '#say' do
     before(:each) do
+      @logger = Delayed::Worker.logger
       @worker = Delayed::Worker.new
       @worker.name = 'ExampleJob'
       @worker.logger = double('job')
@@ -182,8 +183,10 @@ describe Delayed::Worker do
       @expected_time = time.strftime('%FT%T%z')
     end
 
+    # Worker#logger= sets the class-wide logger: restore it, or later
+    # examples' launchers log to STDOUT.
     after(:each) do
-      @worker.logger = nil
+      Delayed::Worker.logger = @logger
     end
 
     shared_examples_for 'a worker which logs on the correct severity' do |severity|
