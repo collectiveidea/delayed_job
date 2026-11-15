@@ -96,7 +96,7 @@ module Delayed
       end
 
       def hook(name, *args)
-        if payload_object.respond_to?(name)
+        if payload_object.respond_to?(name) && !Delayed::Worker.disable_hooks
           method = payload_object.method(name)
           method.arity.zero? ? method.call : method.call(self, *args)
         end

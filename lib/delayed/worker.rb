@@ -19,10 +19,11 @@ module Delayed
     DEFAULT_QUEUES           = [].freeze
     DEFAULT_QUEUE_ATTRIBUTES = HashWithIndifferentAccess.new.freeze
     DEFAULT_READ_AHEAD       = 5
+    DEFAULT_DISABLE_HOOKS    = false
 
     cattr_accessor :min_priority, :max_priority, :max_attempts, :max_run_time,
                    :default_priority, :sleep_delay, :logger, :delay_jobs, :queues,
-                   :read_ahead, :plugins, :destroy_failed_jobs, :exit_on_complete,
+                   :read_ahead, :disable_hooks, :plugins, :destroy_failed_jobs, :exit_on_complete,
                    :default_log_level
 
     # Named queue into which jobs are enqueued by default
@@ -43,6 +44,7 @@ module Delayed
       self.queues            = DEFAULT_QUEUES
       self.queue_attributes  = DEFAULT_QUEUE_ATTRIBUTES
       self.read_ahead        = DEFAULT_READ_AHEAD
+      self.disable_hooks     = DEFAULT_DISABLE_HOOKS
       @lifecycle             = nil
     end
 
@@ -132,7 +134,7 @@ module Delayed
       @quiet = options.key?(:quiet) ? options[:quiet] : true
       @failed_reserve_count = 0
 
-      [:min_priority, :max_priority, :sleep_delay, :read_ahead, :queues, :exit_on_complete].each do |option|
+      [:min_priority, :max_priority, :sleep_delay, :read_ahead, :disable_hooks, :queues, :exit_on_complete].each do |option|
         self.class.send("#{option}=", options[option]) if options.key?(option)
       end
 
