@@ -9,7 +9,7 @@ describe 'Spec files' do
   # Files that legitimately define classes: shared jobs, backends, models.
   allowed = %w[sample_jobs.rb helper.rb delayed/backend/test.rb processes/backend.rb processes/jobs.rb]
   # Upstream specs, predating this check.
-  allowed += %w[message_sending_spec.rb performable_mailer_spec.rb]
+  allowed += %w[active_job_adapter_spec.rb message_sending_spec.rb performable_mailer_spec.rb]
   allowed += Dir.glob('autoloaded/*.rb', :base => spec_dir)
 
   Dir.glob('**/*.rb', :base => spec_dir).reject { |path| allowed.include?(path) }.sort.each do |path|
