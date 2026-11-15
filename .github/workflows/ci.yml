@@ -15,6 +15,7 @@ concurrency:
 
 jobs:
   test:
+    name: Test (Ruby ${{ matrix.ruby }}, Rails ${{ matrix.rails_version }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -26,11 +27,15 @@ jobs:
           - '8.1.0'
           - 'edge'
         include:
-          # JRuby (activerecord-jdbcsqlite3-adapter supports up to Rails 7.2)
-          - ruby: jruby
+          # JRuby: activerecord-jdbcsqlite3-adapter supports Rails 7.2 (72.x),
+          # and Rails 8.0 only via its 80.0.pre1 prerelease. JRuby 10.1 removed
+          # the Java APIs 72.x was compiled against (see the Gemfile).
+          - ruby: jruby-10.0
             rails_version: '7.2.0'
+          - ruby: jruby-10.1
+            rails_version: '8.0.0'
           - ruby: jruby-head
-            rails_version: '7.2.0'
+            rails_version: '8.0.0'
           # TruffleRuby (parallel threads, as on JRuby; native sqlite3)
           - ruby: truffleruby
             rails_version: '8.1.0'

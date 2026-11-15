@@ -1,0 +1,28 @@
+name: Publish Gem
+
+on:
+  push:
+    tags:
+      - v*
+
+jobs:
+  push:
+    if: github.repository == 'collectiveidea/delayed_job'
+    runs-on: ubuntu-latest
+    environment: publishing
+
+    permissions:
+      contents: write
+      id-token: write
+
+    steps:
+      # Set up
+      - uses: actions/checkout@v4
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+          ruby-version: ruby
+
+      # Release
+      - uses: rubygems/release-gem@v1

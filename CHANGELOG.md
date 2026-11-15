@@ -39,6 +39,33 @@ Fixes and smaller changes:
 * `Delayed::Worker.reset` also resets `exit_on_complete`, `min_priority`, `max_priority` and `default_queue_name`. `Worker.after_fork` no longer reopens the pidfile.
 * Shared backend examples cover `reserve_batch`, and `locked_jobs` and `clear_locks!` with an array of names.
 
+4.2.0 - 2025-12-29
+=======================
+* Add dependencies for benchmark and logger which are moving out of stdlib.
+* Pull ActiveJob adapter from rails into DJ for future rails release.
+* Add Ruby 4.0 and Rails 8.1 to test matrix.
+
+4.1.13 - 2024-11-08
+=======================
+* Enable Rails 8
+
+4.1.12 - 2024-08-14
+=======================
+* Add missing require for extract_options
+* Fix rails 7.2 ActiveSupport::ProxyObject deprecation
+* Multiple contributors on current and legacy test suite improvements
+
+4.1.12.rc1 - 2024-08-13
+=======================
+* Validating trusted publishing release
+* Add missing require for extract_options
+* Fix rails 7.2 ActiveSupport::ProxyObject deprecation
+* Multiple contributors on current and legacy test suite improvements
+
+4.1.11 - 2022-09-28
+===================
+* Fix missing require for Rails 7.0.3+
+
 4.1.10 - 2022-01-17
 ===================
 * Support for Rails 7.0. NOTE: If you are using Delayed Job independent of Rails, Active Support 7 has dropped classic dependency autoloading. You will need to add and setup zeitwerk for autoloading to continue working in ActiveSupport 7.
