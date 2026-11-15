@@ -444,6 +444,8 @@ describe 'Mold process (Worker.mold)' do
       supervisor.send(:handle_status, 'p', 10, 6, 0, 0)
       supervisor.send(:check_promotion)
       expect(launcher.started).to include [:add, {}, 10]
+      expect(launcher.logged.join).to include 'promoted to mold still has jobs running after 0s; refilling its slot. ' \
+                                              'The promotion waits for them (up to their max_run_time, or shutdown_timeout if set)'
       expect(supervisor.child_exited(10, status(true), {})).to be true
     ensure
       described_class.drain_deadline = 300

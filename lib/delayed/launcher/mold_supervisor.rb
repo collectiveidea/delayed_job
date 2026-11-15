@@ -635,13 +635,21 @@ module Delayed
       end
 
       # A promoted child stuck behind a long job: its slot is refilled now,
-      # so it counts as retiring.
+      # so it counts as retiring. The promotion still waits for the job,
+      # which max_run_time (or shutdown_timeout) bounds.
       def refill_draining_slot
         pid = @promotion[:pid]
         @children[pid].retiring = true
         _, options = @launcher.workers[pid]
-        logger.warn "Child process (pid #{pid}) promoted to mold is still finishing its jobs after #{drain_deadline}s; refilling its slot"
+        logger.warn "Child process (pid #{pid}) promoted to mold still has jobs running after #{drain_deadline}s; " \
+                    "refilling its slot. The promotion waits for them (up to their max_run_time, or #{shutdown_bound}); " \
+                    'no refork until then'
         @launcher.add_worker_safely(options, pid) if options
+      end
+
+      def shutdown_bound
+        timeout = Delayed::Worker.shutdown_timeout
+        timeout ? "shutdown_timeout of #{timeout}s" : 'shutdown_timeout if set'
       end
 
       # A stopping mold forks nothing more, and is killed if it hangs.

@@ -628,10 +628,13 @@ group, the cgroup, or the `process_spawned` events (`:mold_pid`).
 
 * The child process with the most jobs performed is promoted, preferring one
   with no job running, so promotion doesn't wait for a long job. Its running
-  jobs finish first (interrupted and released after `--shutdown-timeout`, if
-  set, never counting as a failed attempt). Meanwhile one process fewer works
-  jobs; if it is still busy after 5 minutes, its slot is refilled. With
-  `-n1`, set `--shutdown-timeout`, or no process works jobs until it finishes.
+  jobs finish first: the promotion waits for them, up to their
+  `max_run_time` (4 hours by default), or until `--shutdown-timeout` if set,
+  when they are interrupted and released, never counting as a failed
+  attempt. Meanwhile one process fewer works jobs; if it is still busy after
+  5 minutes, its slot is refilled (with `-n1` too). No other promotion or
+  refork happens until it finishes, so with long jobs, set
+  `--shutdown-timeout` for faster reforks.
 * Child processes are reforked about 10% at a time (at least one), idle ones
   first: each replacement is forked from the mold, and the process it replaces
   is stopped once it has started, so capacity doesn't drop. If a replacement
