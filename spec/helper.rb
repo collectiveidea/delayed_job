@@ -13,7 +13,7 @@ SimpleCov.formatters = SimpleCov::Formatter::MultiFormatter.new(
 )
 
 SimpleCov.start do
-  add_filter '/spec/'
+  skip '/spec/'
 end
 
 require 'logger'

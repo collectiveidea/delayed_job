@@ -1,12 +1,11 @@
 require 'helper'
 require_relative 'helpers'
 
-# Mold process cases ported from Puma's test/test_integration_cluster.rb
-# (fork_worker and mold_worker), with real forking launchers: orphans of a
-# dead mold, reforks interrupted by a dying child, a mold dying with forks
-# pending, and :mold hooks; then commands run by jobs, SIGURG to the whole
-# process group, and fork-unsafe children.
-describe 'Mold process (ported from Puma)', :processes do
+# Mold process cases with real forking launchers: orphans of a dead mold,
+# reforks interrupted by a dying child, a mold dying with forks pending, and
+# :mold hooks; then commands run by jobs, SIGURG to the whole process group,
+# fork-unsafe children, and a mold signalled alone.
+describe 'Mold process', :processes do
   include ProcessHelpers
 
   let(:worker_settings) { {:sleep_delay => 0.1, :max_run_time => 3600} }
@@ -108,8 +107,8 @@ describe 'Mold process (ported from Puma)', :processes do
     expect(ProcessHelpers::Run.count).to eq count
   end
 
-  # Puma: test_mold_worker_replaces_workers_after_mold_dies. Adopted as a
-  # child subreaper, the orphan is reaped with its real status.
+  # Adopted by the parent as a child subreaper, the orphan is reaped with its
+  # real status.
   it 'reaps an orphan of a SIGKILLed mold with its real status, recovers its job, and replaces it from the parent' do
     enqueue_sleepers(10)
     pid, reader = spawn_launcher(launch_options.merge(:mold_retry_delay_unit => 60))
@@ -137,7 +136,6 @@ describe 'Mold process (ported from Puma)', :processes do
     expect(job.last_error).to match(/was killed by signal 9/)
   end
 
-  # Puma: test_mold_worker_refork_waits_for_all_workers_after_worker_dies.
   it 'completes a refork with every child of the new generation when a new child is SIGKILLed mid-refork' do
     enqueue_sleepers(40)
     pid, reader = spawn_launcher(launch_options.merge(:processes => 4, :startup_delay => 0.5))
@@ -158,7 +156,6 @@ describe 'Mold process (ported from Puma)', :processes do
     expect_no_locked_jobs
   end
 
-  # Puma: test_mold_worker_replaces_pending_workers_after_mold_dies.
   it 'forks a slot from the parent when the mold dies with its replacement request pending' do
     enqueue_sleepers(40, 0.1)
     pid, reader = spawn_launcher(launch_options.merge(:processes => 4, :startup_delay => 2, :respawn_delay_unit => 0.1,
@@ -184,9 +181,6 @@ describe 'Mold process (ported from Puma)', :processes do
     expect_each_job_run_once(40)
   end
 
-  # Puma: test_fork_worker_before_refork, test_fork_worker_after_refork and
-  # test_mold_worker_refork_completes_after_mold_dies_during_promotion (a
-  # slow hook).
   it 'activates a mold behind a slow before(:mold) hook, and runs the old mold\'s after(:mold) last' do
     enqueue_sleepers(20)
     pid, reader = spawn_launcher(launch_options.merge(:mold_hook_delay => 3, :log_mold_hooks => true))
@@ -271,5 +265,27 @@ describe 'Mold process (ported from Puma)', :processes do
     promoted = output.scan(/Promoting child process delayed_job\.\d+ \(pid (\d+)\)/).flatten.map(&:to_i)
     expect(promoted.first).to eq unsafe
     expect(promoted.last).not_to eq unsafe # The mold that got ready came from its replacement.
+  end
+  # A mold signalled alone stops forking; it says so ("s") rather than leave
+  # the parent waiting out MOLD_FORK_TIMEOUT on its next fork request.
+  it 'replaces at once a mold sent TERM alone, forking from the parent meanwhile' do
+    enqueue_sleepers(30, 0.05)
+    pid, reader = spawn_launcher(launch_options.merge(:mold_retry_delay_unit => 0.5))
+    output = +''
+    first = read_until(reader, output, /Mold \(pid (\d+)\) ready/, 30)[1].to_i
+    read_until(reader, output, /Reforked every child process from mold \(pid #{first}\)/, 40)
+    Process.kill('TERM', first)
+    read_until(reader, output, /Mold \(pid #{first}\) was stopped by a signal; forking child processes from the parent/, 10)
+    enqueue_sleepers(30, 0.05, 'more')
+    second = read_after(reader, output, 'was stopped by a signal', /Mold \(pid (\d+)\) ready/)[1].to_i
+    wait_for(40) { ProcessHelpers::Job.count.zero? }
+    wait_for(10) { !alive?(first) }
+    status = stop_launcher(pid, reader, output)
+
+    expect(status).to be_success
+    expect(second).not_to eq first
+    expect(output).not_to match(/did not fork a child process within/)
+    expect_no_locked_jobs
+    expect_each_job_run_once(60)
   end
 end

@@ -37,6 +37,7 @@ describe Delayed::Launcher::Mold, :fork do
       end
 
       def fork_mold_child(worker_index, pool_index, generation, close_ios)
+        raise Errno::EAGAIN, 'stub' if worker_index == 99
         pipes = @pipes
         quiet_fork do
           close_ios.each(&:close)
@@ -220,6 +221,15 @@ describe Delayed::Launcher::Mold, :fork do
     Process.kill('KILL', child)
     expect(wait_for_exit(pid)).to be_success
     expect(count_lines('s')).to eq 1
+  end
+
+  it 'reports a failed fork with "e" and its errno, and keeps forking' do
+    pid = ready_mold
+    pipes.request_fork(99, described_class::NO_POOL, 1)
+    expect(wait_for_line('e', pid)).to eq [pid, 99, Errno::EAGAIN::Errno]
+    pipes.request_fork(3, described_class::NO_POOL, 1)
+    expect(wait_for_line('f', pid).last).to eq 3
+    expect(log).to include 'could not fork child process 99: Errno::EAGAIN'
   end
 
   it 'reports "s" on TERM and exits at once when it has no children' do

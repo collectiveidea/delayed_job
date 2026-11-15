@@ -85,6 +85,46 @@ describe 'Mold process (Worker.mold)' do
       expect(Delayed::Launcher::Forking.new(:mold => true, :exit_on_complete => true).send(:molding?)).to be false
     end
 
+    it 'skips a queued replacement whose refork step was aborted (the old child keeps its slot)' do
+      launcher = Delayed::Launcher::Forking.new(:mold => true)
+      launcher.instance_variable_set(:@stop_signals, Concurrent::Array.new)
+      supervisor = instance_double(Delayed::Launcher::MoldSupervisor, :replacement_needed? => false)
+      launcher.instance_variable_set(:@mold_supervisor, supervisor)
+      expect(launcher).not_to receive(:fork_worker)
+      expect(launcher.send(:respawn, 'delayed_job.1', 11, {}, nil, 1, 0)).to be_nil
+    end
+
+    it "reports a mold's error (e.g. in a :mold hook) to on_thread_error as context Mold, and exits 1" do
+      launcher = Delayed::Launcher::Forking.new(:mold => true)
+      allow(launcher).to receive(:logger).and_return(Logger.new(nil))
+      allow_any_instance_of(Delayed::Launcher::Mold).to receive(:run).and_raise(RuntimeError, 'hook failed')
+      errors = []
+      allow(Delayed::Worker).to receive(:thread_error) { |error, context| errors << [error.message, context] }
+      expect(launcher).to receive(:flush_and_exit!).with(1)
+      launcher.send(:run_mold, 'delayed_job.1', {:generation => 1}, 1)
+      expect(errors).to eq [['hook failed', {:context => 'Mold', :pid => Process.pid}]]
+    end
+
+    it 'flushes stdout and stderr before exit!, which skips at_exit' do
+      launcher = Delayed::Launcher::Forking.new({})
+      expect($stdout).to receive(:flush).ordered
+      expect($stderr).to receive(:flush).ordered
+      expect(launcher).to receive(:exit!).with(75).ordered
+      launcher.send(:flush_and_exit!, 75)
+    end
+
+    it 'names the generation of a mold promoted from a child the parent forked after the last generation' do
+      launcher = Delayed::Launcher::Forking.new(:mold => true)
+      launcher.instance_variable_set(:@mold_pipes, instance_double(Delayed::Launcher::Mold::Pipes, :report => nil))
+      launcher.instance_variable_set(:@known_generation, 2) # Set by #fork_worker from the supervisor.
+      allow(Delayed::Worker).to receive(:before_fork)
+      info = nil
+      allow(launcher).to receive(:fork) { |&block| block.call || 4321 }
+      allow(launcher).to receive(:run_mold) { |_, mold_info, _| info = mold_info and nil }
+      launcher.send(:fork_mold, 'delayed_job.1')
+      expect(info[:generation]).to eq 3
+    end
+
     it 'forks even one process' do
       expect(Delayed::Launcher::Forking.new(:mold => true).send(:forking?)).to be true
       expect(Delayed::Launcher::Forking.new({}).send(:forking?)).to be false
@@ -738,6 +778,54 @@ describe 'Mold process (Worker.mold)' do
         supervisor.send(:handle_status, 'm', 901, promoted)
         supervisor.send(:send_fork_requests)
         expect(pipes).to have_received(:request_fork).with(30, anything, 1)
+      end
+
+      it "ignores an \"s\" from a mold that isn't active, or once stopping" do
+        activate_mold(900)
+        supervisor.send(:handle_status, 's', 901)
+        expect(supervisor).to be_forking_from_mold
+        launcher.stopped = true
+        supervisor.send(:handle_status, 's', 900)
+        expect(launcher.logged.join).not_to include 'was stopped by a signal'
+      end
+
+      it 'stops a child booting while stopping, its slot no longer pending' do
+        activate_mold
+        supervisor.request_fork(7, {}, {:generation => 1})
+        launcher.stopped = true
+        allow(pipes).to receive(:each_status)
+        supervisor.tick # Drops pending forks while stopping.
+        supervisor.send(:handle_status, 'b', 70, 7, 900)
+        expect(signals).to include ['TERM', 70]
+        expect(launcher.workers).not_to have_key(70)
+      end
+
+      it 'stops an early boot never reported once the boot timeout passes, if still running' do
+        described_class.boot_timeout = 0
+        supervisor.send(:handle_status, 'b', 70)
+        supervisor.send(:handle_status, 'b', 71)
+        allow(Delayed::ProcessUtil).to receive(:alive?).with(70).and_return(true)
+        allow(Delayed::ProcessUtil).to receive(:alive?).with(71).and_return(false)
+        supervisor.send(:expire_early_boots)
+        expect(signals).to eq [['TERM', 70]]
+        expect(supervisor.instance_variable_get(:@early_boots)).to be_empty
+      ensure
+        described_class.boot_timeout = 60
+      end
+
+      it 'holds fork requests while a killed (abandoned) mold may still run, then forks from the parent' do
+        stub_const("#{described_class}::MOLD_FORK_TIMEOUT", 0)
+        activate_mold(900)
+        supervisor.request_fork(7, {}, {:generation => 1})
+        supervisor.send(:check_pending_forks) # Hung: abandoned and killed.
+        expect(supervisor.instance_variable_get(:@molds)[900]).to eq :abandoned
+        expect(launcher.started).to include [:start, 7, {}, {:generation => nil}]
+        supervisor.instance_variable_get(:@pending_forks)[8] = {:options => {}, :spawn => {:generation => 1}}
+        supervisor.send(:send_fork_requests)
+        expect(pipes).not_to have_received(:request_fork).with(8, anything, anything)
+        supervisor.reaped(900)
+        supervisor.send(:send_fork_requests)
+        expect(pipes).to have_received(:request_fork).with(8, anything, 1)
       end
 
       it 'measures PSS before promotion, with the promoted child still running' do
