@@ -799,7 +799,7 @@ describe 'Mold process (Worker.mold)' do
         expect(pipes).not_to have_received(:request_fork).with(30, anything, anything)
         supervisor.send(:handle_status, 'm', 901, promoted)
         supervisor.send(:send_fork_requests)
-        expect(pipes).to have_received(:request_fork).with(30, anything, 1)
+        expect(pipes).to have_received(:request_fork).with(30, anything, 2) # The new mold's generation.
       end
 
       it "ignores an \"s\" from a mold that isn't active, or once stopping" do

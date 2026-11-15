@@ -708,16 +708,16 @@ describe 'Mold process races' do
         launcher.pools.each_with_index do |(queues, _), index|
           supervisor.request_fork(index + 3, {:queues => queues}, :generation => 2)
           worker_index, pool_index, generation = pipes.read_fork_request
-          expect([worker_index, pool_index, generation]).to eq [index + 3, index, 2]
+          expect([worker_index, pool_index, generation]).to eq [index + 3, index, supervisor.generation]
           expect(launcher.pools[pool_index].first).to eq queues
         end
         supervisor.request_fork(9, {:queues => %w[c b]}, :generation => 2) # Not a pool's queues.
-        expect(pipes.read_fork_request).to eq [9, Delayed::Launcher::Mold::NO_POOL, 2]
+        expect(pipes.read_fork_request).to eq [9, Delayed::Launcher::Mold::NO_POOL, supervisor.generation]
       end
 
-      it 'sends NO_POOL without pools' do
-        supervisor.request_fork(1, {}, :generation => 1)
-        expect(pipes.read_fork_request).to eq [1, Delayed::Launcher::Mold::NO_POOL, 1]
+      it 'sends NO_POOL without pools, and the generation of the mold it asks' do
+        supervisor.request_fork(1, {}, :generation => 7) # Stamped when sent, not when requested.
+        expect(pipes.read_fork_request).to eq [1, Delayed::Launcher::Mold::NO_POOL, supervisor.generation]
       end
     end
   end

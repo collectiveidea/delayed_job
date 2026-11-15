@@ -1590,7 +1590,7 @@ describe 'Signals received while a worker process starts up' do
       allow(Dir).to receive(:chdir)
       allow(Delayed::Worker).to receive(:after_fork)
       allow(launcher).to receive(:setup_logger)
-      dispatcher = double(:name_prefix= => nil)
+      dispatcher = double(:name_prefix= => nil, :cleanly_stopped? => true)
       allow(Delayed::Dispatcher).to receive(:new).and_return(dispatcher)
       expect(dispatcher).to receive(:start).with(['TERM'])
       launcher.send(:run_worker, 'delayed_job.0', {}, ['TERM'])

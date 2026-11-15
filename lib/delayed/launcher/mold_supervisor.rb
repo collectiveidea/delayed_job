@@ -246,6 +246,12 @@ module Delayed
           @children.values.all? { |info| current?(info) && !info.retiring }
       end
 
+      # A refork runs only from an active mold: with none (lost, or never
+      # promoted), older children are no refork in progress.
+      def reforking?
+        @active_mold && !refork_idle?
+      end
+
       def current?(info)
         info.generation == @generation
       end
@@ -258,7 +264,7 @@ module Delayed
       # idle ones so promotion doesn't wait for long jobs.
       def promote(trigger)
         return if @launcher.stopped? || @promotion
-        pid, info = promotion_candidate
+        pid, info = promotion_candidate(trigger)
         unless pid
           logger.warn('No child process to promote to mold') if trigger == :signal
           return
@@ -273,8 +279,18 @@ module Delayed
         signal(pid, 'URG')
       end
 
-      def promotion_candidate
-        @children.select { |_, info| promotable?(info) }.max_by { |_, info| [info.busy.zero? ? 1 : 0, info.jobs] }
+      # Among children past the threshold (any, if none is and it's not a
+      # threshold promotion): idle first, then the most jobs. An idle child
+      # with few jobs would make a mold with little warmed memory.
+      def promotion_candidate(trigger)
+        eligible = @children.select { |_, info| promotable?(info) }
+        warm = eligible.select { |_, info| info.jobs >= warm_floor(trigger) }
+        warm = eligible if warm.empty? && trigger != :threshold
+        warm.max_by { |_, info| [info.busy.zero? ? 1 : 0, info.jobs] }
+      end
+
+      def warm_floor(trigger)
+        (trigger == :threshold ? @thresholds[@threshold_index] : @thresholds.first).to_i
       end
 
       def promotable?(info)
@@ -287,7 +303,7 @@ module Delayed
         requested = @promote_requested
         @promote_requested = false
         if requested
-          return logger.warn('Received SIGURG while a promotion or refork is in progress; ignoring it') if @promotion || !refork_idle?
+          return logger.warn('Received SIGURG while a promotion or refork is in progress; ignoring it') if @promotion || reforking?
           rearm if @disabled
           return promote(:signal)
         end
@@ -559,7 +575,8 @@ module Delayed
         @pending_forks.each do |index, entry|
           next if entry[:sent]
           entry[:sent] = monotonic_now
-          @pipes.request_fork(index, Mold.pool_index(@launcher.pools, entry[:options]), entry[:spawn][:generation])
+          entry[:spawn][:generation] = @generation # The active mold's: requests held during a promotion predate it.
+          @pipes.request_fork(index, Mold.pool_index(@launcher.pools, entry[:options]), @generation)
         end
       end
 
@@ -649,7 +666,7 @@ module Delayed
       end
 
       def shutdown_bound
-        timeout = Delayed::Worker.shutdown_timeout
+        timeout = @launcher.respond_to?(:shutdown_timeout) ? @launcher.shutdown_timeout : Delayed::Worker.shutdown_timeout
         timeout ? "shutdown_timeout of #{timeout}s" : 'shutdown_timeout if set'
       end
 

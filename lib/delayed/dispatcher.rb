@@ -337,7 +337,9 @@ module Delayed
         # a poll that reserved it stops here instead of handing it to another
         # thread. Undispatched jobs (also after a signal exception) stay
         # locked until their worker's names are cleared on thread exit
-        # (ClearLocks, #clear_slot_locks).
+        # (ClearLocks, #clear_slot_locks); those reserved for a thread that
+        # already exited (its locks cleared) are released here.
+        release_reserved(reserved) if @thread_error
         raise_thread_error
         reserved.each { |slot, job| dispatch(slot, job, polled_at) }
         deeper = adjust_depth(free.size, reserved.size)
@@ -508,18 +510,27 @@ module Delayed
     # would otherwise hold its lock forever; now another worker may take it.
     def heartbeat_names
       now = monotonic_now
-      overrun = synchronize do
-        @jobs_started.select { |_worker, (_job, started, limit)| limit && now - started > limit }
+      # The stuck slots with the snapshot: a stuck job ending meanwhile would
+      # otherwise leave the next, healthy job's slot unrefreshed.
+      overrun, stuck = synchronize do
+        late = @jobs_started.select { |_worker, (_job, started, limit)| limit && now - started > limit }
+        [late, late.keys.map { |worker| @running_slot[worker] }]
       end
       overrun.each { |worker, (job, _, limit, label)| report_overrun(worker, job, limit, label) }
       return (workers - overrun.keys).map(&:name) if @prefetch.zero?
       # Release jobs queued behind a stuck one (none are added, see #free_slots).
       release_queued(overrun.keys.map { |worker| @inboxes[worker] }.compact, :stuck)
       # With prefetch, refresh the slots holding jobs, except overrun ones.
-      synchronize do
-        stuck = overrun.keys.map { |worker| @running_slot[worker] }
-        (@slot_jobs.keys - stuck).map(&:name)
-      end
+      synchronize { (@slot_jobs.keys - stuck).map(&:name) }
+    end
+
+    # Jobs a poll locked but won't dispatch (a thread crashed meanwhile):
+    # their slots were free, so their names hold nothing else.
+    def release_reserved(reserved)
+      return if reserved.empty?
+      with_executor { Delayed::Job.clear_locks!(reserved.map { |slot, _job| slot.name }) }
+    rescue StandardError => error
+      say "Could not release the jobs reserved for a crashed worker: #{error.class}: #{error.message}", 'error'
     end
 
     # Records the refresh for slots still holding the same job (see #lock_time_left).
@@ -652,7 +663,7 @@ module Delayed
       until (item = inbox.pop).equal?(Inbox::EOQ)
         slot, job, reserved_at = item
         discard_stale_interrupts
-        next release_unstarted(worker, slot, job) if past_shutdown_deadline? || (@prefetch > 0 && stop?)
+        next release_unstarted(worker, slot, job, stop_reason) if past_shutdown_deadline? || (@prefetch > 0 && stop?)
         lock_left = lock_time_left(slot, reserved_at)
         next release_unstarted(worker, slot, job, :lock_expired) if lock_left && lock_left <= 0
         run_job(worker, slot, job, lock_left)
@@ -661,10 +672,15 @@ module Delayed
 
     # A job interrupted by shutdown is released.
     def run_job(worker, slot, job, lock_left)
-      synchronize do
+      # Registered and checked under the lock #stop_threads reads @running
+      # under: a quit landing just before would otherwise interrupt nobody.
+      started = synchronize do
+        next false if past_shutdown_deadline?
         @running[Thread.current] = job
         @running_slot[worker] = slot
+        true
       end
+      return release_unstarted(worker, slot, job, stop_reason) unless started
       result = with_reloader { untrack_job_after(worker) { worker.perform_job(job, lock_left) } }
       synchronize { @running.delete(Thread.current) }
       job_finished(worker, slot, result)
@@ -781,7 +797,7 @@ module Delayed
         # Defer a late signal until every inbox is closed: on JRuby one raised
         # in Queue#push surfaces as a ThreadError and leaves an inbox open.
         self.class.deferring_interrupts do
-          release_queued(@inboxes.values, promoted? ? :promotion : :shutdown) if @prefetch > 0
+          release_queued(@inboxes.values, stop_reason) if @prefetch > 0
           @inboxes.each_value(&:close)
         end
         raise_in_threads(error) if error.is_a?(SignalException)
@@ -838,6 +854,7 @@ module Delayed
     # Rechecks the deadline on each wait so #quit takes effect at once.
     def wait_for_threads
       loop do
+        supervisor_gone? if promoted? # Its poll loop, which checks, has ended.
         update_procline
         busy = @threads.find(&:alive?)
         break unless busy
@@ -903,6 +920,7 @@ module Delayed
 
     UNSTARTED_REASONS = {
       :shutdown => ['not started before shutdown', 'shutdown'],
+      :promotion => ['not started before promotion to mold', 'promotion'],
       :lock_expired => ['waited in its queue until its lock expired', 'lock expired in queue']
     }.freeze
 
@@ -911,6 +929,10 @@ module Delayed
     def release_unstarted(worker, slot, job, reason = :shutdown)
       message, event_reason = UNSTARTED_REASONS.fetch(reason)
       release_slot(worker, slot, event_reason) { worker.job_say(job, "#{message}; released for another worker", 'warn') }
+    end
+
+    def stop_reason
+      promoted? ? :promotion : :shutdown
     end
 
     def past_shutdown_deadline?

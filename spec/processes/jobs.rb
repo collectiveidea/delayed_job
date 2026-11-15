@@ -68,4 +68,35 @@ module ProcessJobs
       end
     end
   end
+
+  # Exits the process running it with `status` on its first run (marked by
+  # creating `marker`); records its run on later ones.
+  ExitOnceJob = Struct.new(:key, :status, :marker) do
+    def perform
+      unless File.exist?(marker)
+        File.write(marker, '')
+        exit!(status)
+      end
+      ProcessJobs.record(key, Time.now.to_f)
+    end
+  end
+
+  # Sleeps past its own max_run_time, so it times out (a failed attempt).
+  TimeoutJob = Struct.new(:key, :seconds, :max_run_time) do
+    def perform
+      sleep seconds
+      ProcessJobs.record(key, Time.now.to_f)
+    end
+  end
+
+  # Defers every interrupt (like a call hung in C code): neither the
+  # shutdown interrupt nor process exit stops it, only SIGKILL.
+  UnkillableJob = Struct.new(:key) do
+    def perform
+      Thread.handle_interrupt(Object => :never) do
+        deadline = Time.now + 60
+        sleep 0.1 while Time.now < deadline
+      end
+    end
+  end
 end

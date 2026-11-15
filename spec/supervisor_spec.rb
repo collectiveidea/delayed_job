@@ -303,7 +303,7 @@ describe 'Worker processes whose parent goes away' do
       allow(Delayed::Worker).to receive(:after_fork)
       allow(launcher).to receive(:setup_logger)
       expect(Delayed::Dispatcher).to receive(:new).with(hash_including(:supervisor_pid => Process.pid)).
-        and_return(double(:name_prefix= => nil, :start => nil))
+        and_return(double(:name_prefix= => nil, :start => nil, :cleanly_stopped? => true))
       launcher.send(:run_worker, 'delayed_job.0', {})
     end
 

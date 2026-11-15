@@ -9,6 +9,11 @@ module Delayed
       # workers, so they can interrupt and release their jobs.
       SHUTDOWN_GRACE = Delayed::Dispatcher::INTERRUPT_GRACE + 5
 
+      # Exit status of a child process whose job threads didn't stop (a job
+      # ignored its interrupt): not a clean exit, so the parent recovers the
+      # jobs it held, counting a failed attempt.
+      JOBS_STUCK = 76
+
       # A child dying within RESPAWN_MIN_UPTIME seconds is replaced after a
       # delay doubling per death in a row (up to RESPAWN_MAX_DELAY), so a
       # crash loop doesn't spin.
@@ -242,6 +247,19 @@ module Delayed
         index = @worker_index
         @worker_index += 1
         @mold_supervisor.request_fork(index, options, spawn.merge(:generation => @mold_supervisor.generation))
+      end
+
+      # The initial child processes: a failed fork (EAGAIN, ENOMEM, e.g. near
+      # a container's limits) is retried with back-off, not fatal.
+      def setup_pooled_workers
+        pools.each do |queues, count|
+          options = @options.merge(:queues => queues)
+          count.times { add_worker_safely(options) }
+        end
+      end
+
+      def setup_multiple_workers
+        processes.times { add_worker_safely(@options) }
       end
 
       # Forks a child process here, named after `index` (by default the next
@@ -671,14 +689,28 @@ module Delayed
       # In a child process. A promoted one stops like on TERM, then forks
       # its mold, if nothing is left running that a fork would freeze.
       def run_dispatcher(worker_name, dispatcher, pending_signals)
-        return super unless @mold_pipes
+        return run_mold_dispatcher(worker_name, dispatcher, pending_signals) if @mold_pipes
+        super
+        exit_if_stuck(worker_name, dispatcher)
+      end
+
+      # Exiting cleanly would make the parent release a stuck job's lock as
+      # stale, with no attempt counted, though it was cut off mid-run.
+      def exit_if_stuck(worker_name, dispatcher)
+        return if dispatcher.cleanly_stopped?
+        logger.error "Child process #{worker_name} (pid #{Process.pid}) exiting with job thread(s) still running"
+        flush_and_exit!(JOBS_STUCK)
+      end
+
+      def run_mold_dispatcher(worker_name, dispatcher, pending_signals)
         Signal.trap('URG') { dispatcher.promote }
         # After the trap: only booted children are promoted. Its index and
         # mold let the parent adopt it if the mold's "f" never comes.
         @mold_pipes.report("b #{Process.pid} #{@child_index || '-'} #{@forked_by_mold || '-'}")
         ping = start_mold_ping(dispatcher)
-        super
+        dispatcher.start(pending_signals)
         ping.kill.join
+        exit_if_stuck(worker_name, dispatcher)
         flush_and_exit!(Mold::PROMOTION_FAILED) if dispatcher.promotion_cancelled? # The parent then retries.
         return unless dispatcher.promoted?
         child_signals.clear
@@ -697,10 +729,11 @@ module Delayed
       end
 
       # Exits with Mold::PROMOTION_FAILED (the parent then retries) instead
-      # of forking a mold that would freeze a thread mid-way.
+      # of forking a mold it shouldn't (threads still running exited
+      # JOBS_STUCK already, see #exit_if_stuck).
       def promote_to_mold(worker_name, dispatcher)
-        if !dispatcher.cleanly_stopped?
-          logger.error "Child process #{worker_name} (pid #{Process.pid}) promoted to mold still has threads running; not forking a mold"
+        if !Array(supervisor_pid).include?(Process.ppid)
+          logger.warn "Child process #{worker_name} (pid #{Process.pid}) promoted to mold: the parent is gone; not forking a mold"
         elsif !Delayed::Worker.fork_safe? # Since its last ping.
           logger.error "Child process #{worker_name} (pid #{Process.pid}) promoted to mold is no longer fork safe; not forking a mold"
         elsif child_signals.empty? && dispatcher.promoted?
@@ -744,7 +777,8 @@ module Delayed
         flush_and_exit!(status) # Not the dispatcher's at_exit hooks again.
       end
 
-      public :workers, :handle_exit, :add_worker, :start_child, :child_started, :child_signal, :child_signals, :logger, :warmup_heap, :flush_and_exit!
+      public :workers, :handle_exit, :add_worker, :start_child, :child_started, :child_signal, :child_signals, :logger, :warmup_heap,
+             :flush_and_exit!, :shutdown_timeout
     end
   end
 end

@@ -43,6 +43,13 @@ broken_mold = options.delete(:broken_mold)
 mold_hook_delay = options.delete(:mold_hook_delay)
 # Each mold logs "before(:mold) <pid> <generation>" and "after(:mold) ...".
 log_mold_hooks = options.delete(:log_mold_hooks)
+# Recovering a dead child's jobs hangs in the launcher (a hung database
+# call), so specs can reach the kill timer's exit_stuck backstop.
+hang_recovery = options.delete(:hang_recovery)
+# The launcher's forks with these numbers (1-based, every attempt counted)
+# fail with EAGAIN; "fail_forks_from" fails every one from that number on.
+fail_forks = options.delete(:fail_forks) || []
+fail_forks_from = options.delete(:fail_forks_from)
 
 Delayed::Backend::SqliteFile::Job.connect(db_path)
 Delayed::Worker.backend = Delayed::Backend::SqliteFile::Job
@@ -118,6 +125,35 @@ if log_mold_hooks
       lifecycle.after(:mold) { |pid, generation| puts "after(:mold) #{pid} #{generation}" }
     end
   end
+end
+
+if hang_recovery
+  launcher_pid = Process.pid
+  hang = proc do
+    next unless Process.pid == launcher_pid
+    puts 'recovery hanging'
+    sleep
+  end
+  Delayed::Worker.singleton_class.prepend(Module.new do
+    define_method(:recover_jobs_of) { |*args| hang.call || super(*args) }
+  end)
+  Delayed::Backend::SqliteFile::Job.singleton_class.prepend(Module.new do
+    define_method(:clear_locks!) { |*args| hang.call || super(*args) }
+  end)
+end
+
+if fail_forks.any? || fail_forks_from
+  forks = 0
+  Delayed::Launcher::Forking.prepend(Module.new do
+    define_method(:fork_worker) do |*args|
+      forks += 1
+      if fail_forks.include?(forks) || (fail_forks_from && forks >= fail_forks_from)
+        puts "fork #{forks} failing"
+        raise Errno::EAGAIN, 'fork'
+      end
+      super(*args)
+    end
+  end)
 end
 
 options[:pools] = options[:pools].map { |queues, count| [queues, count] } if options[:pools]
