@@ -66,9 +66,11 @@ module Delayed
           @fork_write.write([worker_index, pool_index, generation].pack(FORK_RECORD))
         end
 
-        # [worker index, pool index, generation], or nil.
+        # [worker index, pool index, generation], nil if none, or :eof once
+        # the parent is gone.
         def read_fork_request
           record = @fork_read.read_nonblock(FORK_RECORD_BYTES, :exception => false)
+          return :eof if record.nil?
           record.unpack(FORK_RECORD) if record.is_a?(String) && record.bytesize == FORK_RECORD_BYTES
         end
 
@@ -146,11 +148,15 @@ module Delayed
       def watch_parent
         watchdog = Thread.new do
           @pipes.life_read.wait_readable
-          @launcher.logger.warn "Mold (pid #{Process.pid}): the parent is gone; exiting"
-          @launcher.flush_and_exit!(1)
+          parent_gone
         end
         watchdog.name = 'Mold parent watchdog'
         watchdog.thread_variable_set(:fork_safe, true) # Here: before #warn_about_threads looks.
+      end
+
+      def parent_gone
+        @launcher.logger.warn "Mold (pid #{Process.pid}): the parent is gone; exiting"
+        @launcher.flush_and_exit!(1)
       end
 
       # Threads don't survive fork: whatever they were doing is frozen,
@@ -219,7 +225,9 @@ module Delayed
       # A failed fork (EAGAIN, ENOMEM) is reported; the parent forks the
       # child itself.
       def fork_requested_child
-        worker_index, pool_index, generation = @pipes.read_fork_request
+        request = @pipes.read_fork_request
+        parent_gone if request == :eof # Rather than spin on it until the watchdog exits.
+        worker_index, pool_index, generation = request
         return unless worker_index
         disconnect_backend
         pid = @launcher.fork_mold_child(worker_index, pool_index, generation, [@wake_read, @wake_write])

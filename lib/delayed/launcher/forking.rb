@@ -448,6 +448,11 @@ module Delayed
         nil
       end
 
+      # Checked before the supervisor forgets it.
+      def promoted_child?(pid)
+        @mold_supervisor&.promoted?(pid) || false
+      end
+
       def forget_child(pid)
         @plans&.delete(pid)
         started_at.delete(pid)
@@ -539,13 +544,9 @@ module Delayed
       end
 
       # Unlocks jobs a dead worker held, rather than waiting out max_run_time.
-      # A crash counts as a failed attempt.
-      def promoted_child?(pid)
-        @mold_supervisor ? @mold_supervisor.promoted?(pid) : false
-      end
-
-      # A child promoted to mold that forked none (PROMOTION_FAILED) gave up
-      # cleanly too: a promotion never costs a job an attempt.
+      # A crash counts as a failed attempt. A child promoted to mold that
+      # forked none (PROMOTION_FAILED) gave up cleanly: a promotion never
+      # costs a job an attempt.
       def recover_jobs_of_worker(worker_name, pid, options, status, promoted: false) # rubocop:disable Metrics/ParameterLists
         lock_names = Delayed::Worker.lock_names("#{worker_name} ", pid, threads(options), prefetch(options))
         # Clean exit: leftover locks are stale; release, attempts unchanged.
@@ -585,8 +586,7 @@ module Delayed
       # behind, harmless: its flock is what counts.
       def exit_stuck
         logger.error "#{parent_name} still running #{SHUTDOWN_GRACE}s after the kill; exiting - pid #{$$}"
-        [$stdout, $stderr].each { |io| io.flush rescue nil }
-        exit!(1)
+        flush_and_exit!(1)
       end
 
       # Skips workers that already exited, so a kill isn't aborted.

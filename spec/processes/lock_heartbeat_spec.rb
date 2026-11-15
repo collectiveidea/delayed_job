@@ -22,6 +22,10 @@ describe 'Lock heartbeats across worker processes', :processes do
     pid, reader = spawn_launcher(:pools => [[['shared'], 2]], :worker => worker_settings)
     first_owner = wait_for { reload_job(job).locked_by }
     hung = pid_of(first_owner)
+    # Running, not just reserved: stopped before it starts, it would never run
+    # the job, only release it on resuming (its lock expired in its queue).
+    early = +''
+    wait_for { (early << read_available(reader)).match?(/pid:#{hung}\)\] Job .* RUNNING/) }
     Process.kill('STOP', hung)
 
     begin
@@ -38,6 +42,7 @@ describe 'Lock heartbeats across worker processes', :processes do
     wait_for(20) { reload_job(job).nil? }
     Process.kill('TERM', pid)
     status, output = wait_for_launcher(pid, reader)
+    output = early + output
 
     expect(status).to be_success
     expect(output).to match(/was finished here, but its lock expired and another worker reserved it/)

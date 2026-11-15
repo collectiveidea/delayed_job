@@ -36,6 +36,10 @@ describe Delayed::Launcher::Mold, :fork do
         $VERBOSE = verbose
       end
 
+      def watchdogs
+        Thread.list.count { |thread| thread.name == 'Mold parent watchdog' && thread.alive? }
+      end
+
       def child_signal(signal)
         @child_signals << signal
       end
@@ -43,10 +47,11 @@ describe Delayed::Launcher::Mold, :fork do
       def fork_mold_child(worker_index, pool_index, generation, close_ios)
         raise Errno::EAGAIN, 'stub' if worker_index == 99
         pipes = @pipes
+        @pipes.report("w #{Process.pid} #{watchdogs}") # In the mold, before forking.
         quiet_fork do
           close_ios.each(&:close)
           %w[CHLD URG TERM].each { |signal| Signal.trap(signal, 'DEFAULT') }
-          pipes.report("c #{Process.pid} #{worker_index} #{pool_index} #{generation} #{close_ios.size}")
+          pipes.report("c #{Process.pid} #{worker_index} #{pool_index} #{generation} #{close_ios.size} #{watchdogs}")
           sleep if worker_index.zero?
           exit!(worker_index)
         end
@@ -159,7 +164,7 @@ describe Delayed::Launcher::Mold, :fork do
     child, index = wait_for_line('f', pid).drop(1)
     expect(index).to eq 3
     # The mold's wake pipe is closed in the child.
-    expect(wait_for_line('c', child)).to eq [child, 3, described_class::NO_POOL, 7, 2]
+    expect(wait_for_line('c', child)).to eq [child, 3, described_class::NO_POOL, 7, 2, 0]
     expect(wait_for_line('x', pid, child)).to eq [pid, child, 3, nil]
     expect(wait_for_exit(pid, 0.5)).to be_nil # Still the active mold.
   end
@@ -254,6 +259,16 @@ describe Delayed::Launcher::Mold, :fork do
       expect(lines.map(&:first)).not_to include 'm'
     end
 
+    it 'stops reading the fork pipe at EOF, so it does not spin until it exits' do
+      pid = ready_mold
+      pipes.instance_variable_get(:@fork_write).close # Then its life pipe, as the parent's exit closes both.
+      sleep 0.5
+      ticks = File.read("/proc/#{pid}/stat").split(') ').last.split[11, 2].map(&:to_i).sum # utime + stime
+      expect(ticks).to be < 20 # 0.2s of CPU: no busy loop on the readable EOF.
+      close_life_pipe
+      expect(wait_for_exit(pid).exitstatus).to eq 1
+    end
+
     it 'exits at once while retired, waiting for its children' do
       pid = ready_mold
       pipes.request_fork(0, described_class::NO_POOL, 1) # Sleeps until killed.
@@ -268,10 +283,8 @@ describe Delayed::Launcher::Mold, :fork do
       pid = ready_mold
       pipes.request_fork(0, described_class::NO_POOL, 1)
       child = wait_for_line('f', pid)[1]
-      threads = Dir.children("/proc/#{child}/task").map { |task| File.read("/proc/#{child}/task/#{task}/comm").strip }
-      expect(threads.grep(/Mold parent/)).to be_empty
-      mold_threads = Dir.children("/proc/#{pid}/task").map { |task| File.read("/proc/#{pid}/task/#{task}/comm").strip }
-      expect(mold_threads.grep(/Mold parent/)).not_to be_empty # comm: 15 chars
+      expect(wait_for_line('w', pid)).to eq [pid, 1]
+      expect(wait_for_line('c', child).last).to eq 0
     end
   end
 

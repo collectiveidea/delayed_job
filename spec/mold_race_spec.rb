@@ -789,6 +789,13 @@ describe 'Mold process races' do
       pipes.drain_fork_requests
       expect(pipes.read_fork_request).to be_nil
     end
+
+    it 'reads :eof from the fork pipe once the parent (its only writer) is gone' do
+      pipes.request_fork(4, 0, 1)
+      pipes.instance_variable_get(:@fork_write).close
+      expect(pipes.read_fork_request).to eq [4, 0, 1]
+      expect(pipes.read_fork_request).to eq :eof
+    end
   end
 
   describe Delayed::ProcessUtil do

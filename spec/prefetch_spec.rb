@@ -370,7 +370,8 @@ describe 'Prefetching jobs (Worker.prefetch)' do
       record_reserves
       gate_jobs(5)
       wait_until { locked_jobs.size == 3 }
-      expect(reserves.find { |_, reserved| reserved > 0 }.last).to eq 2
+      # In one reservation, or two if it polled while the jobs were enqueued.
+      expect(reserves.sum(&:last)).to eq 2
       stop_and_join(d, thread)
     end
   end

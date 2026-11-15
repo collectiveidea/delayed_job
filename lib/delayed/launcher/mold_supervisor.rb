@@ -73,11 +73,12 @@ module Delayed
         @threshold_index = 0
         @children = {} # pid => Child
         @early_boots = {} # pid => when it booted, before the parent recorded it
-        @pending_forks = {} # worker index => {:options, :spawn, :at}
+        @pending_forks = {} # worker index => {:options, :spawn, :sent}
         @deferred_slots = [] # [options, replaces_pid] of promoted children
         @steps = {} # old pid => replacement pid (nil until forked)
         @failures = 0 # promotions failed (or molds lost) in a row
         @reaped = {} # pid => when: exited molds, and children reaped unknown
+        @boot_failures = [] # how the active mold's children failed to boot, in a row
       end
 
       # Signal-trap safe.
@@ -168,19 +169,10 @@ module Delayed
 
       # Signal-trap safe.
       def signal_molds(signal)
-        @molds.dup.each_key do |pid|
-          Process.kill(signal, pid)
-        rescue Errno::ESRCH
-          nil
-        end
+        @molds.dup.each_key { |pid| signal(pid, signal) } # A copy: the run loop may change it meanwhile.
       end
 
     private
-
-      # Counted per mold: only the active mold's children.
-      def failed_to_boot?(info, status)
-        info.mold_pid && info.mold_pid == @active_mold && !info.booted && !status.success?
-      end
 
       def logger
         @launcher.logger
@@ -201,10 +193,19 @@ module Delayed
         info = @children[pid]
         return mark_booted(info) if info
         return @early_boots[pid] = monotonic_now unless index && mold_pid
+        mark_booted(@children[pid]) if adopt(index, pid, mold_pid) && @children[pid]
+      end
+
+      # Records a child a mold forked for a pending slot; one the parent gave
+      # up on is stopped. Returns whether it was adopted.
+      def adopt(index, pid, mold_pid)
         entry = @pending_forks.delete(index)
-        return stop_stray(pid, mold_pid) unless entry
+        unless entry
+          stop_stray(pid, mold_pid)
+          return false
+        end
         @launcher.child_started(@launcher.child_name(index), pid, entry[:options], entry[:spawn].merge(:mold_pid => mold_pid))
-        mark_booted(@children[pid]) if @children[pid]
+        true
       end
 
       def stop_stray(pid, mold_pid)
@@ -322,9 +323,7 @@ module Delayed
       end
 
       def mold_forked(child_pid, mold_pid)
-        return unless mold_pid
-        return if @molds[mold_pid] == :active # Its "m" came first.
-        return reaped_mold_reported(child_pid, mold_pid) if @reaped.key?(mold_pid)
+        return if stale_mold_line?(child_pid, mold_pid) # E.g. its "m" came first.
         if promoting?(child_pid)
           @promotion[:mold_pid] = mold_pid
           @molds[mold_pid] ||= :promoted
@@ -334,19 +333,22 @@ module Delayed
       end
 
       def mold_ready(mold_pid, child_pid)
-        return unless mold_pid
-        return if @molds[mold_pid] == :active
-        return reaped_mold_reported(child_pid, mold_pid) if @reaped.key?(mold_pid)
+        return if stale_mold_line?(child_pid, mold_pid)
         return abandon(mold_pid) unless promoting?(child_pid) && [nil, :promoted].include?(@molds[mold_pid])
         activate(mold_pid)
       end
 
-      # A mold that exited before its line was read: not tracked, and the
-      # promotion it was for (if still current) failed.
-      def reaped_mold_reported(child_pid, mold_pid)
-        return unless promoting?(child_pid)
-        @promotion[:mold_pid] = mold_pid
-        promotion_failed(:mold_exited, "Mold (pid #{mold_pid}) exited before it was ready")
+      # True for an "M" or "m" with nothing left to do: no mold pid, a mold
+      # already active, or one that exited before its line was read (not
+      # tracked then; the promotion it was for, if still current, failed).
+      def stale_mold_line?(child_pid, mold_pid)
+        return true if mold_pid.nil? || @molds[mold_pid] == :active
+        return false unless @reaped.key?(mold_pid)
+        if promoting?(child_pid)
+          @promotion[:mold_pid] = mold_pid
+          promoted_mold_exited(mold_pid)
+        end
+        true
       end
 
       def promoting?(child_pid)
@@ -399,7 +401,6 @@ module Delayed
 
       # Back-off doubling per failure in a row. A threshold promotion is
       # retried by the next ping past it; others are retried as such.
-      # Returns the delay in seconds.
       # Returns the delay in seconds, or nil once MAX_FAILURES in a row
       # disable promotion.
       def retry_promotion(trigger, message)
@@ -424,12 +425,7 @@ module Delayed
 
       def mold_forked_child(mold_pid, pid, index)
         return if @children.key?(pid) || @launcher.workers.key?(pid) # Adopted on its "b".
-        entry = @pending_forks.delete(index)
-        unless entry
-          @early_boots.delete(pid)
-          return stop_stray(pid, mold_pid)
-        end
-        @launcher.child_started(@launcher.child_name(index), pid, entry[:options], entry[:spawn].merge(:mold_pid => mold_pid))
+        @early_boots.delete(pid) unless adopt(index, pid, mold_pid)
       end
 
       def mold_fork_failed(mold_pid, index, errno)
@@ -524,9 +520,14 @@ module Delayed
         status.to_s.start_with?("pid #{pid}") ? status.to_s : "pid #{pid} #{status}"
       end
 
+      # Counted per mold: only the active mold's children.
+      def failed_to_boot?(info, status)
+        info.mold_pid && info.mold_pid == @active_mold && !info.booted && !status.success?
+      end
+
       # `reason`: how it failed (see #boot_failure).
       def count_boot_failure(reason)
-        (@boot_failures ||= []) << reason
+        @boot_failures << reason
         return unless @active_mold && @boot_failures.size >= BOOT_FAILURE_LIMIT
         mold = @active_mold
         logger.error "#{@boot_failures.size} child processes forked by mold (pid #{mold}) failed to start in a row " \

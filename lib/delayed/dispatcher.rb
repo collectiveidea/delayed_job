@@ -214,6 +214,15 @@ module Delayed
       @promoted
     end
 
+    # A signal (or the parent going away) overrides a promotion: the process
+    # then exits instead (see #promotion_cancelled?). Returns whether it was
+    # promoted. Signal-trap safe.
+    def cancel_promotion
+      promoted = @promoted
+      @promoted = false
+      promoted
+    end
+
     # Promoted, then stopped by a signal (or its parent going away) instead.
     def promotion_cancelled?
       !!@promotion_started && !@promoted
@@ -274,16 +283,14 @@ module Delayed
     # Worker.raise_signal_exceptions. QUIT: see #quit.
     def trap_signals
       trap('TERM') do
-        first = !stop? || @promoted # A promotion's stop wasn't the signal's.
-        @promoted = false
+        first = cancel_promotion || !stop? # A promotion's stop wasn't the signal's.
         Thread.new { say 'Exiting...' } if first
         stop
         raise_signal('TERM') if first && Worker.raise_signal_exceptions
       end
 
       trap('INT') do
-        first = !stop? || @promoted
-        @promoted = false
+        first = cancel_promotion || !stop?
         Thread.new { say 'Exiting...' } if first
         stop
         raise_signal('INT') if first && Worker.raise_signal_exceptions && Worker.raise_signal_exceptions != :term
@@ -304,7 +311,7 @@ module Delayed
       Delayed.check_trappable!('QUIT')
       trap('QUIT') do
         Thread.new { say 'Received SIGQUIT: interrupting running jobs and exiting...' }
-        @promoted = false
+        cancel_promotion
         quit
       end
     rescue ArgumentError => error
@@ -314,7 +321,7 @@ module Delayed
     # Like the trap, but raises no SignalException: nothing is running yet.
     def handle_pending_signal(signal)
       say "Received SIG#{signal} while starting", 'warn'
-      @promoted = false
+      cancel_promotion
       signal == 'QUIT' ? quit : stop
     end
 
@@ -386,7 +393,7 @@ module Delayed
     def supervisor_gone?
       return false unless supervisor_pid && !Array(supervisor_pid).include?(Process.ppid)
       say "Parent process #{Array(supervisor_pid).first} is gone; stopping", 'warn'
-      @promoted = false
+      cancel_promotion
       stop
       true
     end
