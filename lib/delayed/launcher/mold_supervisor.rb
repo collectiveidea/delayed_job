@@ -175,13 +175,6 @@ module Delayed
         end
       end
 
-      # A child forked by a mold may not be this process's to wait for.
-      def wait_until_gone(pid, timeout = 5)
-        deadline = monotonic_now + timeout
-        sleep 0.05 while ProcessUtil.alive?(pid) && monotonic_now < deadline
-        !ProcessUtil.alive?(pid)
-      end
-
     private
 
       # Counted per mold: only the active mold's children.

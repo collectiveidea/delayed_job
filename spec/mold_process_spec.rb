@@ -148,8 +148,8 @@ describe Delayed::Launcher::Mold, :fork do
     expect(wait_for_exit(pid, 1.5)).to be_nil # Still waiting for work.
     close_life_pipe
 
-    status = wait_for_exit(pid)
-    expect(status).to be_success, log
+    expect(wait_for_exit(pid).exitstatus).to eq(1), log
+    expect(log).to include "Mold (pid #{pid}): the parent is gone; exiting"
   end
 
   it 'forks a child for a fork record, reports it with "f", and its exit with "x"' do
@@ -244,37 +244,34 @@ describe Delayed::Launcher::Mold, :fork do
     expect(wait_for_exit(pid)).to be_success
   end
 
-  describe 'with a :mold hook hanging when the parent is gone' do
-    before { stub_const("#{described_class}::ORPHAN_GRACE", 0.2) }
-
-    it 'exits ORPHAN_GRACE after the parent, from a before(:mold) hook' do
+  describe 'when the parent is gone' do
+    it 'exits at once from a hung before(:mold) hook' do
       pid = start_mold { Delayed::Worker.lifecycle.before(:mold) { sleep } }
       sleep 0.3
       close_life_pipe
       expect(wait_for_exit(pid, 5).exitstatus).to eq 1
-      expect(log).to include "Mold (pid #{pid}): the parent is gone and its :mold hooks still run after 0.2s; exiting"
+      expect(log).to include "Mold (pid #{pid}): the parent is gone; exiting"
       expect(lines.map(&:first)).not_to include 'm'
     end
 
-    it 'exits ORPHAN_GRACE after the parent, from an after(:mold) hook' do
-      pid = ready_mold { Delayed::Worker.lifecycle.after(:mold) { sleep } }
+    it 'exits at once while retired, waiting for its children' do
+      pid = ready_mold
+      pipes.request_fork(0, described_class::NO_POOL, 1) # Sleeps until killed.
+      wait_for_line('f', pid)
+      Process.kill('URG', pid)
+      expect(wait_for_exit(pid, 1)).to be_nil
       close_life_pipe
       expect(wait_for_exit(pid, 5).exitstatus).to eq 1
-      expect(log).to include 'the parent is gone and its :mold hooks still run'
     end
 
-    it 'lets a slow hook finish within ORPHAN_GRACE' do
-      stub_const("#{described_class}::ORPHAN_GRACE", 3)
-      pid = ready_mold { Delayed::Worker.lifecycle.after(:mold) { sleep 0.3 } }
-      close_life_pipe
-      expect(wait_for_exit(pid, 5)).to be_success
-      expect(log).not_to include 'the parent is gone'
-    end
-
-    it 'runs no watchdog while forking children' do
+    it 'leaves its children without the watchdog thread' do
       pid = ready_mold
-      threads = Dir.children("/proc/#{pid}/task").map { |task| File.read("/proc/#{pid}/task/#{task}/comm").strip }
-      expect(threads.grep(/watchdog/i)).to be_empty
+      pipes.request_fork(0, described_class::NO_POOL, 1)
+      child = wait_for_line('f', pid)[1]
+      threads = Dir.children("/proc/#{child}/task").map { |task| File.read("/proc/#{child}/task/#{task}/comm").strip }
+      expect(threads.grep(/Mold parent/)).to be_empty
+      mold_threads = Dir.children("/proc/#{pid}/task").map { |task| File.read("/proc/#{pid}/task/#{task}/comm").strip }
+      expect(mold_threads.grep(/Mold parent/)).not_to be_empty # comm: 15 chars
     end
   end
 
@@ -287,7 +284,7 @@ describe Delayed::Launcher::Mold, :fork do
       end.name = 'safe-reaper'
       sleep 0.1 until Thread.list.all? { |thread| thread == Thread.current || thread.status == 'sleep' }
     end
-    close_life_pipe
+    Process.kill('TERM', pid)
     expect(wait_for_exit(pid)).to be_success
 
     expect(log).to match(/Mold \(pid #{pid}\) has 1 other thread\(s\) running, which child processes won't have: plain-worker/)
@@ -302,7 +299,7 @@ describe Delayed::Launcher::Mold, :fork do
       end
       sleep 0.1 until Thread.list.size == 2 && Thread.list.all? { |thread| thread == Thread.current || thread.status == 'sleep' }
     end
-    close_life_pipe
+    Process.kill('TERM', pid)
     expect(wait_for_exit(pid)).to be_success
 
     expect(log).not_to include 'other thread(s) running'

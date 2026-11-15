@@ -27,8 +27,6 @@ module Delayed
         pid_file = options.delete(:pid_file)
         super
         @pid_file = pid_file
-        @workers_lock = Mutex.new # Created eagerly: lazy init would race.
-        @exit_lock = Monitor.new # See #kill.
         # Created eagerly: signal traps can't lazily init safely.
         @stop_signals = Concurrent::Array.new
         @child_signals = Concurrent::Array.new
@@ -57,7 +55,7 @@ module Delayed
           end
           setup_workers
           run_loop if forking?
-          finish_kill if @killed
+          exit_forcefully if @killed
           before_graceful_exit
         ensure
           delete_pidfile
@@ -85,23 +83,16 @@ module Delayed
         schedule_kill(timeout) if timeout
       end
 
-      def kill(exit_status = 0, message = nil)
-        @kill_thread = Thread.current # Before @killed: see #finish_kill.
+      # SIGKILLs the child processes (and molds), and only that: the run loop
+      # reaps them, recovering their jobs as usual (a failed attempt), then
+      # the launcher exits with status 1 (see #exit_forcefully).
+      def kill(message = nil)
+        @kill_message = message
         @stopped = true
         @killed = true
         stop_signals << 'KILL'
-        message = " #{message}" if message
-        logger.warn "Kill invoked#{message}"
-        # Once an exit the run loop is handling is done, the children are
-        # this thread's alone: the run loop skips them (not in #workers),
-        # and nothing it does is cut short by the exit.
-        @exit_lock.synchronize do
-          killed = workers_lock.synchronize { workers.dup.tap { workers.clear } }
-          signal_workers('KILL', killed)
-          reap_killed_workers(killed)
-          logger.warn "#{parent_name} exited forcefully#{message} - pid #{$$}"
-          exit(exit_status)
-        end
+        logger.warn "Kill invoked#{" #{message}" if message}"
+        signal_workers('KILL')
       end
 
       # Used by MoldSupervisor and Mold; not public API.
@@ -211,7 +202,7 @@ module Delayed
 
       # Signal-trap safe: doesn't log.
       def forward_signal(signal)
-        # A copy: the kill timer thread may remove workers meanwhile.
+        # A copy: the run loop may remove workers meanwhile.
         workers.dup.each_key do |pid|
           Process.kill(signal, pid)
         rescue Errno::ESRCH
@@ -227,10 +218,6 @@ module Delayed
       def workers
         @workers ||= {}
       end
-
-      # Guards writes to #workers by the run loop and the kill timer thread.
-      # Traps only read a copy, as a Mutex can't be locked in a trap.
-      attr_reader :workers_lock
 
       # Signals that stopped the launcher, in order. Appended to, never
       # replaced, so traps can use it.
@@ -271,7 +258,7 @@ module Delayed
       # :streak (respawns in a row), and :mold_pid when a mold forked it.
       def child_started(worker_name, worker_pid, options, spawn)
         log_child_started(worker_name, worker_pid, options, spawn[:mold_pid])
-        workers_lock.synchronize { workers[worker_pid] = [worker_name, options] }
+        workers[worker_pid] = [worker_name, options]
         started_at[worker_pid] = monotonic_now
         respawn_streaks[worker_pid] = spawn[:streak] if spawn[:streak]
         @mold_supervisor&.child_started(worker_pid, spawn)
@@ -373,15 +360,12 @@ module Delayed
           break if @stopped && workers.empty?
         end
       rescue Errno::ECHILD
-        logger.warn 'No child processes found' unless @killed
+        logger.warn 'No child processes found'
       end
 
-      # The run loop ends once the kill timer thread has reaped the children,
-      # which then still recovers their jobs: wait for it to exit (status 1),
-      # rather than exit gracefully, cutting it short.
-      def finish_kill
-        @kill_thread.join unless @kill_thread == Thread.current
-        exit(1) # In case it didn't exit.
+      def exit_forcefully
+        logger.warn "#{parent_name} exited forcefully#{" #{@kill_message}" if @kill_message} - pid #{$$}"
+        exit(1)
       end
 
       # Polls: children forked by a mold are reported by it, and, without a
@@ -437,11 +421,7 @@ module Delayed
       end
 
       def handle_exit(worker_pid, child_status)
-        @exit_lock.synchronize { handle_exit_unlocked(worker_pid, child_status) }
-      end
-
-      def handle_exit_unlocked(worker_pid, child_status)
-        worker_name, options = workers_lock.synchronize { workers.delete(worker_pid) }
+        worker_name, options = workers.delete(worker_pid)
         return false unless worker_name
         promoted = promoted_child?(worker_pid)
         # The supervisor fills the slot of a reforked or promoted child.
@@ -558,23 +538,6 @@ module Delayed
         Process.clock_gettime(Process::CLOCK_MONOTONIC)
       end
 
-      # Recovers the jobs of every killed child, whoever reaps it. A child
-      # forked by a mold can't be waited for: polled until it's gone.
-      def reap_killed_workers(killed)
-        killed.each do |pid, (worker_name, options)|
-          begin
-            _, status = Process.waitpid2(pid)
-          rescue Errno::ECHILD
-            # Reaped by the run loop meanwhile (it skips children no longer
-            # in #workers), or forked by a mold: recovered here all the same.
-            next if @mold_supervisor && !@mold_supervisor.wait_until_gone(pid)
-            status = ReportedStatus.new(pid, nil, 9)
-          end
-          workers_lock.synchronize { workers.delete(pid) }
-          recover_jobs_of_worker(worker_name, pid, options, status)
-        end
-      end
-
       # Unlocks jobs a dead worker held, rather than waiting out max_run_time.
       # A crash counts as a failed attempt.
       def promoted_child?(pid)
@@ -611,13 +574,24 @@ module Delayed
         @kill_at = at
         Thread.new do
           sleep(timeout)
-          kill(1, "after #{timeout} second timeout")
+          kill("after #{timeout} second timeout")
+          sleep(SHUTDOWN_GRACE)
+          exit_stuck
         end
       end
 
+      # Backstop: the run loop should exit soon after the kill; if it's stuck
+      # (e.g. a hung database call), exit regardless. The pidfile is left
+      # behind, harmless: its flock is what counts.
+      def exit_stuck
+        logger.error "#{parent_name} still running #{SHUTDOWN_GRACE}s after the kill; exiting - pid #{$$}"
+        [$stdout, $stderr].each { |io| io.flush rescue nil }
+        exit!(1)
+      end
+
       # Skips workers that already exited, so a kill isn't aborted.
-      def signal_workers(signal, targets = workers.dup)
-        targets.each do |pid, (worker_name, _)|
+      def signal_workers(signal)
+        workers.dup.each do |pid, (worker_name, _)|
           Process.kill(signal, pid)
           logger.info "Sent SIG#{signal} to child process #{worker_name} (pid #{pid})"
         rescue Errno::ESRCH

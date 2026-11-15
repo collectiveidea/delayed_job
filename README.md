@@ -666,9 +666,8 @@ group, the cgroup, or the `process_spawned` events (`:mold_pid`).
   the children shouldn't share (it's passed the mold's pid and generation).
   `before(:mold)` and the heap compaction must finish within 2 minutes of the
   promoted child exiting, or the promotion fails. `after(:mold)` doesn't run
-  if the mold is killed (e.g. when replaced). If the parent dies, a hook
-  still running gets 10 seconds before the mold exits regardless (a mold
-  left running would keep the pidfile locked). An exception in a hook is
+  if the mold is killed (e.g. when replaced) or the parent dies (the mold
+  then exits at once, even mid-hook). An exception in a hook is
   reported to `on_thread_error` (context `Mold`) and fails the promotion:
 
   ```ruby

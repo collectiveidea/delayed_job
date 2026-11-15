@@ -392,42 +392,20 @@ describe 'Recovering the jobs of a dead worker process' do
     end
 
     describe '#kill' do
-      it 'recovers the jobs of the workers it kills' do
+      it 'only SIGKILLs: the run loop then reaps the workers and recovers their jobs, with an attempt' do
         launcher.send(:workers)[99] = ['delayed_job.1', {:threads => 2}]
         allow(Process).to receive(:kill)
-        allow(Process).to receive(:waitpid2).with(99).and_return([99, killed])
-        expect(launcher).to receive(:recover_jobs_of_worker).with('delayed_job.1', 99, {:threads => 2}, killed)
-        expect { launcher.kill(1, 'test') }.to raise_error(SystemExit)
-      end
-
-      it 'recovers workers the run loop reaped meanwhile, which then skips them' do
-        launcher.send(:workers)[99] = ['delayed_job.1', {}]
-        allow(Process).to receive(:kill)
-        allow(Process).to receive(:waitpid2).with(99).and_raise(Errno::ECHILD)
         recovered = []
-        allow(launcher).to receive(:recover_jobs_of_worker) { |name, pid, _, status| recovered << [name, pid, status.termsig] }
-        expect { launcher.kill(1) }.to raise_error(SystemExit)
-        expect(recovered).to eq [['delayed_job.1', 99, 9]]
-        expect(launcher.send(:handle_exit, 99, killed)).to be false # The run loop's reap.
-        expect(recovered.size).to eq 1
-      end
+        allow(launcher).to receive(:recover_jobs_of_worker) { |*args| recovered << args }
+        launcher.kill('test')
+        expect(Process).to have_received(:kill).with('KILL', 99)
+        expect(launcher.send(:workers)).to have_key(99)
+        expect(recovered).to be_empty
 
-      it 'waits for an exit the run loop is handling before killing' do
-        launcher.send(:workers)[98] = ['delayed_job.0', {}]
-        allow(Process).to receive(:kill)
-        allow(Process).to receive(:waitpid2).and_raise(Errno::ECHILD)
-        allow(launcher).to receive(:replace_worker)
-        order = Queue.new
-        allow(launcher).to receive(:recover_jobs_of_worker) do |_, pid, *|
-          sleep 0.2 if pid == 98
-          order << pid
-        end
-        handling = Thread.new { launcher.send(:handle_exit, 98, killed) }
-        sleep 0.01 until launcher.instance_variable_get(:@exit_lock).mon_locked?
-        launcher.send(:workers)[99] = ['delayed_job.1', {}]
-        expect { launcher.kill(1) }.to raise_error(SystemExit)
-        handling.join
-        expect(Array.new(order.size) { order.pop }).to eq [98, 99]
+        expect(launcher).not_to receive(:add_worker)
+        expect(launcher.send(:handle_exit, 99, killed)).to be true
+        expect(recovered).to eq [['delayed_job.1', 99, {:threads => 2}, killed, {:promoted => false}]]
+        expect(logger).not_to have_received(:warn).with(/was SIGKILLed/)
       end
     end
   end

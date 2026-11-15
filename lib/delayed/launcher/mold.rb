@@ -17,10 +17,6 @@ module Delayed
       # promotion was cancelled by a signal, or its threads didn't stop).
       PROMOTION_FAILED = 75
 
-      # Seconds a :mold hook (or the heap warmup) may still run once the
-      # parent is gone, before the mold exits regardless.
-      ORPHAN_GRACE = 10
-
       # Index of the pool with these options' queues, or NO_POOL.
       def self.pool_index(pools, options)
         return NO_POOL unless pools
@@ -107,24 +103,20 @@ module Delayed
 
       # Yields once the signal traps are in place (to name the process).
       # Returns when retired (at once if the parent adopts its children, else
-      # once they have exited), when stopping and its children have exited,
-      # or when the parent is gone (its children then stop by themselves).
+      # once they have exited), or when stopping and its children have
+      # exited. Exits (status 1) as soon as the parent is gone.
       def run
         @wake_read, @wake_write = IO.pipe
         trap_signals
         return if @launcher.child_signals.any? # Signalled before the traps.
         yield if block_given?
-        watchdog = watch_parent
+        watch_parent
         Delayed::Worker.lifecycle.run_callbacks(:mold, Process.pid, @info[:generation]) do
           @launcher.warmup_heap # After the hooks, which may free memory.
           warn_about_threads
-          stop_watching(watchdog) # Not in the children; fork_loop watches.
           @pipes.report("m #{Process.pid} #{@info[:promoted_pid]}")
           fork_loop
-          watchdog = watch_parent # For the after(:mold) hooks.
         end
-      ensure
-        stop_watching(watchdog)
       end
 
     private
@@ -147,25 +139,18 @@ module Delayed
         Signal.trap('HUP') {} # rubocop:disable Lint/EmptyBlock
       end
 
-      # Outside fork_loop (in hooks, which may hang), a thread notices the
-      # parent is gone: a mold left running would hold the pidfile's lock,
-      # keeping a new launcher from starting. Exits ORPHAN_GRACE seconds
-      # later, if still running.
+      # Exits at once when the parent is gone (as Puma's workers do), whatever
+      # the mold is doing, e.g. a hung :mold hook: left running, it would
+      # keep the pidfile locked. Its children then stop by themselves. Only
+      # the forking thread is in a fork, so they don't have this one.
       def watch_parent
         watchdog = Thread.new do
           @pipes.life_read.wait_readable
-          sleep ORPHAN_GRACE
-          @launcher.logger.error "Mold (pid #{Process.pid}): the parent is gone and its :mold hooks still run " \
-                                 "after #{ORPHAN_GRACE}s; exiting"
+          @launcher.logger.warn "Mold (pid #{Process.pid}): the parent is gone; exiting"
           @launcher.flush_and_exit!(1)
         end
         watchdog.name = 'Mold parent watchdog'
         watchdog.thread_variable_set(:fork_safe, true) # Here: before #warn_about_threads looks.
-        watchdog
-      end
-
-      def stop_watching(watchdog)
-        watchdog&.kill&.join
       end
 
       # Threads don't survive fork: whatever they were doing is frozen,
@@ -194,7 +179,6 @@ module Delayed
         loop do
           ready = wait_for_work
           reap_children
-          return if ready.include?(@pipes.life_read)
           fork_requested_child if ready.include?(@pipes.fork_read) && !done?
           return if finished?
         end
@@ -211,7 +195,7 @@ module Delayed
 
       # Returns the readable pipes; wakes at least every second.
       def wait_for_work
-        readers = [@wake_read, @pipes.life_read]
+        readers = [@wake_read]
         readers << @pipes.fork_read unless done?
         ready = IO.select(readers, nil, nil, 1)&.first || []
         read_wakeups

@@ -1100,94 +1100,54 @@ describe Delayed::Launcher::Forking, 'stopping worker processes' do
     end
   end
 
-  describe 'the workers list, shared with the kill timer thread' do
-    it 'is guarded by a lock created with the launcher' do
-      expect(launcher.send(:workers_lock)).to be_a Mutex
-    end
-
-    it 'forwards a signal from a copy, while the kill timer thread removes workers' do
+  describe 'the workers list' do
+    it 'forwards a signal from a copy, while the run loop removes workers' do
       allow(Process).to receive(:kill) do |_signal, pid|
         launcher.send(:workers).delete(12) if pid == 11 # Reaped meanwhile.
       end
       expect { traps['TERM'].call }.not_to raise_error
       expect(Process).to have_received(:kill).with('TERM', 11)
     end
-
-    it 'stays consistent when the run loop and the kill timer thread change it at once' do
-      launcher.send(:workers).clear
-      pids = (1000..1199).to_a
-      allow(launcher).to receive(:fork_worker) { pids.shift }
-      reaped = Queue.new
-      allow(launcher).to receive(:recover_jobs_of_worker) { |_name, pid, *| reaped << pid }
-      allow(Process).to receive(:waitpid2) { |pid| [pid, double(:success? => true)] }
-      adder = Thread.new { 200.times { launcher.send(:add_worker, {}) } }
-      reaper = Thread.new do
-        20.times do
-          launcher.send(:reap_killed_workers, launcher.send(:workers_lock).synchronize { launcher.send(:workers).dup })
-        end
-      end
-      [adder, reaper].each(&:join)
-      gone = Array.new(reaped.size) { reaped.pop }
-      # Every child process is either still listed or was reaped, once.
-      expect(gone.uniq.size).to eq gone.size
-      expect(launcher.send(:workers).keys + gone).to match_array (1000..1199).to_a
-    end
   end
 
   describe '#kill' do
-    it 'finishes, exiting, when a worker exited just before it' do
+    it 'SIGKILLs the workers, skipping one that already exited, without exiting' do
       allow(Process).to receive(:kill).with('KILL', 11).and_raise(Errno::ESRCH)
       allow(Process).to receive(:kill).with('KILL', 12)
-      allow(Process).to receive(:waitpid2).and_raise(Errno::ECHILD)
-      expect { launcher.kill(1, 'after 30 second timeout') }.to raise_error(SystemExit) { |e| expect(e.status).to eq 1 }
-      expect(logger).to have_received(:warn).with(/exited forcefully after 30 second timeout/)
+      expect(launcher).not_to receive(:exit)
+      launcher.kill('after 30 second timeout')
+      expect(Process).to have_received(:kill).with('KILL', 12)
+      expect(logger).to have_received(:warn).with('Kill invoked after 30 second timeout')
+      expect(launcher).to be_stopped
     end
 
-    it 'finishes from the kill timer thread when a worker exited just before it' do
-      allow(Process).to receive(:kill).with('KILL', 11).and_raise(Errno::ESRCH)
-      allow(Process).to receive(:kill).with('KILL', 12)
-      allow(Process).to receive(:waitpid2).and_raise(Errno::ECHILD)
-      exited = Queue.new
-      allow(launcher).to receive(:exit) { |status| exited << status }
-      thread = launcher.send(:schedule_kill, 0.01)
-      thread.report_on_exception = false
-      expect(Timeout.timeout(2) { exited.pop }).to eq 1
-      expect { thread.join(2) }.not_to raise_error
+    it 'leaves the launch to exit with status 1, once the run loop has reaped the workers' do
+      allow(Process).to receive(:kill)
+      launcher.kill('after 30 second timeout')
+      expect { launcher.send(:exit_forcefully) }.to raise_error(SystemExit) { |e| expect(e.status).to eq 1 }
+      expect(logger).to have_received(:warn).with(/exited forcefully after 30 second timeout/)
     end
   end
 
-  describe 'the run loop ending while the kill timer thread recovers jobs' do
-    it 'waits for it, and exits with status 1 rather than gracefully' do
+  describe 'the kill timer thread' do
+    before { stub_const("#{described_class}::SHUTDOWN_GRACE", 0.05) }
+
+    it 'kills, then exits regardless if the run loop is still stuck SHUTDOWN_GRACE later' do
       allow(Process).to receive(:kill)
-      allow(Process).to receive(:waitpid2) { |pid| [pid, Delayed::ReportedStatus.new(pid, nil, 9)] }
-      recovered = Queue.new
-      allow(launcher).to receive(:recover_jobs_of_worker) do |_, pid, *|
-        sleep 0.2
-        recovered << pid
-      end
-      exits = Queue.new
-      allow(launcher).to receive(:exit) { |status| exits << [status, recovered.size] }
-      killer = Thread.new { launcher.kill(1, 'after 1 second timeout') }
-      sleep 0.01 until launcher.send(:workers).empty? # The run loop would end now.
-      launcher.send(:finish_kill)
-      killer.join(2)
-
-      expect(Array.new(exits.size) { exits.pop }).to eq [[1, 2], [1, 2]]
-      expect(logger).not_to have_received(:info).with(/exited gracefully/)
-    end
-
-    it "doesn't log 'No child processes found' once killed" do
-      launcher.instance_variable_set(:@killed, true)
-      launcher.instance_variable_set(:@stopped, true)
-      allow(Process).to receive(:wait2).and_raise(Errno::ECHILD)
-      launcher.send(:run_loop)
-      expect(logger).not_to have_received(:warn).with('No child processes found')
+      exited = Queue.new
+      allow(launcher).to receive(:exit!) { |status| exited << status }
+      launcher.send(:schedule_kill, 0.01)
+      expect(Timeout.timeout(2) { exited.pop }).to eq 1
+      expect(Process).to have_received(:kill).with('KILL', 11)
+      expect(logger).to have_received(:error).with(/still running 0.05s after the kill; exiting/)
     end
   end
 
   describe '#schedule_kill' do
+    before { allow(launcher).to receive(:exit_stuck) } # Would exit! this process.
+
     it 'kills the workers after the timeout' do
-      expect(launcher).to receive(:kill).with(1, 'after 0.05 second timeout')
+      expect(launcher).to receive(:kill).with('after 0.05 second timeout')
       launcher.send(:schedule_kill, 0.05).join(2)
     end
 
@@ -1208,7 +1168,7 @@ describe Delayed::Launcher::Forking, 'stopping worker processes' do
       sooner = launcher.send(:schedule_kill, 0.05)
       expect(sooner).to be_a Thread
       sooner.join(2)
-      expect(launcher).to have_received(:kill).with(1, 'after 0.05 second timeout')
+      expect(launcher).to have_received(:kill).with('after 0.05 second timeout')
     end
   end
 end
