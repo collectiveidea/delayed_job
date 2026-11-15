@@ -9,10 +9,7 @@ module Delayed
       # workers, so they can interrupt and release their jobs.
       SHUTDOWN_GRACE = Delayed::Dispatcher::INTERRUPT_GRACE + 5
 
-      # Exit status of a child process whose job threads didn't stop (a job
-      # ignored its interrupt): not a clean exit, so the parent recovers the
-      # jobs it held, counting a failed attempt.
-      JOBS_STUCK = 76
+      JOBS_STUCK = ExitStatus::JOBS_STUCK
 
       # A child dying within RESPAWN_MIN_UPTIME seconds is replaced after a
       # delay doubling per death in a row (up to RESPAWN_MAX_DELAY), so a

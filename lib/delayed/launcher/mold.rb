@@ -13,9 +13,7 @@ module Delayed
       FORK_RECORD_BYTES = 12
       NO_POOL = 0xFFFF_FFFF
 
-      # Exit status of a promoted child process that forks no mold (its
-      # promotion was cancelled by a signal, or its threads didn't stop).
-      PROMOTION_FAILED = 75
+      PROMOTION_FAILED = ExitStatus::PROMOTION_FAILED
 
       # Index of the pool with these options' queues, or NO_POOL.
       def self.pool_index(pools, options)

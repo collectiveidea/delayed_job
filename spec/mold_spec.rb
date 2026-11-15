@@ -233,6 +233,14 @@ describe 'Mold process (Worker.mold)' do
     end
   end
 
+  describe Delayed::ExitStatus do
+    it "names the launchers' non-crash exit statuses" do
+      expect([described_class::PROMOTION_FAILED, described_class::JOBS_STUCK]).to eq [75, 76]
+      expect(Delayed::Launcher::Mold::PROMOTION_FAILED).to eq described_class::PROMOTION_FAILED
+      expect(Delayed::Launcher::Forking::JOBS_STUCK).to eq described_class::JOBS_STUCK
+    end
+  end
+
   describe Delayed::ReportedStatus do
     it 'reads like Process::Status' do
       exited = described_class.new(10, 3, nil)

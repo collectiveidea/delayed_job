@@ -27,6 +27,7 @@ Locks:
 * Pidfile for forking mode: `--pid-file[=PATH]` (`PIDFILE=1` or a path; launcher option `:pid_file`) makes a second launcher exit with `Delayed::AlreadyRunningError` while the first, or any of its worker processes, still runs. Liveness is decided by a lock on the file, so a stale file never blocks a start.
 
 Monitoring:
+* `Delayed::ExitStatus::PROMOTION_FAILED` (75) and `JOBS_STUCK` (76): exit statuses of a forked child process that aren't crashes, for `process_exited` subscribers to tell apart.
 * Instrumentation: `ActiveSupport::Notifications` events `process_started`, `process_stopped`, `process_spawned`, `process_exited`, `jobs_reserved`, `job_performed`, `job_attempt_failed`, `job_failed`, `job_lock_lost`, `job_stuck`, `jobs_interrupted`, `jobs_released` and `thread_error` (`<event>.delayed_job`; see docs/monitoring.md). Subscriber exceptions are logged and ignored. `Delayed::LogSubscriber` logs them (opt-in: `Delayed::LogSubscriber.attach_to :delayed_job`).
 * `Delayed::Worker.on_thread_error` (taking the error and its info, the error, or nothing) is called with errors outside a job's own handling: failed reservations and lock heartbeats, crashed threads, failing `failure` hooks, failed recovery of a dead process' jobs.
 * `Delayed::Worker.silence_logging = true` (`--silence-logging`, `SILENCE_LOGGING=1`) keeps polling and lock-refresh queries out of the log, on the polling thread only (backend hook `Delayed::Job.silence_logging(&block)`).
