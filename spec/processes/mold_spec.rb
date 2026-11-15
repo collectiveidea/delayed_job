@@ -186,11 +186,22 @@ describe 'Mold process', :processes do
     output = +''
     # SQLite's own files are left out: it opens its -shm file lazily, so
     # their count varies by one from child to child.
+    open_fds = lambda do |child|
+      Dir.children("/proc/#{child}/fd").count { |fd| !File.readlink("/proc/#{child}/fd/#{fd}").start_with?(@process_db) rescue false }
+    rescue Errno::ENOENT
+      nil # It exited.
+    end
+    # A child is logged as started when forked, while still booting with
+    # fds it is about to close: take each child's fewest over a second (a
+    # leaked fd stays open), then the most of any child.
     fds = lambda do |mold|
       wait_for { mold_children(output << read_available(reader), mold).size >= 2 }
-      mold_children(output, mold).map do |child|
-        Dir.children("/proc/#{child}/fd").count { |fd| !File.readlink("/proc/#{child}/fd/#{fd}").start_with?(@process_db) rescue false }
-      end.max
+      children = mold_children(output, mold)
+      samples = Array.new(10) do
+        sleep 0.1
+        children.map { |child| open_fds.call(child) }
+      end
+      samples.transpose.filter_map { |counts| counts.compact.min }.max
     end
     molds = [read_until(reader, output, /Mold \(pid (\d+)\) ready/)[1].to_i]
     counts = [fds.call(molds.last)]
